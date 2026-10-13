@@ -168,7 +168,7 @@ class EmailService:
             TemplateVariable.USER_NAME.value: f"{user.first_name} {user.last_name}",
             TemplateVariable.OTP.value: otp,
             TemplateVariable.EXPIRY_MINUTES.value: otp_expiry_minutes,
-            "company_name": current_app.config.get("COMPANY_NAME", "HMS"),
+            "company_name": current_app.config.get("COMPANY_NAME", "CMS"),
         }
 
     def _dispatch(self, code, user, otp, otp_expiry_minutes) -> bool:
@@ -207,7 +207,7 @@ class EmailService:
                 ", ".join(rendered["missing_variables"]),
             )
 
-        subject = rendered.get("subject") or "HMS Notification"
+        subject = rendered.get("subject") or "CMS Notification"
         html_body = rendered.get("html_body")
 
         if not html_body:

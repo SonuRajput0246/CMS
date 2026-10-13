@@ -1,10 +1,9 @@
-"""Every module name that appears in any instance's module seeder.
+"""Every module name that appears in the module seeder.
 
-Read from the seeder modules rather than restated here, so this cannot drift
-out of step with them. Used by audit_authorization.py to tell a typo in a
-requires_module() call apart from a database that holds another instance's
-module set -- a distinction that decides whether the fix is a code change or a
-seed run.
+Read from the seeder module rather than restated here, so this cannot drift
+out of step with it. Used by audit_authorization.py to tell a typo in a
+requires_module() call apart from a database that holds a stale module set --
+a distinction that decides whether the fix is a code change or a seed run.
 """
 import importlib
 
@@ -12,7 +11,6 @@ import importlib
 def known_module_names():
     names = set()
     for path in (
-        "src.database.seeders.hms.module_seeder",
         "src.database.seeders.cms.module_seeder",
     ):
         try:

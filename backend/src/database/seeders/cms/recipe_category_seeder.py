@@ -18,13 +18,7 @@ recipe_categories_data = [
 
 
 def seed_recipe_categories():
-    """Idempotent: matched on `name`, which is the stable key.
-
-    Runs on both instances -- the categories table is harmless on HMS and the
-    cost is 6 rows. Gating it on INSTANCE_TYPE would mean an operator who
-    switches a CMS instance back to HMS and forward again loses nothing, but
-    would also gain nothing.
-    """
+    """Idempotent: matched on `name`, which is the stable key."""
     try:
         for row in recipe_categories_data:
             stmt = select(RecipeCategory).filter_by(name=row["name"], is_deleted=False)

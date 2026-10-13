@@ -403,7 +403,7 @@ class TemplateResolver:
 
         if channel == "email":
             fallback = render_fallback_email(
-                f"{code.replace('_', ' ').title()} from HMS",
+                f"{code.replace('_', ' ').title()} from CMS",
                 context_stub,
             )
             result = {

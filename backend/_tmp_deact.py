@@ -8,7 +8,7 @@
 # from src.api.services.auth_service import AuthService
 #
 # app = create_app()
-# EMAIL = 'deact_flow@hmslocal.test'
+# EMAIL = 'deact_flow@cmslocal.test'
 # PWD = 'Str0ng!Passw0rd'
 #
 # with app.app_context():

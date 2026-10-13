@@ -6,7 +6,7 @@ def generate_secret():
 def get_uri(email, secret):
     return pyotp.TOTP(secret).provisioning_uri(
         name=email,
-        issuer_name="HMS-2026"
+        issuer_name="CMS-2026"
     )
 
 def verify_otp(secret, otp):

@@ -35,11 +35,9 @@ def register_error_handlers(app):
         This has to exist because the generic Exception handler below catches
         everything, and HTTPException is itself an Exception. Without it every
         404 came back as a 500 "internal server error" with a full traceback
-        logged as an unhandled fault -- including the 404s that blueprint
-        gating returns on purpose when a CMS process is asked for a hotel
-        endpoint. A client could not tell "this instance does not serve that"
-        from "the server crashed", and real faults were buried under routine
-        404 noise.
+        logged as an unhandled fault. A client could not tell "no such
+        endpoint" from "the server crashed", and real faults were buried under
+        routine 404 noise.
 
         Flask picks the most specific handler, so this wins over Exception for
         every HTTP status regardless of registration order.

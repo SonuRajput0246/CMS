@@ -41,7 +41,7 @@ class UserAccountRoute:
                 200
             )
             response.delete_cookie(
-                key="hms_refreshToken",
+                key="cms_refreshToken",
                 httponly=True,
                 secure=current_app.config["COOKIE_SECURE"],
                 samesite=current_app.config["COOKIE_SAMESITE"],
@@ -68,7 +68,7 @@ class UserAccountRoute:
                     200
                 )
                 response.delete_cookie(
-                    key="hms_refreshToken",
+                    key="cms_refreshToken",
                     httponly=True,
                     secure=current_app.config["COOKIE_SECURE"],
                     samesite=current_app.config["COOKIE_SAMESITE"],
@@ -76,7 +76,7 @@ class UserAccountRoute:
                 )
                 return response
             else:
-                return jsonify({"status": True, "message": "You have active reservation. Your account deletion request has been registered."}), 200
+                return jsonify({"status": True, "message": "Your account deletion request has been registered for review."}), 200
         except Exception as e:
             self.account_service.db.rollback()
             logging.error(f"Delete My Account Error: {str(e)}", exc_info=True)

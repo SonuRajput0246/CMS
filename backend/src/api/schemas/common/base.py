@@ -9,8 +9,6 @@ class BaseSchema(Schema):
         unknown = EXCLUDE
 
     OPTIONAL_FIELDS =  (
-        "reservation_status",
-        "search_room_number_value",
         "search_value",
         "deactivation_reason",
         "deletion_reason",

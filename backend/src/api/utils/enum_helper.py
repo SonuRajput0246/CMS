@@ -16,8 +16,8 @@ NOTE ON DEFAULTS
 ----------------
 `default_value` returns the option flagged `is_default`. That is the right
 answer for "what state does a new row start in", and the wrong answer for "which
-specific state does this transition target" -- see the lifecycle constants in
-reservation_service.py for those.
+specific state does this transition target" -- resolve that from the row being
+transitioned, not from the default.
 """
 import logging
 
@@ -77,9 +77,9 @@ class EnumHelper:
     def default_value(self, enum_key: str) -> str:
         """The option flagged `is_default` for one enum definition.
 
-        Used for "what state does a new row start in" -- e.g. a new booking
-        begins at the default `reservation_status`, a new room at the default
-        `room_status`.
+        Used for "what state does a new row start in" -- e.g. a new order
+        begins at the default `cms_order_status`, a new table at the default
+        `table_status`.
         """
         if enum_key not in self._default_cache:
             definition = self._definition(enum_key)

@@ -78,9 +78,10 @@ class UserAccountService:
         if not bcrypt.check_password_hash(user.password.encode('utf-8'), data['password'].encode('utf-8')):
             return {"error": "Provided password is incorrect", "code": 403}
 
-        ## Check for any active reservation and user role
-        ## If not any active reservations user role is "guest" (match role id)
-        isActiveReservationAvailable = False
+        ## Only a super admin deletes immediately. Everyone else gets a pending
+        ## request an admin reviews, which is also the path to take for a user
+        ## with live orders.
+        isImmediateDeletion = user.role_id == 1
         ### Add this check in deactivate use also
 
         ## Validate the enum-backed columns before writing. Keys must match
@@ -99,7 +100,7 @@ class UserAccountService:
                 False, next(iter(errors.values())), None, 400
             )
 
-        if not isActiveReservationAvailable and user.role_id == 1:
+        if isImmediateDeletion:
             deletion_request = AccountDeletions(
                 user_id=user_id,
                 reason=data.get("deletion_reason"),

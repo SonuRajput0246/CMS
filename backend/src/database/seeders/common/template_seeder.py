@@ -58,7 +58,7 @@ EMAIL_BODY_TAIL = (
     "<p>This OTP is valid for <b>{{ expiry_minutes }} minutes</b>.</p>"
     "<p>If you did not request this, please ignore this email.</p>"
     "<br>"
-    "<p>Regards,<br><b>HMS</b></p>"
+    "<p>Regards,<br><b>CMS</b></p>"
 )
 
 

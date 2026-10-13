@@ -427,7 +427,7 @@ class AuthService:
 
     def get_fresh_tokens(self):
         ## Read refresh token from HttpOnly cookie
-        refresh_token = request.cookies.get("hms_refreshToken")
+        refresh_token = request.cookies.get("cms_refreshToken")
         if not refresh_token:
             return {"error": "No refresh token found.", "code": 400}
 

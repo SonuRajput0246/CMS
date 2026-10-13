@@ -1,7 +1,7 @@
 """Admin CRUD for the template store.
 
 Distinct from `template_resolver`, which is the read-only send path. This
-class backs the Angular screens in src/app/hms/templates and is the only
+class backs the Angular templates screens and is the only
 writer to the `message_templates` table.
 
 GUARANTEES ENFORCED HERE (not in the schema, because they need the database)

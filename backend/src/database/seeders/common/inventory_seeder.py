@@ -11,11 +11,9 @@ inventory_items = [
     {"name": "Cooking Oil", "unit_cost": "180.00", "category": "Food", "quantity": 50, "unit": "ltr"},
     {"name": "Sugar", "unit_cost": "50.00", "category": "Food", "quantity": 40, "unit": "kg"},
 
-    ## The rest of the kitchen. Added so CMS recipes have something to cost
+    ## The rest of the kitchen. Added so recipes have something to cost
     ## against -- a recipe's cost is derived from its ingredient lines, and
-    ## with only rice/oil/sugar no realistic dish could be priced. The Food
-    ## category is shared with HMS, which is harmless: an unused stock line in
-    ## a hotel's inventory costs nothing.
+    ## with only rice/oil/sugar no realistic dish could be priced.
     {"name": "Wheat Flour", "unit_cost": "40.00", "category": "Food", "quantity": 60, "unit": "kg"},
     {"name": "Paneer", "unit_cost": "320.00", "category": "Food", "quantity": 20, "unit": "kg"},
     {"name": "Chicken", "unit_cost": "280.00", "category": "Food", "quantity": 25, "unit": "kg"},
@@ -30,18 +28,18 @@ inventory_items = [
     {"name": "Milk", "unit_cost": "60.00", "category": "Beverage", "quantity": 40, "unit": "ltr"},
     {"name": "Tea Powder", "unit_cost": "400.00", "category": "Beverage", "quantity": 3, "unit": "kg"},
 
-    ## Housekeeping
-    {"name": "Soap", "unit_cost": "12.00", "category": "Housekeeping", "quantity": 300, "unit": "pcs"},
-    {"name": "Shampoo Sachet", "unit_cost": "8.00", "category": "Housekeeping", "quantity": 250, "unit": "pcs"},
-    {"name": "Towels", "unit_cost": "150.00", "category": "Housekeeping", "quantity": 150, "unit": "pcs"},
+    ## Packaging
+    {"name": "Takeaway Box", "unit_cost": "9.00", "category": "Packaging", "quantity": 500, "unit": "pcs"},
+    {"name": "Paper Cup", "unit_cost": "6.00", "category": "Packaging", "quantity": 600, "unit": "pcs"},
+    {"name": "Food Carry Bag", "unit_cost": "4.00", "category": "Packaging", "quantity": 800, "unit": "pcs"},
+
+    ## Cleaning
+    {"name": "Dishwash Liquid", "unit_cost": "95.00", "category": "Cleaning", "quantity": 40, "unit": "ltr"},
+    {"name": "Sanitizer", "unit_cost": "70.00", "category": "Cleaning", "quantity": 35, "unit": "ltr"},
 
     ## Maintenance
     {"name": "Light Bulbs", "unit_cost": "45.00", "category": "Maintenance", "quantity": 60, "unit": "pcs"},
-    {"name": "Cleaning Chemicals", "unit_cost": "180.00", "category": "Maintenance", "quantity": 25, "unit": "ltr"},
-
-    ## Laundry
-    {"name": "Detergent Powder", "unit_cost": "120.00", "category": "Laundry", "quantity": 80, "unit": "kg"},
-    {"name": "Fabric Softener", "unit_cost": "220.00", "category": "Laundry", "quantity": 30, "unit": "ltr"}
+    {"name": "Gas Cylinder Regulator", "unit_cost": "850.00", "category": "Maintenance", "quantity": 4, "unit": "pcs"}
 ]
 
 def seed_inventories():

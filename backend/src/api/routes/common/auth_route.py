@@ -36,7 +36,7 @@ class AuthRoute:
             "data": session_data["user_data"]
         }), 200)
         response.set_cookie(
-            key="hms_refreshToken",
+            key="cms_refreshToken",
             value=session_data["refresh_token"],
             httponly=True,
             secure=current_app.config["COOKIE_SECURE"],
@@ -141,7 +141,7 @@ class AuthRoute:
             }), 200)
 
             response.set_cookie(
-                key="hms_refreshToken",
+                key="cms_refreshToken",
                 value=session_data["refresh_token"],
                 httponly=True,
                 secure=current_app.config["COOKIE_SECURE"],
@@ -173,7 +173,7 @@ class AuthRoute:
             }), 200)
 
             response.set_cookie(
-                key="hms_refreshToken",
+                key="cms_refreshToken",
                 value=session_data["refresh_token"],
                 httponly=True,
                 secure=current_app.config["COOKIE_SECURE"],
@@ -206,7 +206,7 @@ class AuthRoute:
                 200
             )
             response.delete_cookie(
-                key="hms_refreshToken",
+                key="cms_refreshToken",
                 httponly=True,
                 secure=current_app.config["COOKIE_SECURE"],
                 samesite=current_app.config["COOKIE_SAMESITE"],

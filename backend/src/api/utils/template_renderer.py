@@ -54,12 +54,12 @@ LAYOUT_RELATIVE_PATH = os.path.join("templates", "emails", "layout.html")
 
 ## Fallback copy used when a template row is missing, inactive, or fails to
 ## render. A send must degrade rather than break the auth flow.
-FALLBACK_SUBJECT = "Notification from HMS"
+FALLBACK_SUBJECT = "Notification from CMS"
 FALLBACK_MESSAGE = (
     "<p>Hello {{ user_name }},</p>"
     "<p>A notification was generated for your account but the message "
     "template could not be loaded. Please contact support if this persists.</p>"
-    "<p>Regards,<br><b>HMS</b></p>"
+    "<p>Regards,<br><b>CMS</b></p>"
 )
 
 ON_MISSING_EMPTY = "empty"
@@ -158,8 +158,8 @@ def render(
 
 
 def _project_root() -> str:
-    """HMS_Flask package root, derived from this file's location."""
-    ## src/api/utils/template_renderer.py -> up 4 -> HMS_Flask/
+    """Package root, derived from this file's location."""
+    ## src/api/utils/template_renderer.py -> up 4 -> backend/
     return os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
     )

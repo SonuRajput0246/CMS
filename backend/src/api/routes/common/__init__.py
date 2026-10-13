@@ -8,10 +8,6 @@ Import the specific module you need directly:
     from src.api.routes.common.auth_route import auth_bp
 
 Bucket layout mirrors src/api/models:
-  common/  reachable from both instance trees
-  hms/     hotel only
-  cms/     cafe only
-
-Bucket membership was derived from which blueprint gate in app.py reaches the
-module through the import graph, not from its filename.
+  common/  shared infrastructure
+  cms/     cafe domain
 """

@@ -3,35 +3,38 @@ from src.database.session import db_session
 from src.api.models.common.login_sliders_model import LoginSliders
 from datetime import datetime, timezone
 
+## Image slots are unchanged so the carousel keeps working; only the captions
+## are product-neutral. The underlying files are still hotel photography and
+## should be replaced with cafe imagery.
 sliders = [
     {
-        "title": "Welcome to HMS",
+        "title": "Welcome to CMS",
         "image_path": "assets/images/login_slider/slider_img_19.avif",
-        "alt_text": "Hotel lobby",
+        "alt_text": "Cafe interior",
         "display_order": 1
     },
     {
-        "title": "Hotel",
+        "title": "Our Cafe",
         "image_path": "assets/images/login_slider/slider_img_26.webp",
-        "alt_text": "Hotel",
+        "alt_text": "Cafe",
         "display_order": 2
     },
     {
-        "title": "Reception",
+        "title": "Service Counter",
         "image_path": "assets/images/login_slider/slider_img_04.avif",
-        "alt_text": "Reception",
+        "alt_text": "Service counter",
         "display_order": 3
     },
     {
-        "title": "Luxury Rooms",
+        "title": "Dining Area",
         "image_path": "assets/images/login_slider/slider_img_24.avif",
-        "alt_text": "Luxury room",
+        "alt_text": "Dining area",
         "display_order": 4
     },
     {
         "title": "Fine Dining",
         "image_path": "assets/images/login_slider/slider_img_23.jpg",
-        "alt_text": "Hotel restaurant",
+        "alt_text": "Restaurant",
         "display_order": 5
     },
     {
@@ -41,9 +44,9 @@ sliders = [
         "display_order": 6
     },
     {
-        "title": "Room Service",
+        "title": "Cafe Service",
         "image_path": "assets/images/login_slider/slider_img_03.webp",
-        "alt_text": "Room Service",
+        "alt_text": "Cafe service",
         "display_order": 7
     },
     {

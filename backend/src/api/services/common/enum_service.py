@@ -10,17 +10,14 @@ from src.api.models import EnumDefinition, EnumOption
 ##
 ## Adding a new OPTION never touches this map. Adding a new enum-backed COLUMN
 ## is one line here.
+##
+## Only enum-backed columns that are actually validated on a write path belong
+## here. CMS order/table columns carry SQLAlchemy Enum types rather than these
+## VARCHAR+enum_options pairs, so they do not appear.
 ENUM_COLUMN_BINDINGS = {
     ("users", "deactivated_by"): "account_deactivated_by",
     ("account_deletions", "account_deletion_status"): "account_deletion_status",
     ("account_deletions", "account_deleted_by"): "account_deleted_by",
-    ("guests", "id_type"): "guests_id_type",
-    ("additional_guests", "id_type"): "guests_id_type",
-    ("rooms", "room_status"): "room_status",
-    ("reservations", "reservation_status"): "reservation_status",
-    ("payments", "payment_type"): "payment_type",
-    ("payments", "payment_method"): "payment_method",
-    ("payments", "payment_status"): "payment_status",
 }
 
 
@@ -164,17 +161,17 @@ class EnumService:
         """
         Resolve the enum_key backing a bare column name.
 
-        Only unambiguous names resolve: 'id_type' maps to two tables, so it is
-        rejected and the caller must pass the (table, column) pair.
+        Only unambiguous names resolve. Every remaining binding has a column
+        name of its own, so today this always returns None; the guard is kept
+        because it is what stops a future binding that reuses a column name
+        from silently resolving to the wrong enum. The caller must then pass
+        the (table, column) pair instead.
         """
         matches = {
             enum_key
             for (table, col), enum_key in ENUM_COLUMN_BINDINGS.items()
             if col == column
         }
-        ## 'room_status' is registered against rooms.room_status, so a bare
-        ## name can be ambiguous only when two tables bind the same column
-        ## name to different enums.
 
         if len(matches) == 1:
             return matches.pop()

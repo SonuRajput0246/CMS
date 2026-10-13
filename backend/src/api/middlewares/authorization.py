@@ -11,10 +11,9 @@ This module makes it the server's decision.
 
 Design notes worth keeping:
 
-* **Modules are named, not numbered.** Module ids differ per instance -- 3 is
-  TABLE on CMS and something else on HMS -- so keying enforcement on a name
-  resolved against the running instance avoids the shared-database trap that
-  Phase 8 documented, where the module tree is whichever instance last seeded.
+* **Modules are named, not numbered.** Module ids are declared ids in the
+  module seeder, but keying enforcement on a name keeps the decision readable
+  and survives a database whose module tree was seeded by an older build.
 
 * **There is no wildcard.** ROLE_PERMISSIONS gives SUPER_ADMIN a "*", but
   role_seeder expands it into concrete role_module_access rows at seed time. So
@@ -121,8 +120,8 @@ def requires_module(module_name):
     authenticated view, and it does both jobs.
 
     module_name is a module name as it appears in the module seeder
-    (REPORTS, TABLE, RESERVATIONS, ...), or SELF_SERVICE for routes that only
-    need a valid session.
+    (REPORTS, TABLE, ORDER, ...), or SELF_SERVICE for routes that only need a
+    valid session.
     """
     def decorator(f):
         @wraps(f)
@@ -141,9 +140,8 @@ def requires_module(module_name):
                     if not _module_exists(module_name):
                         logging.error(
                             "Authorization refused: module %r is not in the "
-                            "module tree for this instance. The database may "
-                            "hold another instance's modules -- run this "
-                            "instance's seeders. user_id=%s",
+                            "module tree. The database may hold a stale module "
+                            "set -- run the seeders. user_id=%s",
                             module_name, getattr(user, "id", None),
                         )
                     else:
@@ -174,11 +172,11 @@ def requires_module(module_name):
 
 
 def _module_exists(module_name):
-    """Is this module present in the running instance's tree?
+    """Is this module present in the live module tree?
 
     Lets the refusal above distinguish "this user lacks it" from "the tree is
-    wrong", which is the failure mode Phase 8 described and which used to be
-    completely silent.
+    wrong", which is the failure mode where the database holds a module set the
+    current build no longer declares.
     """
     cached = getattr(g, "_module_tree", None)
     if cached is None:

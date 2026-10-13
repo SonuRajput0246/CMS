@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 categories = [
     {"name": "Food", "description": "Raw food materials used in kitchen"},
     {"name": "Beverage", "description": "Drinks and beverage items"},
-    {"name": "Housekeeping", "description": "Housekeeping consumables and supplies"},
-    {"name": "Maintenance", "description": "Maintenance and repair materials"},
-    {"name": "Laundry", "description": "Laundry-related items and supplies"}
+    {"name": "Packaging", "description": "Takeaway and delivery consumables"},
+    {"name": "Cleaning", "description": "Cleaning agents and hygiene supplies"},
+    {"name": "Maintenance", "description": "Maintenance and repair materials"}
 ]
 
 def seed_inventory_categories():
