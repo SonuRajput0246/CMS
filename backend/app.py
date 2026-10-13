@@ -10,28 +10,28 @@ from marshmallow.exceptions import MarshmallowError
 from sqlalchemy.sql.operators import json_getitem_op
 from src.api.utils.error_handlers import register_error_handlers
 
-## Routes, grouped by bucket. Every blueprint below is registered
-## unconditionally -- this app is CMS only, so there is no instance gate and no
-## route tree that differs between deployments.
-from src.api.routes.common.auth_route import auth_bp
-from src.api.routes.common.user_route import user_bp
-from src.api.routes.common.admin_route import admin_bp
-from src.api.routes.common.common_route import common_bp
-from src.api.routes.common.user_account_route import account_bp
-from src.api.routes.common.template_route import template_bp
-from src.api.routes.common.inventory_route import inventory_bp
+## Shared infrastructure routes, then the cafe domain routes. Every blueprint
+## below is registered unconditionally -- this app is CMS only, so there is no
+## instance gate and no route tree that differs between deployments.
+from src.api.routes.auth_route import auth_bp
+from src.api.routes.user_route import user_bp
+from src.api.routes.admin_route import admin_bp
+from src.api.routes.common_route import common_bp
+from src.api.routes.user_account_route import account_bp
+from src.api.routes.template_route import template_bp
+from src.api.routes.inventory_route import inventory_bp
 
 ### CMS (Cafe Management System) routes
-from src.api.routes.cms.table_zone_route import table_zone_bp
-from src.api.routes.cms.table_route import table_bp
-from src.api.routes.cms.customer_route import customer_bp
-from src.api.routes.cms.order_route import order_bp
-from src.api.routes.cms.recipe_category_route import recipe_category_bp
-from src.api.routes.cms.recipe_route import recipe_bp
-from src.api.routes.cms.recipe_ingredient_route import recipe_ingredient_bp
-from src.api.routes.cms.kds_route import kds_bp
-from src.api.routes.cms.pos_route import pos_bp
-from src.api.routes.cms.report_route import report_bp
+from src.api.routes.table_zone_route import table_zone_bp
+from src.api.routes.table_route import table_bp
+from src.api.routes.customer_route import customer_bp
+from src.api.routes.order_route import order_bp
+from src.api.routes.recipe_category_route import recipe_category_bp
+from src.api.routes.recipe_route import recipe_bp
+from src.api.routes.recipe_ingredient_route import recipe_ingredient_bp
+from src.api.routes.kds_route import kds_bp
+from src.api.routes.pos_route import pos_bp
+from src.api.routes.report_route import report_bp
 
 import src.api.events.user_events
 import src.api.events.email_otp_events

@@ -24,7 +24,7 @@ import pymysql
 from dotenv import load_dotenv
 
 SEEDER = {
-    "CMS": "src/database/seeders/cms/module_seeder.py",
+    "CMS": "src/database/seeders/module_seeder.py",
 }
 
 

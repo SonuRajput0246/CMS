@@ -21,8 +21,8 @@ transitioned, not from the default.
 """
 import logging
 
-from src.api.models.common.enum_definitions_model import EnumDefinition
-from src.api.models.common.enum_options_model import EnumOption
+from src.api.models.enum_definitions_model import EnumDefinition
+from src.api.models.enum_options_model import EnumOption
 
 
 logger = logging.getLogger(__name__)

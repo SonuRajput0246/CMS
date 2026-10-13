@@ -11,7 +11,7 @@ import importlib
 def known_module_names():
     names = set()
     for path in (
-        "src.database.seeders.cms.module_seeder",
+        "src.database.seeders.module_seeder",
     ):
         try:
             module = importlib.import_module(path)

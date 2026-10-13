@@ -2,42 +2,36 @@
 
 Run with `python -m src.database.seeders.run_base_seeders` from backend/.
 
-Seeding is split by bucket, mirroring src/api: `common/` seeders hold reference
-and infrastructure data, `cms/` seeders hold the cafe domain. There is no
-instance switch -- the app serves one product and seeds exactly that product's
-module tree.
+Reference and infrastructure data seeds first, then the module tree, then
+roles, then the cafe domain data that depends on all of it.
 
 Ordering constraint that is load-bearing: modules seed before roles.
 role_seeder reads the live `modules` table and grants permissions only for
 modules that exist, so seeding roles first silently produces roles with no
 permissions.
 """
-from src.config import get_config
+## No config is resolved here on purpose: the individual seeder modules read
+## config at import time, so a misconfiguration already fails before any
+## session is opened. This module only decides ordering.
+from src.database.seeders.countries_states_cities_seeder import seed_countries_states_cities
+from src.database.seeders.currencies_seeder import seed_currencies
+from src.database.seeders.enum_seeder import seed_enums
+from src.database.seeders.inventory_category_seeder import seed_inventory_categories
+from src.database.seeders.inventory_seeder import seed_inventories
+from src.database.seeders.inventory_units_seeder import seed_inventory_units
+from src.database.seeders.login_slider_seeder import seed_login_sliders
+from src.database.seeders.prefixes_seeder import seed_prefixes
+from src.database.seeders.role_seeder import seed_roles
+from src.database.seeders.super_admin_seeder import seed_super_admin
+from src.database.seeders.system_setting_seeder import seed_system_settings
+from src.database.seeders.template_seeder import seed_templates
 
-## Resolve config before importing any seeder: seeder modules read config at
-## import time, so a misconfiguration should fail before a session is opened
-## rather than halfway through the run.
-config = get_config()
-
-from src.database.seeders.common.countries_states_cities_seeder import seed_countries_states_cities
-from src.database.seeders.common.currencies_seeder import seed_currencies
-from src.database.seeders.common.enum_seeder import seed_enums
-from src.database.seeders.common.inventory_category_seeder import seed_inventory_categories
-from src.database.seeders.common.inventory_seeder import seed_inventories
-from src.database.seeders.common.inventory_units_seeder import seed_inventory_units
-from src.database.seeders.common.login_slider_seeder import seed_login_sliders
-from src.database.seeders.common.prefixes_seeder import seed_prefixes
-from src.database.seeders.common.role_seeder import seed_roles
-from src.database.seeders.common.super_admin_seeder import seed_super_admin
-from src.database.seeders.common.system_setting_seeder import seed_system_settings
-from src.database.seeders.common.template_seeder import seed_templates
-
-from src.database.seeders.cms.customer_seeder import seed_cms_customers
-from src.database.seeders.cms.floor_plan_seeder import seed_floor_plan
-from src.database.seeders.cms.module_seeder import seed_modules_cms
-from src.database.seeders.cms.recipe_category_seeder import seed_recipe_categories
-from src.database.seeders.cms.recipe_seeder import seed_cms_recipes
-from src.database.seeders.cms.order_seeder import seed_cms_orders
+from src.database.seeders.customer_seeder import seed_cms_customers
+from src.database.seeders.floor_plan_seeder import seed_floor_plan
+from src.database.seeders.module_seeder import seed_modules_cms
+from src.database.seeders.recipe_category_seeder import seed_recipe_categories
+from src.database.seeders.recipe_seeder import seed_cms_recipes
+from src.database.seeders.order_seeder import seed_cms_orders
 
 
 ## Reference data every table depends on, and that domain data depends on.

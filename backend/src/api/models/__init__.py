@@ -2,50 +2,59 @@
 
 Import order is load-bearing, not cosmetic: `relationship()` targets must
 already be in the declarative registry when a child class body executes, so
-parents are imported before their children.
+parents are imported before their children. Order models reference
+recipes/inventory/tables/customers, and those reference back (order ->
+table.orders, recipe.ingredients), so importing the domain models in an
+arbitrary order creates circular imports.
 
 This module must import every mapped class before create_all()/alembic runs.
 Any entry point that touches models -- app.py, alembic env, seeders -- imports
 it and therefore gets the full registry.
 
-Bucket layout:
-  common/  shared infrastructure (identity, access, inventory, reference data)
-  cms/     cafe domain (tables, recipes, orders)
+Outside this registry, import the specific model you need directly rather than
+relying on this file, to keep the cycles above out of the caller's import
+graph:
+
+    from src.api.models.order_model import CMSOrder
+    from src.api.models.table_model import Table
+    from src.api.models.customer_model import Customer
+    from src.api.models.recipe_model import Recipe
+    from src.api.models.user_model import User
 """
 
-### Importing all the Models
-from .common.role_model import Role
-from .common.user_model import User
-from .common.token_model import Token
-from .common.email_otp_model import EmailOTP
-from .common.module_model import Module
-from .common.inventory_category_model import InventoryCategory
-from .common.inventory_model import Inventory
-from .common.account_deletions_model import AccountDeletions
-from .common.login_sliders_model import LoginSliders
-from .common.inventory_units_model import InventoryUnits
-from .common.prefixes_model import Prefixes
-from .common.country_model import Country
-from .common.state_model import State
-from .common.city_model import City
-from .common.currency_model import Currency
-from .common.system_setting_model import SystemSetting
-from .common.template_model import Template
-from .common.enum_definitions_model import EnumDefinition
-from .common.enum_options_model import EnumOption
-from .common.role_module_access_model import RoleModuleAccess
+### Shared infrastructure: identity, access, inventory, reference data
+from .role_model import Role
+from .user_model import User
+from .token_model import Token
+from .email_otp_model import EmailOTP
+from .module_model import Module
+from .inventory_category_model import InventoryCategory
+from .inventory_model import Inventory
+from .account_deletions_model import AccountDeletions
+from .login_sliders_model import LoginSliders
+from .inventory_units_model import InventoryUnits
+from .prefixes_model import Prefixes
+from .country_model import Country
+from .state_model import State
+from .city_model import City
+from .currency_model import Currency
+from .system_setting_model import SystemSetting
+from .template_model import Template
+from .enum_definitions_model import EnumDefinition
+from .enum_options_model import EnumOption
+from .role_module_access_model import RoleModuleAccess
 
 ### CMS Models (Cafe Management System)
 # NOTE: import order matters. Parents first so children's relationship()
 # targets are already in the registry.
-from .cms.table_zone_model import TableZone
-from .cms.table_model import Table
-from .cms.customer_model import Customer
-from .cms.recipe_category_model import RecipeCategory
-from .cms.recipe_model import Recipe
-from .cms.recipe_ingredient_model import RecipeIngredient
-from .common.document_sequence_model import DocumentSequence
-from .cms.order_model import (
+from .table_zone_model import TableZone
+from .table_model import Table
+from .customer_model import Customer
+from .recipe_category_model import RecipeCategory
+from .recipe_model import Recipe
+from .recipe_ingredient_model import RecipeIngredient
+from .document_sequence_model import DocumentSequence
+from .order_model import (
     CMSOrder,
     CMSOrderItem,
     CMSPayment,

@@ -1,14 +1,14 @@
 from sqlalchemy import event
 
 from src.api.utils.datetime_helper import utcnow
-from src.api.models.cms.table_zone_model import TableZone
-from src.api.models.cms.table_model import Table
-from src.api.models.cms.customer_model import Customer
-from src.api.models.cms.recipe_category_model import RecipeCategory
-from src.api.models.cms.recipe_model import Recipe
-from src.api.models.cms.recipe_ingredient_model import RecipeIngredient
-from src.api.models.cms.order_model import CMSOrder, CMSOrderItem, CMSPayment
-from src.api.models.common.document_sequence_model import DocumentSequence
+from src.api.models.table_zone_model import TableZone
+from src.api.models.table_model import Table
+from src.api.models.customer_model import Customer
+from src.api.models.recipe_category_model import RecipeCategory
+from src.api.models.recipe_model import Recipe
+from src.api.models.recipe_ingredient_model import RecipeIngredient
+from src.api.models.order_model import CMSOrder, CMSOrderItem, CMSPayment
+from src.api.models.document_sequence_model import DocumentSequence
 
 
 ## Every CMS model in one place.

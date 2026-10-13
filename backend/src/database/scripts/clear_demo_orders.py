@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.database.seeders.cms.order_seeder import SEED_MARKER  # noqa: E402
+from src.database.seeders.order_seeder import SEED_MARKER  # noqa: E402
 
 ## Above this the marker has matched something other than seeded demo data and
 ## deleting on that basis would be reckless.
