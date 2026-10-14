@@ -5,8 +5,6 @@ import { CustomSnackbarService } from '../../shared/custom-snackbar/custom-snack
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { HOME_URL } from '../../core/config/app-paths';
-import { STORAGE_KEYS } from '../../core/config/storage-keys';
 
 @Component({
   selector: 'app-otp-verification',
@@ -146,10 +144,10 @@ export class OtpVerificationComponent {
   }
 
   private handleLoginSuccess(data: any, flowType: string): void {
-    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data));
+    sessionStorage.setItem('cms_accessToken', data.access_token);
+    localStorage.setItem('cms_userData', JSON.stringify(data));
     this._snackbar.openSnackBar(flowType === 'account_activation' ? 'Account Activated Successfully!' : 'Email Verified Successfully!', 'success');
-    this._router.navigateByUrl(HOME_URL);
+    this._router.navigateByUrl('/cms/dashboard');
   }
 
 

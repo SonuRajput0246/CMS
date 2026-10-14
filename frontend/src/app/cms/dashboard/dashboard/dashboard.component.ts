@@ -18,39 +18,18 @@ export class DashboardComponent {
 		icon: 'group'
 	},
 	{
-		title: 'Total Rooms',
+		title: 'Inventory Items',
 		value: 56,
-		route: '/cms/rooms',
+		route: '/cms/inventory/list-inventory',
 		cssClass: 'revenue-card',
-		icon: 'meeting_room'
+		icon: 'inventory_2'
 	},
 	{
-		title: 'Occupied Rooms',
-		value: 25,
-		route: '',
-		cssClass: 'expired-card',
-		icon: 'meeting_room'
-	},
-	{
-		title: 'Available Rooms',
-		value: 31,
-		route: '',
-		cssClass: 'reports-card',
-		icon: 'meeting_room'
-	},
-	{
-		title: 'Active Reservations',
-		value: 23,
-		route: '/cms/reservations',
-		cssClass: 'orders-card',
-		icon: 'event_available'
-	},
-	{
-		title: 'Pending Payments',
+		title: 'Roles',
 		value: 7,
-		route: '/cms/payments',
-		cssClass: 'alerts-card',
-		icon: 'payments'
+		route: '/cms/roles',
+		cssClass: 'expired-card',
+		icon: 'admin_panel_settings'
 	}
 	];
 

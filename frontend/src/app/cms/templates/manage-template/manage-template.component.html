@@ -168,7 +168,7 @@
                         <mat-form-field appearance="outline" floatLabel="always" class="picker-input">
                             <mat-label>Add a variable</mat-label>
                             <input matInput type="text" [(ngModel)]="newVariable" [ngModelOptions]="{standalone: true}"
-                                placeholder="e.g. room_number" (keyup.enter)="addVariable()">
+                                placeholder="e.g. amount" (keyup.enter)="addVariable()">
                         </mat-form-field>
                         <button mat-stroked-button type="button" class="btn-add-var" (click)="addVariable()">
                             <mat-icon>add</mat-icon> Add

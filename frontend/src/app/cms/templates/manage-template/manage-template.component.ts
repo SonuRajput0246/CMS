@@ -15,23 +15,22 @@ import { ITemplateDetail, ITemplatePreview } from '../../../models/IAdmin.model'
 /**
  * Realistic sample values for the live preview.
  *
- * Keyed by the `template_variable` option_key. A variable with no entry here
- * previews as `[name]` -- which is the point of the fallback in
- * buildSampleContext: a newly seeded variable shows up in the preview without
- * anyone editing this file.
+ * Keyed by the `template_variable` option_key, and deliberately in step with
+ * the options seeded into `enum_options.template_variable` on the backend -- a
+ * key that exists on one side only previews as `[name]`, which reads as a bug
+ * in the template rather than as missing sample data.
+ *
+ * A variable with no entry here still previews as `[name]`, which is the point
+ * of the fallback in buildSampleContext: a newly seeded variable shows up in
+ * the preview without anyone editing this file.
  */
 const SAMPLE_VALUES: { [key: string]: string } = {
   user_name: 'John Doe',
   user_email: 'john.doe@example.com',
   otp: '123456',
   expiry_minutes: '10',
-  company_name: 'HMS',
-  room_number: 'A-204',
-  reservation_number: 'RSV-000123',
-  check_in_date: '2026-10-05',
-  check_out_date: '2026-10-07',
-  amount: '4,250.00',
-  invoice_number: 'INV-000456'
+  company_name: 'CMS',
+  amount: '4,250.00'
 };
 
 @Component({

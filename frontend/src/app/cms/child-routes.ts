@@ -38,31 +38,10 @@ export const childRoutes = [
         canActivate: [AuthGuard]
     },
     {
-        path: "reservations",
-        loadChildren: () =>
-            import('./reservation/reservation.module').then(a => a.ReservationModule),
-        data: { menuId: 6 },
-        canActivate: [AuthGuard]
-    },
-    {
-        path: "rooms",
-        loadChildren: () =>
-            import('./room/room.module').then(a => a.RoomModule),
-        data: { menuId: 7 },
-        canActivate: [AuthGuard]
-    },
-    {
         path: "roles",
         loadChildren: () =>
             import('./role/role.module').then(a => a.RoleModule),
         data: { menuId: 8 },
-        canActivate: [AuthGuard]
-    },
-    {
-        path: "guests",
-        loadChildren: () =>
-            import('./guest/guest.module').then(a => a.GuestModule),
-        data: { menuId: 9 },
         canActivate: [AuthGuard]
     },
     {

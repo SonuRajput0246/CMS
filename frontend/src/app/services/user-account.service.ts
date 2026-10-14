@@ -4,7 +4,6 @@ import { HttpClient } from '@angular/common/http';
 import { AppConfig } from '../core/config/config';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { IChangePassword, IUserProfile } from '../models/IAuth.model';
-import { STORAGE_KEYS } from '../core/config/storage-keys';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +24,7 @@ export class UserAccountService {
     this.baseURL = this.config.get('BASE_URL');
 
     //// Initialize user from storage
-    const user = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    const user = localStorage.getItem('cms_userData');
     if (user) {
       try {
         this.userSubject.next(JSON.parse(user));

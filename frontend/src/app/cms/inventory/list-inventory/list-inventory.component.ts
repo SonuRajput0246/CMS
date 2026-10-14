@@ -21,13 +21,14 @@ export class ListInventoryComponent {
   private _confirmService = inject(ConfirmationService);
 
   /**
-   * Base URL for this screen within the active product, for template use.
+   * Base URL for this screen, for template use.
    *
-   * These components are mounted by both products -- cms/inventory/
-   * cms-inventory-routing.module.ts reuses them on the CMS module ids -- so a
-   * literal /hms in a template is a dead link in the cafe deployment, exactly
-   * as it was in the TypeScript.
+   * The templates build their links off this rather than repeating the segment,
+   * so a wrong path here is one edit rather than several. It used to be
+   * computed from the resolved product, back when one class was mounted by two
+   * route tables.
    */
+  readonly invBase = 'cms/inventory';
 
   //// Constants
   private readonly STORAGE_KEY = 'cms_inventoryList';
@@ -117,9 +118,8 @@ export class ListInventoryComponent {
   }
 
   onEdit(item: IInventory): void {
-    // Prefix from APP_PREFIX rather than a literal, so this screen keeps
-    // working when the URL segment is renamed.
-    this._router.navigate(['cms/inventory/update-inventory', item.id]);
+    // Off invBase rather than a second literal, so the two cannot drift.
+    this._router.navigate([`${this.invBase}/update-inventory`, item.id]);
   }
 
   onDelete(item: IInventory): void {

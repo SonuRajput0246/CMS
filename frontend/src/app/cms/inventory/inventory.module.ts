@@ -11,20 +11,15 @@ import { SharedModule } from '../../shared/shared.module';
 
 
 /**
- * Inventory screens.
+ * Inventory screens: stock levels, categories and units.
  *
- * These live under `hms/` by history, not by dependency: every one of them
- * talks only to InventoryService and shared models, with no hotel-specific
- * code. Inventory is genuinely shared -- the models, seeders and category/unit
- * reference data are all in `common/`, and on the CMS side
- * Recipe.calculate_cost_from_ingredients() prices every recipe line from
- * Inventory.unit_cost.
+ * Every component here talks only to InventoryService and the shared models,
+ * with no hotel-specific code, so this module owns its own routing outright.
  *
- * The components are exported so the CMS route table can mount the same screens
- * under /cms/inventory. They cannot simply share this module's routing, because
- * InventoryRoutingModule hardcodes menuId 3, which is INVENTORY_MANAGEMENT in
- * HMS but TABLE in CMS -- a cafe user would have been granted access by holding
- * the table permission and refused access for holding the inventory one.
+ * The components are exported as well as declared. Exporting them is what lets
+ * another feature mount a screen of its own that reuses them, without pulling
+ * in this module's routing -- the menu ids baked into InventoryRoutingModule
+ * belong to this feature, and a second mount point must not inherit them.
  */
 @NgModule({
   declarations: [

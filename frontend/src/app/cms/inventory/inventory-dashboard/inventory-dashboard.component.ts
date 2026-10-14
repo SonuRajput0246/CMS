@@ -2,7 +2,6 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { INavigationaBar } from '../../../models/ICommon.model';
 import { filter } from 'rxjs/operators';
-import { APP_PREFIX, HOME_URL } from '../../../core/config/app-paths';
 
 
 @Component({
@@ -28,7 +27,7 @@ export class InventoryDashboardComponent implements OnInit {
 
   private initNavigation(): void {
     this.navData = [
-      { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: HOME_URL },
+      { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: '/cms/dashboard' },
       { displayValue: 'Inventory Management', isClickable: false, isDashboard: false }
     ];
   }
@@ -88,7 +87,7 @@ export class InventoryDashboardComponent implements OnInit {
 
   private updateBreadcrumbs(): void {
     const baseCrumbs: INavigationaBar[] = [
-      { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: HOME_URL },
+      { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: '/cms/dashboard' },
       { displayValue: 'Inventory Management', isClickable: false, isDashboard: false }
     ];
 

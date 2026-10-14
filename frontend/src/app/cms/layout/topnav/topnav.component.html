@@ -17,7 +17,7 @@
     <mat-menu #profile="matMenu" panelClass="account-menu" xPosition="before">
 
         <!-- Profile header (avatar + name) -->
-        <div class="profile-header" (click)="$event.stopPropagation()" routerLink="/hms/profile">
+        <div class="profile-header" (click)="$event.stopPropagation()" routerLink="/cms/profile">
             <img src="assets/images/profile/Avtar_Profile2.jfif" alt="Profile" class="menu-avatar" />
             <span class="profile-meta">
                 <span class="menu-username">{{ (userName || 'Account') | titlecase }}</span>
@@ -27,12 +27,12 @@
 
         <mat-divider></mat-divider>
 
-        <button mat-menu-item routerLink="/hms/profile" class="menu-row">
+        <button mat-menu-item routerLink="/cms/profile" class="menu-row">
             <mat-icon>person</mat-icon>
             <span class="menu-row-text">My Profile</span>
         </button>
 
-        <button mat-menu-item routerLink="/hms/settings" class="menu-row">
+        <button mat-menu-item routerLink="/cms/settings" class="menu-row">
             <mat-icon>settings</mat-icon>
             <span class="menu-row-text">Settings &amp; Security</span>
         </button>

@@ -1,7 +1,7 @@
 // ============================================================
-//  LIST ROLES — styled HMS list page
+//  LIST ROLES — styled CMS list page
 //  Brand: navy #003366 / teal #16b4a4
-//  Layout mirrors the guests list: Add Role CTA floats
+//  Layout mirrors the standard list pages: Add Role CTA floats
 //  top-right (zero vertical cost); the search lives inside the
 //  table-card header; only the table body scrolls — header &
 //  paginator stay fixed.
@@ -27,7 +27,7 @@ $radius-lg: 18px;
 
 
 // ------------------------------------------------------------
-//  Page wrapper (same as guests-page)
+//  Page wrapper (same as other list pages)
 // ------------------------------------------------------------
 .roles-page {
   height: calc(100vh - 110px);
@@ -180,7 +180,7 @@ $radius-lg: 18px;
 
 // ------------------------------------------------------------
 //  Compact search field inside the header (token trick — same
-//  approach as the guests list). Scoped to this page's header so
+//  approach as the other list pages). Scoped to this page's header so
 //  nothing leaks into other pages.
 // ------------------------------------------------------------
 ::ng-deep .roles-page .table-header .filter-controls .mat-mdc-form-field {
@@ -249,7 +249,7 @@ $radius-lg: 18px;
 }
 
 // ------------------------------------------------------------
-//  Table styling (same compact approach as guests)
+//  Table styling (same compact approach as the other list pages)
 // ------------------------------------------------------------
 .table-scroll .roles-table {
   width: 100%;

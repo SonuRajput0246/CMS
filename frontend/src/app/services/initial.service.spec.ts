@@ -4,29 +4,25 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { InitialService } from './initial.service';
 import { AppConfig } from '../core/config/config';
-import { InstanceService } from '../core/config/instance.service';
 
 /**
- * Covers the two-step boot: static config supplies the base URL, the backend
- * supplies the instance type.
+ * Covers the boot step: static config supplies the API base URL.
  *
- * The mismatch case is the point of this suite. Before this change the frontend
- * read instance_type from config.json and nothing compared it to the backend,
- * so a disagreement produced no error -- just URLs whose endpoints did not
- * exist. These tests pin the three behaviours that must hold: backend wins,
- * backend unreachable falls back, and an unreachable backend does not block
- * boot.
+ * There is no second step any more. The app serves one product, so there is no
+ * instance type to reconcile against the backend -- which also means a
+ * successful boot is exactly one request, and `verify()` below is what pins
+ * that. If a second call is ever reintroduced, these tests fail rather than
+ * leaving the extra round-trip invisible.
  */
 describe('InitialService', () => {
 
   const CONFIG = {
     global_setting: {
-      api_base_url: 'http://localhost:5000',
-      instance_type: 'HMS'
+      api_base_url: 'http://localhost:5000'
     }
   };
 
-  function setup(configJson: any = CONFIG) {
+  function setup() {
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -40,13 +36,10 @@ describe('InitialService', () => {
   }
 
   /**
-   * Issue a boot and flush only the static-config request.
+   * Issue a boot and flush the static-config request.
    *
-   * Returns the in-flight promise WITHOUT awaiting it: the promise cannot
-   * settle until the instance-config request is flushed by the caller, so
-   * awaiting here would deadlock the test. Three microtask yields are enough
-   * for loadAppConfig's `await loadStaticConfig()` continuation to run and
-   * issue the next request.
+   * Returns the in-flight promise so the caller can await it and then verify
+   * that nothing else was requested.
    */
   function startBoot(service: InitialService, httpMock: HttpTestingController, cfg: any) {
     const promise = service.loadAppConfig();
@@ -54,96 +47,50 @@ describe('InitialService', () => {
     return promise;
   }
 
-  /** Let queued microtasks run so pending HTTP calls are issued. */
-  async function settle() {
-    for (let i = 0; i < 3; i++) {
-      await Promise.resolve();
-    }
-  }
-
-  it('takes the instance type from the backend when they agree', async () => {
+  it('publishes the API base URL from config.json', async () => {
     const { service, httpMock } = setup();
 
     const promise = startBoot(service, httpMock, CONFIG);
-    await settle();
-    httpMock.expectOne(r => r.url.endsWith('/api/v1/common/instance-config'))
-      .flush({ status: true, message: 'ok', data: { instance_type: 'HMS' } });
     await promise;
     httpMock.verify();
 
-    expect(TestBed.inject(AppConfig).get('INSTANCE_TYPE')).toBe('HMS');
+    expect(TestBed.inject(AppConfig).get('BASE_URL')).toBe('http://localhost:5000');
   });
 
-  it('prefers the backend over config.json on a mismatch', async () => {
-    // config.json says HMS, backend is CMS. The backend must win: it is what
-    // decides which endpoints exist.
+  it('asks the backend for nothing else during boot', async () => {
+    // Guards the reason the second step was removed: one product, so one
+    // request. A reintroduced instance-config call would fail verify().
     const { service, httpMock } = setup();
 
     const promise = startBoot(service, httpMock, CONFIG);
-    await settle();
-    httpMock.expectOne(r => r.url.endsWith('/api/v1/common/instance-config'))
-      .flush({ status: true, message: 'ok', data: { instance_type: 'CMS' } });
     await promise;
+
+    httpMock.expectNone(r => r.url.includes('/api/'));
     httpMock.verify();
-
-    expect(TestBed.inject(AppConfig).get('INSTANCE_TYPE')).toBe('CMS');
-    // and the resolved value is what InstanceService reads
-    expect(TestBed.inject(InstanceService).type).toBe('CMS');
-    expect(TestBed.inject(InstanceService).homeUrl).toBe('/cms/dashboard');
-  });
-
-  it('falls back to config.json when the backend is unreachable', async () => {
-    const { service, httpMock } = setup();
-
-    const promise = startBoot(service, httpMock, CONFIG);
-    await settle();
-    httpMock.expectOne(r => r.url.endsWith('/api/v1/common/instance-config'))
-      .error(new ProgressEvent('network error'));
-    // Must resolve, not reject: a down backend should not stop the app booting.
-    await expectAsync(promise).toBeResolved();
-    httpMock.verify();
-
-    expect(TestBed.inject(AppConfig).get('INSTANCE_TYPE')).toBe('HMS');
-  });
-
-  it('falls back when the backend answers without an instance type', async () => {
-    const { service, httpMock } = setup();
-
-    const promise = startBoot(service, httpMock, CONFIG);
-    await settle();
-    httpMock.expectOne(r => r.url.endsWith('/api/v1/common/instance-config'))
-      .flush({ status: true, message: 'ok', data: {} });
-    await promise;
-    httpMock.verify();
-
-    expect(TestBed.inject(AppConfig).get('INSTANCE_TYPE')).toBe('HMS');
-  });
-
-  it('defaults to HMS when config.json omits instance_type', async () => {
-    const withoutInstance = {
-      global_setting: { api_base_url: 'http://localhost:5000' }
-    };
-    const { service, httpMock } = setup(withoutInstance);
-
-    const promise = startBoot(service, httpMock, withoutInstance);
-    await settle();
-    httpMock.expectOne(r => r.url.endsWith('/api/v1/common/instance-config'))
-      .error(new ProgressEvent('network error'));
-    await promise;
-    httpMock.verify();
-
-    expect(TestBed.inject(AppConfig).get('INSTANCE_TYPE')).toBe('HMS');
   });
 
   it('rejects when api_base_url is missing', async () => {
-    const broken = { global_setting: { instance_type: 'CMS' } };
-    const { service, httpMock } = setup(broken);
+    // Without a base URL there is nothing to call, so boot cannot continue.
+    // This is the one failure that is allowed to propagate: the APP_INITIALIZER
+    // awaits it, and stopping here beats every later request failing with an
+    // opaque network error.
+    const broken = { global_setting: {} };
+    const { service, httpMock } = setup();
 
     const promise = service.loadAppConfig();
     httpMock.expectOne(r => r.url === 'assets/config.json').flush(broken);
 
-    // Without a base URL there is nothing to call, not even the instance
-    // endpoint, so boot genuinely cannot continue.
+    await expectAsync(promise).toBeRejected();
+    httpMock.verify();
+  });
+
+  it('rejects when config.json itself cannot be fetched', async () => {
+    const { service, httpMock } = setup();
+
+    const promise = service.loadAppConfig();
+    httpMock.expectOne(r => r.url === 'assets/config.json')
+      .error(new ProgressEvent('network error'));
+
     await expectAsync(promise).toBeRejected();
     httpMock.verify();
   });

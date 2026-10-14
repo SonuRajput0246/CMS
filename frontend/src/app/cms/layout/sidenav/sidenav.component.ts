@@ -37,7 +37,7 @@ export class SidenavComponent {
 
   onMenuLoad(item: IUserMenuAccess) {
     if (item.route_path) {
-      this._router.navigate(['hms/' + item.route_path])
+      this._router.navigate(['cms/' + item.route_path])
       this.ResetMenu(item);
     }
 

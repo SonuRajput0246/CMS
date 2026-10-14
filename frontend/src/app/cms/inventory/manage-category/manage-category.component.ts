@@ -18,6 +18,9 @@ export class ManageCategoryComponent {
   private _snackbar = inject(CustomSnackbarService);
   private AR = inject(ActivatedRoute);
 
+  /** Base URL for this screen, for template use. */
+  readonly invBase = 'cms/inventory';
+
   categoryForm!: FormGroup;
   breakpoint = 3;
 
@@ -70,9 +73,7 @@ export class ManageCategoryComponent {
         next: (res) => {
           if (res?.status) {
             this._snackbar.openSnackBar(res?.message || 'Category saved successfully', "success");
-            /// Back to the list within the active product. A literal 'hms' here
-            /// meant a save in the cafe deployment navigated to a gated route.
-            this._router.navigate(['cms/inventory/list-category']);
+                                    this._router.navigate([`${this.invBase}/list-category`]);
           } else {
             this._snackbar.openSnackBar(res?.message || 'Failed to save category', "error");
           }

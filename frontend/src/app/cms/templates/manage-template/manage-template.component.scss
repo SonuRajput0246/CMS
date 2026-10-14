@@ -29,7 +29,7 @@ $radius-lg: 18px;
 //  `.page-content` in layout.component.scss is the single scroll
 //  container for the routed screen. This component must fit inside
 //  it -- `height` (not `min-height`) plus an inner scroller, the
-//  same pattern manage-guest uses. With `min-height` the grid grows
+//  same pattern manage-user uses. With `min-height` the grid grows
 //  past the viewport, `.page-content` overflows, and the whole
 //  screen appears to scroll.
 // ------------------------------------------------------------

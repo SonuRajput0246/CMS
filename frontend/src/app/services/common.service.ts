@@ -4,7 +4,6 @@ import { IAppSetting } from '../models/IAppSettings.model';
 import { catchError, Observable, of } from 'rxjs';
 import { IEntityResponse } from '../models/ICommon.model';
 import { AppConfig } from '../core/config/config';
-import { STORAGE_KEYS } from '../core/config/storage-keys';
 
 @Injectable({
   providedIn: 'root'
@@ -24,7 +23,7 @@ export class CommonService {
   routeChange: EventEmitter<boolean> = new EventEmitter<boolean>();
 
   getUserFullName(): string {
-    const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    const userData = localStorage.getItem('cms_userData');
     if (!userData) {
       return '';
     }
@@ -36,7 +35,7 @@ export class CommonService {
 
 
   private getInitialMfaStatus(): boolean {
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_DATA) || '{}');
+    const user = JSON.parse(localStorage.getItem('cms_userData') || '{}');
     return !!user?.mfa_enabled;
   }
 
@@ -46,18 +45,18 @@ export class CommonService {
 
   setMFAEnabledStatus(status: boolean) {
     this.mfaEnabledSignal.set(status);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_DATA) || '{}');
+    const user = JSON.parse(localStorage.getItem('cms_userData') || '{}');
     user.mfa_enabled = status;
-    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+    localStorage.setItem('cms_userData', JSON.stringify(user));
   }
 
   getLoggedInUserId(): number {
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_DATA) || '{}');
+    const user = JSON.parse(localStorage.getItem('cms_userData') || '{}');
     return user?.id || 0;
   }
 
   getMenuAccess(): any[] {
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_DATA) || '{}');
+    const user = JSON.parse(localStorage.getItem('cms_userData') || '{}');
     return user?.menu_access || [];
   }
 
@@ -83,7 +82,7 @@ export class CommonService {
 
   /**
    * Options for one enum definition held in the `enum_definitions` /
-   * `enum_options` tables, e.g. 'guests_id_type', 'gender', 'room_status'.
+   * `enum_options` tables, e.g. 'gender', 'cms_order_status', 'table_status'.
    * Dropdowns bind to this so an option added in the admin UI shows up here
    * without a frontend change.
    */

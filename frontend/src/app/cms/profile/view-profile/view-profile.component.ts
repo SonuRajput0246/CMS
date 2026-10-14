@@ -25,7 +25,7 @@ export class ViewProfileComponent implements OnInit {
     this.initNavigation();
     this.loadProfile();
 
-    // stay in sync with a save made on /hms/profile/edit
+    // stay in sync with a save made on /cms/profile/edit
     this._accountService.user$.subscribe((user) => {
       if (user) {
         this.profile = user;

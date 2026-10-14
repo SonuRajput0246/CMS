@@ -1,8 +1,8 @@
 // ============================================================
-//  MANAGE ROLE ACCESS — styled HMS permission matrix
+//  MANAGE ROLE ACCESS — styled CMS permission matrix
 //  Brand: navy #003366 / teal #16b4a4
 //  Reuses the list page's table-card shell. This page has no
-//  guest equivalent, so the matrix chrome (chips, category tree,
+//  other list equivalent, so the matrix chrome (chips, category tree,
 //  permission checkboxes) is built from the same design tokens.
 // ============================================================
 
@@ -21,7 +21,7 @@ $gray-soft: #f3f4f6;
 $radius-lg: 18px;
 
 // ------------------------------------------------------------
-//  Page wrapper (same as guests-page / roles-page)
+//  Page wrapper (same as roles-page)
 // ------------------------------------------------------------
 .role-access-page {
   height: calc(100vh - 110px);

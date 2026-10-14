@@ -19,6 +19,9 @@ export class ManageInventoryComponent {
   private _snackbar = inject(CustomSnackbarService);
   private AR = inject(ActivatedRoute);
 
+  /** Base URL for this screen, for template use. */
+  readonly invBase = 'cms/inventory';
+
   inventoryForm!: FormGroup;
   breakpoint = 3;
 
@@ -183,9 +186,7 @@ export class ManageInventoryComponent {
         next: (res) => {
           if (res?.status) {
             this._snackbar.openSnackBar(res?.message || 'Inventory saved successfully', "success");
-            /// Back to the list within the active product. A literal 'hms' here
-            /// meant a save in the cafe deployment navigated to a gated route.
-            this._router.navigate(['cms/inventory/list-inventory']);
+            this._router.navigate([`${this.invBase}/list-inventory`]);
           } else {
             this._snackbar.openSnackBar(res?.message || 'Failed to save inventory', "error");
           }

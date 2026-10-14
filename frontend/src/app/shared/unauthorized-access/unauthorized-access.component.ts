@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HOME_URL } from '../../core/config/app-paths';
 
 /**
  * Shown when AuthGuard denies a route for lack of permission.
@@ -64,6 +63,6 @@ import { HOME_URL } from '../../core/config/app-paths';
 export class UnauthorizedAccessComponent {
 
   /** Leads to the dashboard. */
-  readonly homeUrl = HOME_URL;
+  readonly homeUrl = '/cms/dashboard';
 
 }

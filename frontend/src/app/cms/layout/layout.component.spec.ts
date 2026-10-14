@@ -8,7 +8,7 @@ import { of as observableOf } from 'rxjs';
 import { SharedModule } from '../../shared/shared.module';
 import { AppConfig } from '../../core/config/config';
 
-import { HmsModule } from '../hms.module';
+import { CmsModule } from '../cms.module';
 import { LayoutComponent } from './layout.component';
 
 describe('LayoutComponent', () => {
@@ -36,8 +36,8 @@ describe('LayoutComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, NoopAnimationsModule, HmsModule],
-      /// HmsModule already declares LayoutComponent, so it must not be declared
+      imports: [SharedModule, RouterTestingModule, NoopAnimationsModule, CmsModule],
+      /// CmsModule already declares LayoutComponent, so it must not be declared
       /// again here -- Angular rejects the duplicate. Importing the real module
       /// is what supplies <app-topnav> and <app-sidenav>, both of which the
       /// layout template renders.

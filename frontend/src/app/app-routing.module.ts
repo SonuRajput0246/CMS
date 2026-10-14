@@ -2,38 +2,34 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.component';
 import { UnauthorizedAccessComponent } from './shared/unauthorized-access/unauthorized-access.component';
-import { APP_PREFIX } from './core/config/app-paths';
 
 /**
  * The route table is a plain static array evaluated at module load.
  *
- * There is no instance gate here, and deliberately so. The table used to hold
+ * There is no instance gate here, and deliberately so. The table used to carry
  * a `canMatch` per product so only the active one could match, which existed
- * solely because one codebase served two products. With a single product the
- * gate had nothing to decide, and it was not free: `canMatch` forces the
- * decision to wait until navigation time, because the instance type was
- * resolved from the backend during bootstrap and is not knowable while
- * NgModule metadata is being read. Dropping it lets the routes be static, which
- * is what they now are.
+ * solely because one build served two products. With one product the gate had
+ * nothing to decide, and it was not free either: `canMatch` defers the decision
+ * to navigation time, because the type was resolved from the backend during
+ * bootstrap and is not knowable while NgModule metadata is being read.
  *
- * That earlier constraint is why the bare `/` route used to be a component
- * rather than a `redirectTo`: `redirectTo` takes a static string, and an
- * instance-aware redirect has none. With the path a constant it is a string,
- * so the redirect is declared as one and `InstanceHomeRedirectComponent` is
- * gone with it.
+ * That constraint is also why the bare `/` route used to be a component rather
+ * than a `redirectTo` -- an instance-aware redirect has no static string to
+ * redirect to. The path is a literal now, so the redirect is declared as one
+ * and the component that existed only to compute it is gone.
  */
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: `${APP_PREFIX}/dashboard`
+    redirectTo: 'cms/dashboard'
   },
   {
     path: 'auth',
     loadChildren: () => import('./auth/auth.module').then(a => a.AuthModule)
   },
   {
-    path: APP_PREFIX,
+    path: 'cms',
     loadChildren: () => import('./cms/cms.module').then(a => a.CmsModule)
   },
   {

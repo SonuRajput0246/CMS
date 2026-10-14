@@ -6,8 +6,6 @@ import { AuthService } from '../../services/auth.service';
 import { finalize } from 'rxjs/operators';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { CommonService } from '../../services/common.service';
-import { APP_LABEL, HOME_URL } from '../../core/config/app-paths';
-import { STORAGE_KEYS } from '../../core/config/storage-keys';
 
 @Component({
   selector: 'app-login',
@@ -129,11 +127,11 @@ export class LoginComponent {
   }
 
   private handleLoginSuccess(data: any): void {
-    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data));
+    sessionStorage.setItem('cms_accessToken', data.access_token);
+    localStorage.setItem('cms_userData', JSON.stringify(data));
     this._common.setMFAEnabledStatus(data.mfa_enabled); //check this by commenting (cookie is set)
-    this._snackbar.openSnackBar(`Welcome to ${APP_LABEL}`, 'success');
-    this._router.navigateByUrl(HOME_URL);
+    this._snackbar.openSnackBar('Welcome to CMS', 'success');
+    this._router.navigateByUrl('/cms/dashboard');
   }
 
   private handleLoginError(err: any): void {

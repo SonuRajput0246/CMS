@@ -12,7 +12,6 @@ import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { Router } from '@angular/router';
 // import { CommonService } from '../services/common.service';
 import { AppConfig } from '../core/config/config';
-import { STORAGE_KEYS } from './config/storage-keys';
 
 
 @Injectable()
@@ -31,18 +30,13 @@ export class HttpIntercept implements HttpInterceptor {
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
-        const accessToken = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const accessToken = sessionStorage.getItem('cms_accessToken');
 
         //// Do NOT attach token for login or public APIs
         const isPublicApi =
             req.url.includes('/auth/login') ||
             req.url.includes('/auth/get-fresh-token') ||
-            req.url.includes('/assets/') ||
-            //// Public by design, and called during APP_INITIALIZER before any
-            //// session exists. Attaching a stale token here would make the
-            //// instance check fail on a session that was meant to be
-            //// unauthenticated.
-            req.url.includes('/api/v1/common/instance-config');
+            req.url.includes('/assets/');
         
         let authReq = req;
 
@@ -101,8 +95,8 @@ export class HttpIntercept implements HttpInterceptor {
                 switchMap((res) => {
                     this.isRefreshing = false;
                     if (res?.status && res?.data?.access_token) {
-                        sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, res.data.access_token);
-                        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(res.data));
+                        sessionStorage.setItem('cms_accessToken', res.data.access_token);
+                        localStorage.setItem('cms_userData', JSON.stringify(res.data));
                         this.refreshTokenSubject.next(res.data.access_token);
                         return next.handle(this.addToken(request, res.data.access_token));
                     }

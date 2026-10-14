@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { HOME_URL } from '../../core/config/app-paths';
 
 @Component({
   selector: 'app-page-not-found',
@@ -9,6 +8,6 @@ import { HOME_URL } from '../../core/config/app-paths';
 export class PageNotFoundComponent {
 
   /** Where "Go to home" should lead. */
-  readonly homeUrl = HOME_URL;
+  readonly homeUrl = '/cms/dashboard';
 
 }

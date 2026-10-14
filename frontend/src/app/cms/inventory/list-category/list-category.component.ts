@@ -21,6 +21,9 @@ export class ListCategoryComponent implements OnInit {
   private _snackbar = inject(CustomSnackbarService);
   private _confirmService = inject(ConfirmationService);
 
+  /** Base URL for this screen, for template use. */
+  readonly invBase = 'cms/inventory';
+
   //// Constants
   private readonly STORAGE_KEY = 'cms_invCategoryList';
 
@@ -109,9 +112,8 @@ export class ListCategoryComponent implements OnInit {
   }
 
   onEdit(item: IInventoryCategory): void {
-    /// Instance-aware prefix: this component is mounted by both products, and a
-    /// literal 'hms' made every edit click 404 in the cafe deployment.
-    this._router.navigate(['cms/inventory/update-category', item.id]);
+    // Off invBase rather than a second literal, so the two cannot drift.
+    this._router.navigate([`${this.invBase}/update-category`, item.id]);
   }
 
   onDelete(item: IInventoryCategory): void {

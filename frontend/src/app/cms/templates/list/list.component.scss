@@ -1,5 +1,5 @@
 // ============================================================
-//  LIST TEMPLATES — styled HMS list page
+//  LIST TEMPLATES — styled CMS list page
 //  Brand: navy #003366 / teal #16b4a4
 //  Adapted from the roles list: same fixed-header / scrolling-
 //  body / fixed-paginator structure, but with two extra filter
@@ -260,7 +260,7 @@ $radius-lg: 18px;
 //
 //  Rendered in the CDK overlay, outside this component's view, so it is
 //  reached through .cdk-overlay-container. Same compact navy/teal theme
-//  as the Room Type dropdown on the rooms list.
+//  as a native <select> would.
 // ------------------------------------------------------------
 ::ng-deep .cdk-overlay-container div.compact-select-panel.mat-mdc-select-panel {
   background-color: #ffffff;

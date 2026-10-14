@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-import { toAmount } from '../models/ICms.model';
+import { toAmount } from '../models/IMoney.model';
 
 /**
  * Formats a money string as a currency amount.
