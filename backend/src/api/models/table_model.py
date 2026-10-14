@@ -1,6 +1,6 @@
-from sqlalchemy import String, Boolean, Integer, ForeignKey, Index
+from sqlalchemy import String, Boolean, Integer, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
@@ -8,28 +8,28 @@ if TYPE_CHECKING:
     from src.api.models.order_model import CMSOrder
 
 
-class Table(BaseModel):
+class Table(BaseTenantModel):
     __tablename__ = "tables"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    table_number: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    table_number: Mapped[str] = mapped_column(String(20), nullable=False)
     table_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=4, server_default="4")
-    
+
     # Status: available, occupied, reserved, cleaning, maintenance
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="available", server_default="available")
-    
+
     zone_id: Mapped[int | None] = mapped_column(
         ForeignKey("table_zones.id", ondelete="SET NULL"),
         nullable=True,
         index=True
     )
-    
+
     # Optional: floor plan coordinates
     position_x: Mapped[int | None] = mapped_column(Integer, nullable=True)
     position_y: Mapped[int | None] = mapped_column(Integer, nullable=True)
     shape: Mapped[str | None] = mapped_column(String(20), nullable=True)  # square, round, rectangle
-    
+
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     is_combinable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")  # Can combine with adjacent
 
@@ -45,6 +45,12 @@ class Table(BaseModel):
     )
 
     __table_args__ = (
+        ## Was UNIQUE(table_number) globally. Every cafe numbers its tables
+        ## from 1, so a global unique makes tenant B's "table 1" impossible.
+        UniqueConstraint("tenant_id", "table_number", name="uq_table_tenant_number"),
+
+        Index("ix_tables_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_table_active_status", "is_deleted", "is_active", "status", "id"),
         Index("ix_table_zone_status", "is_deleted", "zone_id", "status", "id"),
         Index("ix_table_number", "is_deleted", "table_number"),

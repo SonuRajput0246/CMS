@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from sqlalchemy import String, Float, Boolean, ForeignKey, Index, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from src.api.models.inventory_category_model import InventoryCategory
 
-class Inventory(BaseModel):
+class Inventory(BaseTenantModel):
     __tablename__ = "inventory"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -35,6 +35,8 @@ class Inventory(BaseModel):
     category: Mapped["InventoryCategory"] = relationship(back_populates="inventory_items")
 
     __table_args__ = (
+        Index("ix_inventory_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_active_inventory_name_id", "is_deleted", "name", "id"),
         Index("ix_active_inventory_id", "is_deleted", "id"),
     )

@@ -1,13 +1,13 @@
 from typing import List, TYPE_CHECKING
 from sqlalchemy import String, Boolean, Index
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 
 if TYPE_CHECKING:
     from src.api.models.inventory_model import Inventory
 
-class InventoryCategory(BaseModel):
+class InventoryCategory(BaseTenantModel):
     __tablename__ = "inventory_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -20,6 +20,8 @@ class InventoryCategory(BaseModel):
     inventory_items: Mapped[List["Inventory"]] = relationship(back_populates="category")
 
     __table_args__ = (
+        Index("ix_inventory_categories_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_active_category_name_id", "is_deleted", "name", "id"),
         Index("ix_active_category_id", "is_deleted", "id"),
     )

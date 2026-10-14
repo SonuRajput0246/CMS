@@ -1,6 +1,6 @@
-from sqlalchemy import String, Integer, Numeric, DateTime, Boolean, Index
+from sqlalchemy import String, Integer, Numeric, DateTime, Boolean, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from src.api.utils.datetime_helper import utcnow
 from datetime import datetime
 from typing import TYPE_CHECKING, List
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from src.api.models.order_model import CMSOrder
 
 
-class Customer(BaseModel):
+class Customer(BaseTenantModel):
     __tablename__ = "customers"
 
     ## Loyalty tier thresholds on lifetime spend. Tuned for a cafe rather than
@@ -22,22 +22,22 @@ class Customer(BaseModel):
     PLATINUM_THRESHOLD = Decimal("15000")
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    customer_code: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    customer_code: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     email: Mapped[str | None] = mapped_column(String(100), nullable=True)
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    
+
     # Loyalty
     loyalty_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     total_visits: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     total_spent: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"), server_default="0.00")
     last_visit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    
+
     # Preferences
     preferred_table_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # FK to tables, but optional
     dietary_notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    
+
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     is_vip: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 
@@ -49,6 +49,12 @@ class Customer(BaseModel):
     )
 
     __table_args__ = (
+        ## Was UNIQUE(customer_code) globally -- one shared series of codes.
+        ## Scoped to the tenant so two cafes can both start at CUS-00001.
+        UniqueConstraint("tenant_id", "customer_code", name="uq_customer_tenant_code"),
+
+        Index("ix_customers_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_customer_active_phone", "is_deleted", "is_active", "phone"),
         Index("ix_customer_code", "is_deleted", "customer_code"),
         Index("ix_customer_name", "is_deleted", "name"),

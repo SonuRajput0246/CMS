@@ -1,10 +1,10 @@
 from datetime import datetime
-from src.database.base import Base
+from src.database.base_model import BaseTenantModel
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, DateTime, String
+from sqlalchemy import ForeignKey, DateTime, String, Index
 
 
-class AccountDeletions(Base):
+class AccountDeletions(BaseTenantModel):
     __tablename__ = 'account_deletions'
 
     ## Mapped[int] tells the IDE this is an integer
@@ -33,17 +33,10 @@ class AccountDeletions(Base):
         default=None
     )
 
+    __table_args__ = (
+        Index("ix_account_deletions_tenant", "is_deleted", "tenant_id", "id"),
+    )
+
+
     def __repr__(self):
         return f"AccountDeletions(id={self.id}, user_id={self.user_id})"
-
-
-
-
-
-
-
-
-
-
-
-

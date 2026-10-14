@@ -1,14 +1,13 @@
-from datetime import datetime
 from typing import TYPE_CHECKING
-from src.database.base import Base
+from src.database.base_model import BaseTenantModel
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from sqlalchemy import ForeignKey, String, Boolean, Index, DateTime
+from sqlalchemy import ForeignKey, String, Boolean, Index
 
 if TYPE_CHECKING:
     from src.api.models.user_model import User
 
 
-class Token(Base):
+class Token(BaseTenantModel):
     __tablename__ = 'tokens'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -19,12 +18,13 @@ class Token(Base):
     access_token: Mapped[str] = mapped_column(String(255), nullable=False)
     refresh_token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     ## Relations
     user: Mapped["User"] = relationship(back_populates="tokens")
 
     __table_args__ = (
+        Index("ix_tokens_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_active_token", "user_id", "is_revoked"),
     )
 

@@ -2,9 +2,9 @@ from decimal import Decimal
 from datetime import datetime
 
 from src.api.utils.datetime_helper import elapsed_minutes, utcnow
-from sqlalchemy import String, Numeric, Text, ForeignKey, DateTime, Integer, Enum as SqlEnum, Index, CheckConstraint, JSON
+from sqlalchemy import String, Numeric, Text, ForeignKey, DateTime, Integer, Enum as SqlEnum, Index, CheckConstraint, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from typing import TYPE_CHECKING, List, Optional
 import enum
 
@@ -62,44 +62,44 @@ PREP_STATUSES = [PREP_PENDING, PREP_PREPARING, PREP_READY, PREP_VOIDED]
 PREP_STATUS_SETTABLE = [PREP_PENDING, PREP_PREPARING, PREP_READY]
 
 
-class CMSOrder(BaseModel):
+class CMSOrder(BaseTenantModel):
     __tablename__ = "cms_orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    order_number: Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
-    
+    order_number: Mapped[str] = mapped_column(String(30), nullable=False)
+
     # Flexible reference: table, customer, or walkin
     reference_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'table', 'customer', 'walkin'
     reference_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    
+
     table_id: Mapped[int | None] = mapped_column(ForeignKey("tables.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
-    
+
     status: Mapped[OrderStatusEnum] = mapped_column(SqlEnum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.PENDING)
     order_type: Mapped[OrderTypeEnum] = mapped_column(SqlEnum(OrderTypeEnum), nullable=False, default=OrderTypeEnum.DINE_IN)
-    
+
     # Amounts
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     tax_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     discount_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    
+
     # Payment
     payment_status: Mapped[PaymentStatusEnum] = mapped_column(SqlEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.PENDING)
     paid_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    
+
     # Metadata
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     kitchen_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_ready_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    
+
     # Timestamps
     ordered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
@@ -111,13 +111,19 @@ class CMSOrder(BaseModel):
     created_by_user: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
     __table_args__ = (
+        ## Was UNIQUE(order_number) globally. Order numbers are generated per
+        ## tenant, so tenant B's ORD-202610-00001 would collide with tenant A's.
+        UniqueConstraint("tenant_id", "order_number", name="uq_order_tenant_number"),
+
+        Index("ix_cms_orders_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("subtotal >= 0", name="ck_cms_order_subtotal_nonneg"),
         CheckConstraint("tax_amount >= 0", name="ck_cms_order_tax_nonneg"),
         CheckConstraint("discount_amount >= 0", name="ck_cms_order_discount_nonneg"),
         CheckConstraint("total_amount >= 0", name="ck_cms_order_total_nonneg"),
         CheckConstraint("paid_amount >= 0", name="ck_cms_order_paid_nonneg"),
         CheckConstraint("discount_amount <= subtotal + tax_amount", name="ck_cms_order_discount_valid"),
-        
+
         Index("ix_cms_order_reference", "is_deleted", "reference_type", "reference_id"),
         Index("ix_cms_order_status", "is_deleted", "status", "id"),
         Index("ix_cms_order_payment_status", "is_deleted", "payment_status", "id"),
@@ -229,26 +235,26 @@ class CMSOrder(BaseModel):
             self.customer.record_visit(self.total_amount)
 
 
-class CMSOrderItem(BaseModel):
+class CMSOrderItem(BaseTenantModel):
     __tablename__ = "cms_order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("cms_orders.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+
     # Item source: recipe or inventory
     item_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'recipe', 'inventory'
     item_id: Mapped[int] = mapped_column(Integer, nullable=False)
     item_name: Mapped[str] = mapped_column(String(100), nullable=False)  # Denormalized
-    
+
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("1.00"))
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     total_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    
+
     # Modifiers & customizations
     modifiers: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     cooking_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     spice_level: Mapped[str | None] = mapped_column(String(20), nullable=True)  # mild, medium, hot, extra_hot
-    
+
     # Kitchen/Prep tracking
     prep_status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=PREP_PENDING, server_default=PREP_PENDING
@@ -270,7 +276,7 @@ class CMSOrderItem(BaseModel):
     void_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     voided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+
     # Recipe/Inventory links for reference
     recipe_id: Mapped[int | None] = mapped_column(ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True)
     inventory_item_id: Mapped[int | None] = mapped_column(ForeignKey("inventory.id", ondelete="SET NULL"), nullable=True)
@@ -282,10 +288,12 @@ class CMSOrderItem(BaseModel):
     voided_by_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[voided_by])
 
     __table_args__ = (
+        Index("ix_cms_order_items_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("quantity > 0", name="ck_cms_order_item_qty_positive"),
         CheckConstraint("unit_price >= 0", name="ck_cms_order_item_unit_price_nonneg"),
         CheckConstraint("total_price >= 0", name="ck_cms_order_item_total_nonneg"),
-        
+
         Index("ix_cms_order_item_order", "is_deleted", "order_id", "id"),
         Index("ix_cms_order_item_prep", "is_deleted", "order_id", "prep_status", "station"),
         Index("ix_cms_order_item_recipe", "is_deleted", "recipe_id"),
@@ -369,31 +377,31 @@ class CMSOrderItem(BaseModel):
         return self.item_type == "inventory"
 
 
-class CMSPayment(BaseModel):
+class CMSPayment(BaseTenantModel):
     __tablename__ = "cms_payments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("cms_orders.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     payment_method: Mapped[PaymentMethodEnum] = mapped_column(SqlEnum(PaymentMethodEnum), nullable=False)
     payment_status: Mapped[PaymentStatusEnum] = mapped_column(SqlEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.PENDING)
-    
+
     # Split bill support
     split_group_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     split_payer_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    
+
     # Gateway / external reference
     transaction_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gateway_response: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    
+
     # Verification
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     verified_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    
+
     remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Relationships
@@ -402,8 +410,10 @@ class CMSPayment(BaseModel):
     created_by_user: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
     __table_args__ = (
+        Index("ix_cms_payments_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("amount > 0", name="ck_cms_payment_amount_positive"),
-        
+
         Index("ix_cms_payment_order", "is_deleted", "order_id", "id"),
         Index("ix_cms_payment_status", "is_deleted", "payment_status", "id"),
         Index("ix_cms_payment_method", "is_deleted", "payment_method", "id"),

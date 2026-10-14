@@ -1,17 +1,17 @@
-from sqlalchemy import String, Integer, Text, Boolean, Index
+from sqlalchemy import String, Integer, Text, Boolean, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from src.api.models.recipe_model import Recipe
 
 
-class RecipeCategory(BaseModel):
+class RecipeCategory(BaseTenantModel):
     __tablename__ = "recipe_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
     display_name: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -25,6 +25,11 @@ class RecipeCategory(BaseModel):
     )
 
     __table_args__ = (
+        ## Was UNIQUE(name) globally. "Starters" exists in every cafe.
+        UniqueConstraint("tenant_id", "name", name="uq_recipe_category_tenant_name"),
+
+        Index("ix_recipe_categories_tenant", "is_deleted", "tenant_id", "id"),
+
         Index("ix_recipe_category_active_order", "is_deleted", "is_active", "display_order", "id"),
         Index("ix_recipe_category_name", "is_deleted", "name"),
     )

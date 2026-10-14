@@ -28,11 +28,13 @@ from src.api.routes.kds_route import kds_bp
 from src.api.routes.pos_route import pos_bp
 from src.api.routes.report_route import report_bp
 
-import src.api.events.user_events
-import src.api.events.email_otp_events
-import src.api.events.role_events
-import src.api.events.inventory_events
-import src.api.events.cms_events
+## Timestamps and soft-delete stamps are registered once, globally, in
+## src/api/events/base_events.py, which the model registry (src.api.models)
+## imports for its side effect at its bottom. Nothing needs importing here: the
+## route imports above pull in services, which import the registry. Registering
+## listeners only from app.py is what made created_at a NOT NULL violation
+## waiting for the first non-Flask caller -- a seeder, alembic, a script.
+
 
 def create_app():
     app = Flask(__name__)

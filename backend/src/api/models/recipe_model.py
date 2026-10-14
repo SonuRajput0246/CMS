@@ -1,6 +1,6 @@
-from sqlalchemy import String, Integer, Text, Numeric, Boolean, ForeignKey, Index, CheckConstraint
+from sqlalchemy import String, Integer, Text, Numeric, Boolean, ForeignKey, Index, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 
@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 ## The migration creates `recipes.station` as VARCHAR(20) to match.
 
 
-class Recipe(BaseModel):
+class Recipe(BaseTenantModel):
     __tablename__ = "recipes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    recipe_code: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    recipe_code: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
@@ -80,6 +80,11 @@ class Recipe(BaseModel):
     )
 
     __table_args__ = (
+        ## Was UNIQUE(recipe_code) globally; codes are generated per tenant.
+        UniqueConstraint("tenant_id", "recipe_code", name="uq_recipe_tenant_code"),
+
+        Index("ix_recipes_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("selling_price >= 0", name="ck_recipe_selling_price_nonneg"),
         CheckConstraint("cost_price >= 0", name="ck_recipe_cost_price_nonneg"),
         CheckConstraint("prep_time_minutes >= 0", name="ck_recipe_prep_time_nonneg"),

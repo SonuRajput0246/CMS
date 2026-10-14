@@ -1,9 +1,9 @@
 from sqlalchemy import Integer, String, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 
 
-class DocumentSequence(BaseModel):
+class DocumentSequence(BaseTenantModel):
     """Generic monotonic counter used to build human-readable document numbers.
 
     One table serves every numbered document (order, customer, recipe, table)
@@ -29,14 +29,15 @@ class DocumentSequence(BaseModel):
     last_sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
+        ## Was UNIQUE(purpose, period_year, period_month) globally, which means
+        ## every tenant shared ONE order counter: tenant B's first order would
+        ## continue from tenant A's last number. The tenant has to be part of
+        ## the scope or numbering is not per-tenant and is not even unique.
         UniqueConstraint(
-            "purpose", "period_year", "period_month",
-            name="uq_document_sequence_scope"
+            "tenant_id", "purpose", "period_year", "period_month",
+            name="uq_document_sequence_tenant_scope",
         ),
-        Index(
-            "ix_document_sequence_lookup",
-            "purpose", "period_year", "period_month"
-        ),
+        Index("ix_document_sequences_tenant", "is_deleted", "tenant_id", "id"),
     )
 
     def __repr__(self):

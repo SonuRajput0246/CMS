@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
-from src.database.base_model import BaseModel
-from sqlalchemy import String, Boolean, Index
+from src.database.base_model import BaseTenantModel
+from sqlalchemy import String, Boolean, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 if TYPE_CHECKING:
@@ -8,11 +8,11 @@ if TYPE_CHECKING:
     from src.api.models.role_module_access_model import RoleModuleAccess
 
 
-class Role(BaseModel):
+class Role(BaseTenantModel):
     __tablename__ = 'roles'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    role_code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    role_code: Mapped[str] = mapped_column(String(50), nullable=False)
     role_name: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -31,9 +31,19 @@ class Role(BaseModel):
     )
 
     __table_args__ = (
-        Index("ix_active_role_name_id", "is_deleted", "role_name", "id"),
-        Index("ix_active_role_id", "is_deleted", "id"),
-        Index("ix_active_role_code", "is_deleted", "role_code"),  # Add this
+          ## Was UNIQUE(role_code). That is one global set of roles, which cannot
+          ## hold two tenants both having an "ADMIN". Scoping the constraint to
+          ## the tenant is what lets each cafe define its own roles while
+          ## role_code stays a stable key for the seeders and for the
+          ## SUPER_ADMIN lookups in the service layer.
+          UniqueConstraint("tenant_id", "role_code", name="uq_role_tenant_code"),
+
+          ## The read path for almost everything: this tenant's live rows.
+          Index("ix_roles_tenant", "is_deleted", "tenant_id", "id"),
+
+          ## Login resolves a role by code within a tenant.
+          Index("ix_role_tenant_code_lookup", "tenant_id", "is_deleted", "role_code"),
+          Index("ix_active_role_name_id", "is_deleted", "role_name", "id"),
     )
 
     def __repr__(self):

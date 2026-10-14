@@ -20,7 +20,28 @@ graph:
     from src.api.models.customer_model import Customer
     from src.api.models.recipe_model import Recipe
     from src.api.models.user_model import User
+
+TENANCY
+-------
+Which tables carry `tenant_id` is decided entirely by their base class, never
+by this file and never by hand:
+
+  * `BaseTenantModel` -> the row belongs to one tenant. 22 tables.
+  * `BaseModel` / `Base` -> shared reference data, identical for every tenant.
+    8 tables: the geography and currency tables, the module/menu tree, the
+    enum definitions, and the login carousel.
+
+Read-side enforcement of the split is `src/api/tenancy/filters.py`, which
+applies a `tenant_id` criterion to every BaseTenantModel subclass at query
+time. Nothing in a service or a route has to remember to scope a query, and
+`TENANT_SCOPED_MODELS` there must stay in step with this file -- a model added
+to one and not the other is either unscoped (a leak) or wrongly scoped (a
+table that has no tenant_id column, which raises).
 """
+
+### The tenant itself. First of everything, because 22 tables below hold a
+### foreign key to it and the FK needs the target in the registry.
+from .tenant_model import Tenant
 
 ### Shared infrastructure: identity, access, inventory, reference data
 from .role_model import Role
@@ -64,16 +85,17 @@ from .order_model import (
     PaymentMethodEnum,
 )
 
-### Attach the CMS timestamp / soft-delete listeners.
+### Attach the timestamp / soft-delete listeners.
 #
 # Imported here, at the very bottom, so that ANY entry point which touches the
 # models -- app.py, an alembic env, a seeder, a management command, a test --
 # gets them. Registering them only from app.py made created_at a NOT NULL
 # violation waiting for the first non-Flask caller.
 #
-# The bottom placement is what keeps this acyclic: cms_events imports the model
-# modules directly, and by this line they are all fully resolved.
+# The bottom placement is what keeps this acyclic: base_events registers
+# against the declarative Base, and by this line every subclass it applies to
+# has been defined.
 #
 # event.listen dedupes on (target, identifier, fn), so app.py also importing
 # this module is harmless.
-from src.api.events import cms_events  # noqa: E402,F401  (imported for side effect)
+from src.api.events import base_events  # noqa: E402,F401  (imported for side effect)

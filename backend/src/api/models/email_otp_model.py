@@ -1,10 +1,10 @@
 from datetime import datetime
-from src.database.base import Base
+from src.database.base_model import BaseTenantModel
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Index
 
 
-class EmailOTP(Base):
+class EmailOTP(BaseTenantModel):
     __tablename__ = 'email_otps'
 
     ## Mapped[int] tells the IDE this is an integer
@@ -24,12 +24,13 @@ class EmailOTP(Base):
     )
     attempts: Mapped[int] = mapped_column(nullable=False, default=0)
     is_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
     ## Composite index for fast lookup of active OTP by user + purpose
+
     __table_args__ = (
+        Index("ix_email_otps_tenant", "is_deleted", "tenant_id", "id"),
+
         Index(
             "ix_user_purpose_active",
             "user_id",

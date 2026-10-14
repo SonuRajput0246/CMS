@@ -1,7 +1,7 @@
-from sqlalchemy import Index
+from sqlalchemy import Index, UniqueConstraint
 from datetime import datetime
 from typing import TYPE_CHECKING
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy import Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from src.api.models.token_model import Token
 
 
-class User(BaseModel):
+class User(BaseTenantModel):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -44,6 +44,13 @@ class User(BaseModel):
     tokens: Mapped["Token"] = relationship(back_populates="user")
 
     __table_args__ = (
+        ## One account per email per tenant. NOT unique globally on purpose: the same
+        ## person may hold accounts at two cafes, and a global unique would either
+        ## merge their permissions or force a second email address.
+        UniqueConstraint("tenant_id", "email", name="uq_user_tenant_email"),
+
+        Index("ix_users_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("CHAR_LENGTH(TRIM(first_name)) > 0", name="ck_user_first_name"),
         CheckConstraint("CHAR_LENGTH(TRIM(last_name)) > 0", name="ck_user_last_name"),
         CheckConstraint(

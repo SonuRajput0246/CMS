@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from sqlalchemy import String, Text, Integer, Boolean, ForeignKey, Index, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,7 +11,7 @@ def _enum_values(enum_cls):
     return [member.value for member in enum_cls]
 
 
-class Template(BaseModel):
+class Template(BaseTenantModel):
     __tablename__ = 'message_templates'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -93,7 +93,10 @@ class Template(BaseModel):
     ## behaves as a plain UNIQUE -- do not copy that pattern.)
     ## Uniqueness among live rows is enforced in the CRUD service, which returns
     ## 409 on conflict, matching upsert_role in admin_service.py.
+
     __table_args__ = (
+        Index("ix_message_templates_tenant", "is_deleted", "tenant_id", "id"),
+
         ## 1. Template lookup for a send action (code + channel + active)
         Index(
             "ix_template_resolve",

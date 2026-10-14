@@ -1,6 +1,6 @@
 from sqlalchemy import String, Numeric, Boolean, ForeignKey, Index, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.base_model import BaseModel
+from src.database.base_model import BaseTenantModel
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from src.api.models.inventory_model import Inventory
 
 
-class RecipeIngredient(BaseModel):
+class RecipeIngredient(BaseTenantModel):
     __tablename__ = "recipe_ingredients"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -43,6 +43,8 @@ class RecipeIngredient(BaseModel):
     )
 
     __table_args__ = (
+        Index("ix_recipe_ingredients_tenant", "is_deleted", "tenant_id", "id"),
+
         CheckConstraint("quantity > 0", name="ck_recipe_ing_qty_positive"),
         UniqueConstraint("recipe_id", "inventory_id", name="uq_recipe_inventory_ingredient"),
         Index("ix_recipe_ing_recipe", "is_deleted", "recipe_id", "id"),
