@@ -678,13 +678,3 @@ div.swal2-container.swal-container-css {
     outline-offset: 2px;
   }
 }
-
-
-
-
-
-// ---------- CMS dialogs ----------
-// mat-dialog renders into a CDK overlay outside the component view, so these
-// styles cannot live in a component stylesheet.
-@import 'app/cms/cms-dialogs';
-

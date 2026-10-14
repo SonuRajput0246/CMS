@@ -5,7 +5,7 @@ import { CustomSnackbarService } from '../../shared/custom-snackbar/custom-snack
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { InstanceService } from '../../core/config/instance.service';
+import { HOME_URL } from '../../core/config/app-paths';
 import { STORAGE_KEYS } from '../../core/config/storage-keys';
 
 @Component({
@@ -20,7 +20,6 @@ export class OtpVerificationComponent {
   private _accountService = inject(UserAccountService);
   private _snackbar = inject(CustomSnackbarService);
   private _auth = inject(AuthService);
-  private _instance = inject(InstanceService);
 
   otpForm!: FormGroup;
   isLoading = false;
@@ -150,7 +149,7 @@ export class OtpVerificationComponent {
     sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
     localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data));
     this._snackbar.openSnackBar(flowType === 'account_activation' ? 'Account Activated Successfully!' : 'Email Verified Successfully!', 'success');
-    this._router.navigateByUrl(this._instance.homeUrl);
+    this._router.navigateByUrl(HOME_URL);
   }
 
 

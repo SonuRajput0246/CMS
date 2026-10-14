@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { InstanceService } from '../../core/config/instance.service';
+import { Component } from '@angular/core';
+import { HOME_URL } from '../../core/config/app-paths';
 
 @Component({
   selector: 'app-page-not-found',
@@ -8,7 +8,7 @@ import { InstanceService } from '../../core/config/instance.service';
 })
 export class PageNotFoundComponent {
 
-  /** Where "Go to home" should lead on the instance that is actually running. */
-  homeUrl = inject(InstanceService).homeUrl;
+  /** Where "Go to home" should lead. */
+  readonly homeUrl = HOME_URL;
 
 }

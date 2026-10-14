@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { InstanceService } from '../../core/config/instance.service';
+import { HOME_URL } from '../../core/config/app-paths';
 
 /**
  * Shown when AuthGuard denies a route for lack of permission.
@@ -63,7 +63,7 @@ import { InstanceService } from '../../core/config/instance.service';
 })
 export class UnauthorizedAccessComponent {
 
-  /** Leads to the active instance's dashboard, not a hardcoded /hms path. */
-  homeUrl = inject(InstanceService).homeUrl;
+  /** Leads to the dashboard. */
+  readonly homeUrl = HOME_URL;
 
 }

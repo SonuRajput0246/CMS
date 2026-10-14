@@ -6,7 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { finalize } from 'rxjs/operators';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { CommonService } from '../../services/common.service';
-import { InstanceService } from '../../core/config/instance.service';
+import { APP_LABEL, HOME_URL } from '../../core/config/app-paths';
 import { STORAGE_KEYS } from '../../core/config/storage-keys';
 
 @Component({
@@ -22,7 +22,6 @@ export class LoginComponent {
   private _router = inject(Router);
   private _confirmService = inject(ConfirmationService);
   private _common = inject(CommonService);
-  private _instance = inject(InstanceService);
 
   loginForm!: FormGroup;
   verifyMfaForm!: FormGroup;
@@ -133,8 +132,8 @@ export class LoginComponent {
     sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
     localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data));
     this._common.setMFAEnabledStatus(data.mfa_enabled); //check this by commenting (cookie is set)
-    this._snackbar.openSnackBar(`Welcome to ${this._instance.label}`, 'success');
-    this._router.navigateByUrl(this._instance.homeUrl);
+    this._snackbar.openSnackBar(`Welcome to ${APP_LABEL}`, 'success');
+    this._router.navigateByUrl(HOME_URL);
   }
 
   private handleLoginError(err: any): void {

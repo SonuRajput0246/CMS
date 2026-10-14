@@ -4,8 +4,6 @@ import { Router, Routes, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { AppConfig } from './core/config/config';
-import { InstanceService } from './core/config/instance.service';
-import { InstanceHomeRedirectComponent } from './core/instance-home-redirect.component';
 import { routes as appRoutes } from './app-routing.module';
 import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.component';
 
