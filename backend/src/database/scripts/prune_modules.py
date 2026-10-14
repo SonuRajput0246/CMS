@@ -20,7 +20,11 @@ import os
 import re
 import sys
 
-import pymysql
+## MySQLdb (the `mysqlclient` driver) is used deliberately, not pymysql: it is
+## the same driver SQLAlchemy resolves for the `mysql://` URL in
+## src/database/session.py, so the project depends on one driver rather than
+## two. Both accept these kwargs and both cursors are context managers.
+import MySQLdb
 from dotenv import load_dotenv
 
 SEEDER = {
@@ -29,7 +33,7 @@ SEEDER = {
 
 
 def _connect(dbname=None):
-    return pymysql.connect(
+    return MySQLdb.connect(
         host=os.getenv("DB_HOST"),
         port=int(os.getenv("DB_PORT", "3306")),
         user=os.getenv("DB_USERNAME"),

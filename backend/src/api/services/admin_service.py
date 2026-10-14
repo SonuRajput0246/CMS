@@ -1,16 +1,11 @@
 from datetime import datetime, timezone
 
-from flask import current_app
-from sqlalchemy import create_engine, or_
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm import joinedload
 
 from src.api.models import Role, Module, RoleModuleAccess
 from src.api.utils.responses import service_response
-from src.database.session import db_session
 
-import random
-import string
 
 
 class AdminService:

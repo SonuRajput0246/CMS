@@ -2,7 +2,6 @@ from decimal import Decimal
 from marshmallow import fields, validate, ValidationError, validates_schema
 
 from src.api.schemas.base import BaseSchema
-from src.api.schemas.fields.text import text_field
 from src.api.schemas.id_schema import id_schema_factory
 
 

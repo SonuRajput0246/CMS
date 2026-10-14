@@ -2,7 +2,7 @@ from sqlalchemy import String, Numeric, Boolean, ForeignKey, Index, CheckConstra
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database.base_model import BaseModel
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.api.models.recipe_model import Recipe

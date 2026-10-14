@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import func, text
@@ -8,12 +8,9 @@ from src.api.models.order_model import (
     CMSOrderItem,
     CMSPayment,
     OrderStatusEnum,
-    OrderTypeEnum,
     PaymentStatusEnum,
     PREP_VOIDED,
 )
-from src.api.models.customer_model import Customer
-from src.api.models.table_model import Table
 from src.api.models.user_model import User
 from src.api.utils.datetime_helper import (
     business_timezone,

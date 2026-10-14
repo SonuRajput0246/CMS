@@ -1,4 +1,4 @@
-from sqlalchemy import String, Boolean, Integer, Index, text
+from sqlalchemy import String, Boolean, Integer, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database.base_model import BaseModel
 from typing import TYPE_CHECKING, List

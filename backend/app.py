@@ -1,13 +1,8 @@
-import logging
 from flask import Flask
-from flask import jsonify
 from flask_cors import CORS
 from src.config import get_config
 from src.api.extensions import bcrypt
-from src.api.utils.errors import APIError
 from src.database.session import db_session
-from marshmallow.exceptions import MarshmallowError
-from sqlalchemy.sql.operators import json_getitem_op
 from src.api.utils.error_handlers import register_error_handlers
 
 ## Shared infrastructure routes, then the cafe domain routes. Every blueprint

@@ -49,7 +49,6 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from src.api.models.inventory_model import Inventory
 from src.api.models.user_model import User
 from src.api.models.customer_model import Customer
 from src.api.models.order_model import (

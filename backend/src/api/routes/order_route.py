@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask import g
 
-from src.api.middlewares.authorization import SELF_SERVICE, requires_module
+from src.api.middlewares.authorization import requires_module
 from src.api.schemas.order_schema import (
     AddOrderItemSchema,
     CancelOrderSchema,
     CloseOrderSchema,
     CreateOrderSchema,
-    GetOrderByIdSchema,
     GetOrdersSchema,
     ProcessPaymentSchema,
     UpdateOrderItemQuantitySchema,

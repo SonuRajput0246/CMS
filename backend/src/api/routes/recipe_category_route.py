@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from src.api.middlewares.authorization import SELF_SERVICE, requires_module
+from src.api.middlewares.authorization import requires_module
 from src.api.schemas.recipe_category_schema import (
     GetRecipeCategoriesSchema,
     GetRecipeCategoryByIdSchema,

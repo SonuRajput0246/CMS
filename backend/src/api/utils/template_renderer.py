@@ -41,7 +41,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Any, Iterable
+from typing import Iterable
 
 
 ## Only bare identifiers are recognised as placeholders. Dots, spaces, digits

@@ -14,7 +14,8 @@ from src.api.models.document_sequence_model import DocumentSequence
 ## Every CMS model in one place.
 ##
 ## The rest of the app registers a before_insert / before_update pair per model
-## (see inventory_events.py, room_events.py, ...). Those listeners are not
+## (see inventory_events.py, user_events.py, role_events.py, ...). Those
+## listeners are not
 ## optional decoration: BaseModel.created_at / updated_at are nullable=False with
 ## no column default, so a row inserted without a listener raises
 ##   MySQLdb.IntegrityError (1048, "Column 'created_at' cannot be null")

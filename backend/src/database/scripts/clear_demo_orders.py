@@ -24,7 +24,7 @@ import os
 import sys
 from decimal import Decimal
 
-import pymysql
+import MySQLdb
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,7 +37,7 @@ MAX_ROWS = 500
 
 
 def connect():
-    return pymysql.connect(
+    return MySQLdb.connect(
         host=os.getenv("DB_HOST"), port=int(os.getenv("DB_PORT", "3306")),
         user=os.getenv("DB_USERNAME"), password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME"),

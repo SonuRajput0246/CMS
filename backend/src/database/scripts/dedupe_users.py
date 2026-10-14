@@ -13,7 +13,7 @@ Usage (from backend/): python -m src.database.scripts.dedupe_users
 import os
 import sys
 
-import pymysql
+import MySQLdb
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,7 +25,7 @@ APPLY = "--apply" in sys.argv
 
 
 def main():
-    conn = pymysql.connect(
+    conn = MySQLdb.connect(
         host=os.getenv("DB_HOST"), port=int(os.getenv("DB_PORT", "3306")),
         user=os.getenv("DB_USERNAME"), password=os.getenv("DB_PASSWORD"),
         database="cms_dev",

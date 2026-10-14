@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Numeric, DateTime, Boolean, Index, text
+from sqlalchemy import String, Integer, Numeric, DateTime, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database.base_model import BaseModel
 from src.api.utils.datetime_helper import utcnow

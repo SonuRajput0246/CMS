@@ -1,5 +1,3 @@
-from sqlalchemy import func
-from decimal import Decimal
 
 from src.api.models.customer_model import Customer
 from src.api.services.document_sequence_service import DocumentSequenceService

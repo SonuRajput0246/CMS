@@ -5,8 +5,6 @@ from src.api.models.order_model import (
     OrderStatusEnum,
     PREP_PENDING,
     PREP_PREPARING,
-    PREP_READY,
-    PREP_VOIDED,
 )
 from src.api.utils.responses import service_response
 

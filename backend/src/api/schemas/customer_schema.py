@@ -1,4 +1,4 @@
-from marshmallow import fields, validate, ValidationError, validates_schema
+from marshmallow import fields, validate
 
 from src.api.schemas.base import BaseSchema
 from src.api.schemas.fields.name import name_field

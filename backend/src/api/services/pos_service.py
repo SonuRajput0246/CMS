@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from src.api.models.order_model import (
     CMSOrder,
-    CMSPayment,
     OrderStatusEnum,
     PaymentStatusEnum,
     PREP_READY,

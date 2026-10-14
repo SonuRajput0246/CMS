@@ -15,14 +15,8 @@ from sqlalchemy.sql.expression import literal_column
 ## here and used consistently below.
 SECONDS = literal_column("SECOND")
 
-from src.api.models.order_model import (
-    CMSOrder,
-    CMSOrderItem,
-    PREP_READY,
-    PREP_VOIDED,
-)
+from src.api.models.order_model import CMSOrder, CMSOrderItem, PREP_READY
 from src.api.services.reports_service import ReportRangeError, _d, SOLD_STATUS
-from src.api.utils.datetime_helper import elapsed_minutes
 from src.api.utils.responses import service_response
 
 

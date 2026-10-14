@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from src.api.middlewares.authorization import SELF_SERVICE, requires_module
+from src.api.middlewares.authorization import requires_module
 from src.api.schemas.pos_schema import GetBillSchema, GetPosSummarySchema
 from src.api.services.pos_service import PosService
 from src.database.session import db_session
