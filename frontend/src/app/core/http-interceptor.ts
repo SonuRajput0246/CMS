@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import {
     HttpInterceptor,
     HttpEvent,
-    HttpHandler, 
-    HttpRequest, 
+    HttpHandler,
+    HttpRequest,
     HttpErrorResponse,
     HttpClient
 } from '@angular/common/http';
@@ -12,6 +12,7 @@ import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { Router } from '@angular/router';
 // import { CommonService } from '../services/common.service';
 import { AppConfig } from '../core/config/config';
+import { TenantService } from '../services/tenant.service';
 
 
 @Injectable()
@@ -25,6 +26,7 @@ export class HttpIntercept implements HttpInterceptor {
         private http: HttpClient,
         // private _common: CommonService,
         private config: AppConfig,
+        private tenant: TenantService,
     ) {}
 
 
@@ -37,11 +39,11 @@ export class HttpIntercept implements HttpInterceptor {
             req.url.includes('/auth/login') ||
             req.url.includes('/auth/get-fresh-token') ||
             req.url.includes('/assets/');
-        
-        let authReq = req;
+
+        let authReq = this.addTenantHeader(req);
 
         if (accessToken && !isPublicApi) {
-            authReq = this.addToken(req, accessToken);
+            authReq = this.addToken(authReq, accessToken);
         }
 
         return next.handle(authReq).pipe(
@@ -67,7 +69,18 @@ export class HttpIntercept implements HttpInterceptor {
         );
     }
 
-    private addToken(req: HttpRequest<any>, token:string): HttpRequest<any> {
+    private addTenantHeader(req: HttpRequest<any>): HttpRequest<any> {
+        if (!this.tenant.slug) {
+            return req;
+        }
+        return req.clone({
+            setHeaders: {
+                'X-Tenant-Slug': this.tenant.slug
+            }
+        });
+    }
+
+    private addToken(req: HttpRequest<any>, token: string): HttpRequest<any> {
         return req.clone({
             setHeaders: {
                 Authorization: `Bearer ${token}`
@@ -98,7 +111,7 @@ export class HttpIntercept implements HttpInterceptor {
                         sessionStorage.setItem('cms_accessToken', res.data.access_token);
                         localStorage.setItem('cms_userData', JSON.stringify(res.data));
                         this.refreshTokenSubject.next(res.data.access_token);
-                        return next.handle(this.addToken(request, res.data.access_token));
+                        return next.handle(this.addTenantHeader(this.addToken(request, res.data.access_token)));
                     }
                     return this.logout();
                 }),
@@ -114,7 +127,7 @@ export class HttpIntercept implements HttpInterceptor {
             filter(token => token !== null),
             take(1),
             switchMap(token =>
-                next.handle(this.addToken(request, token!))
+                next.handle(this.addTenantHeader(this.addToken(request, token!)))
             )
         );
     }

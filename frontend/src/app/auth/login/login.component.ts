@@ -38,7 +38,6 @@ export class LoginComponent {
 
   private createForm(): void {
     this.loginForm = this.fb.group({
-      tenant_slug: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
     });
@@ -141,7 +140,7 @@ export class LoginComponent {
     if (err.status === 403 && errorData?.ask_account_activation) {
       this.handleInactiveAccount(msg);
     } else if (err.status === 403 && errorData?.start_email_verification) {
-      this._router.navigate(['/auth/otp-verification'], { state: { email: this.loginForm.value.email, type: 'email_verification', tenant_slug: this.loginForm.value.tenant_slug } });
+      this._router.navigate(['/auth/otp-verification'], { state: { email: this.loginForm.value.email, type: 'email_verification' } });
     }
     else {
       this._snackbar.openSnackBar(msg, 'error');
@@ -156,14 +155,14 @@ export class LoginComponent {
     ).then((result) => {
       if (result.isConfirmed) {
         this.isPageLoad = true;
-        this._auth.sendOtp(this.loginForm.value.email, 'account_activation', this.loginForm.value.tenant_slug)
+        this._auth.sendOtp(this.loginForm.value.email, 'account_activation')
           .pipe(finalize(() => {
             this.isPageLoad = false;
           }))
           .subscribe({
             next: (res) => {
               if (res?.status) {
-                this._router.navigate(['/auth/otp-verification'], { state: { email: this.loginForm.value.email, type: 'account_activation', tenant_slug: this.loginForm.value.tenant_slug } });
+                this._router.navigate(['/auth/otp-verification'], { state: { email: this.loginForm.value.email, type: 'account_activation' } });
               } else {
                 this._snackbar.openSnackBar(res?.message || 'Failed to initiate account activation flow', 'error');
               }

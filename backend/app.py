@@ -45,7 +45,10 @@ def create_app():
     ## Enable CORS
     CORS(
         app,
-        resources={r"/*": {"origins": "http://localhost:4200"}},
+        resources={r"/*": {"origins": [
+            "http://localhost:4200",
+            r"http://[a-z0-9-]+\.localhost:4200$",
+        ]}},
         supports_credentials=True
     )
 

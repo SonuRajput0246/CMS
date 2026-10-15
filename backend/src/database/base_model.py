@@ -40,8 +40,9 @@ def _tenant_id_default() -> int:
     """Stamp a new row with the tenant that is current when it is flushed.
 
     This is what makes row creation multi-tenant without editing every create
-    path: the unit of work has already resolved a tenant (the login slug, or
-    the JWT for an authenticated call) before it reaches the insert.
+    path: the unit of work has already resolved a tenant (the request's
+    subdomain, or the JWT for an authenticated call) before it reaches the
+    insert.
 
     It raises rather than inserting NULL when there is no tenant, so a create
     that escaped its tenant context fails closed and loudly, instead of writing
@@ -52,8 +53,9 @@ def _tenant_id_default() -> int:
     if tenant_id is None:
         raise RuntimeError(
             "Refusing to insert a tenant-scoped row: no tenant in context. "
-            "Resolve one via tenancy.resolution.enter_tenant(), set it with "
-            "set_current_tenant_id(), or pass tenant_id explicitly."
+            "Resolve one with enter_request_tenant() (request path) or "
+            "enter_tenant()/tenant_scope() (non-request code), or pass "
+            "tenant_id explicitly."
         )
     return tenant_id
 

@@ -1,5 +1,4 @@
 export interface IAuthRequest {
-    tenant_slug?: string;
     email?: string;
     password?: string;
 }
@@ -34,7 +33,6 @@ export interface IChangePassword {
 }
 
 export interface IResetPassword {
-  tenant_slug?: string;
   userEmail?: string;
   otp?: string;
   password?: string;
@@ -49,7 +47,6 @@ export interface IUserProfile {
 }
 
 export interface ISignUp {
-  tenant_slug?: string;
   first_name?: string;
   last_name?: string;
   email?: string;

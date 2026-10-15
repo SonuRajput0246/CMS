@@ -8,7 +8,7 @@ from src.api.extensions import bcrypt
 from src.api.models import EmailOTP, Token, Module, RoleModuleAccess
 from src.api.models.user_model import User
 from src.api.models.role_model import Role
-from src.api.tenancy.resolution import enter_tenant
+from src.api.tenancy.resolution import enter_request_tenant
 from src.api.tenancy.context import set_current_tenant_id
 from src.api.schemas.auth_schema import LoginResponseSchema
 from src.api.utils.mfa import generate_secret, get_uri, verify_otp
@@ -28,8 +28,8 @@ class AuthService:
             ## 0. Resolve the tenant first. The duplicate-email check below and
             ##    the row we insert are both scoped to it, and it is what stamps
             ##    the new user with a tenant_id.
-            if enter_tenant(self.db, data.get("tenant_slug")) is None:
-                return service_response(False, "Unknown or inactive company code.", None, 400)
+            if enter_request_tenant(self.db) is None:
+                return service_response(False, "Unknown or inactive workspace.", None, 400)
 
             ## 1. Check for existing user (this tenant only, via the query filter)
             stmt = select(User).filter_by(is_deleted=False, email=data['email'])
@@ -96,8 +96,8 @@ class AuthService:
 
 
     def verify_email(self, data: dict):
-        if enter_tenant(self.db, data.get("tenant_slug")) is None:
-            return {"status": False, "message": "Unknown or inactive company code.", "code": 401}
+        if enter_request_tenant(self.db) is None:
+            return {"status": False, "message": "Unknown or inactive workspace.", "code": 401}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return {"status": False, "message": "User not found.", "code": 404}
@@ -340,8 +340,8 @@ class AuthService:
 
 
     def user_login(self, data):
-        if enter_tenant(self.db, data.get("tenant_slug")) is None:
-            return {"status": False, "message": "Unknown or inactive company code.", "code": 401}
+        if enter_request_tenant(self.db) is None:
+            return {"status": False, "message": "Unknown or inactive workspace.", "code": 401}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user or not bcrypt.check_password_hash(user.password.encode('utf-8'), data['password'].encode('utf-8')):
             return {"status": False, "message": "Invalid email or password.", "code": 401}
@@ -411,8 +411,8 @@ class AuthService:
 
 
     def send_otp_on_email(self, data):
-        if enter_tenant(self.db, data.get("tenant_slug")) is None:
-            return {"status": False, "message": "Unknown or inactive company code."}, 404
+        if enter_request_tenant(self.db) is None:
+            return {"status": False, "message": "Unknown or inactive workspace."}, 404
         user = self.db.query(User).filter_by(email=data['email'], is_deleted=False).first()
         if not user:
             return {"status": False, "message": "User not found"}, 404
@@ -431,8 +431,8 @@ class AuthService:
 
 
     def activate_account(self, data):
-        if enter_tenant(self.db, data.get("tenant_slug")) is None:
-            return {"error": "Unknown or inactive company code.", "code": 404}
+        if enter_request_tenant(self.db) is None:
+            return {"error": "Unknown or inactive workspace.", "code": 404}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return {"error": "User not found.", "code": 404}
@@ -514,8 +514,8 @@ class AuthService:
 
 
     def reset_user_password(self, data):
-        if enter_tenant(self.db, data.get("tenant_slug")) is None:
-            return service_response(False, "Unknown or inactive company code.", None, 404)
+        if enter_request_tenant(self.db) is None:
+            return service_response(False, "Unknown or inactive workspace.", None, 404)
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return service_response(False, "User not found", None, 404)

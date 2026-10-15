@@ -26,7 +26,6 @@ export class ForgotPasswordComponent {
 
   private createForm(): void {
     this.forgotPasswordForm = this.fb.group({
-      tenant_slug: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]]
     });
   }
@@ -41,14 +40,14 @@ export class ForgotPasswordComponent {
       const userEmail = this.forgotPasswordForm.value.email;
       console.log('Requesting OTP for:', userEmail);
       this.isLoading = true;
-      this._auth.sendOtp(userEmail, 'reset_password', this.forgotPasswordForm.value.tenant_slug)
+      this._auth.sendOtp(userEmail, 'reset_password')
         .pipe(finalize(() => {
           this.isLoading = false;
         }))
         .subscribe({
           next: (res) => {
             if (res?.status) {
-              this._router.navigate(['/auth/reset-password'], { state: { email: userEmail, type: 'reset_password', tenant_slug: this.forgotPasswordForm.value.tenant_slug } });
+              this._router.navigate(['/auth/reset-password'], { state: { email: userEmail, type: 'reset_password' } });
             } else {
               this._snackbar.openSnackBar(res?.message || 'Failed to initiate reset password flow', 'error');
             }

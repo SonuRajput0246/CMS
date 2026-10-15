@@ -24,7 +24,6 @@ export class OtpVerificationComponent {
   isPageLoad = false;
   email: string = '';
   flowType: string = '';
-  tenantSlug: string = '';
 
   timerSeconds = 60;
   timerInterval: any;
@@ -32,14 +31,13 @@ export class OtpVerificationComponent {
 
   constructor() {
     const navigation = this._router.getCurrentNavigation();
-    const state = navigation?.extras.state as { email: string; type: string; tenant_slug: string };
-    if (!state || !state.email || !state.tenant_slug) {
+    const state = navigation?.extras.state as { email: string; type: string };
+    if (!state || !state.email) {
       this._router.navigate(['/auth/login']);
       return;
     }
     this.email = state.email;
     this.flowType = state.type;
-    this.tenantSlug = state.tenant_slug;
   }
 
   ngOnInit(): void {
@@ -78,7 +76,7 @@ export class OtpVerificationComponent {
   resendOtp(): void {
     if (!this.canResend) return;
     this.isLoading = true;
-    this._auth.sendOtp(this.email, this.flowType, this.tenantSlug)
+    this._auth.sendOtp(this.email, this.flowType)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (res) => {
@@ -101,8 +99,7 @@ export class OtpVerificationComponent {
     this.isLoading = true;
     const payload = {
       email: this.email,
-      otp: this.otpForm.value.otp,
-      tenant_slug: this.tenantSlug
+      otp: this.otpForm.value.otp
     };
 
     if (this.flowType === 'account_activation') {
