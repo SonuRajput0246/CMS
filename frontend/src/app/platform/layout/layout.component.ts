@@ -33,6 +33,25 @@ export class PlatformLayoutComponent {
     return this._auth.profile?.email ?? '';
   }
 
+  /**
+   * Up to two letters for the avatar badges. Splits on the separators that
+   * appear in both names and addresses, so "Priya Nair" and
+   * "platform@admin.local" each reduce to something recognisable, and falls
+   * back to a fixed pair rather than rendering an empty circle.
+   */
+  get initials(): string {
+    const source = (this.userName || this.userEmail || '').trim();
+    const parts = source.split(/[\s@._-]+/).filter(part => part.length > 0);
+
+    if (parts.length === 0) {
+      return 'PA';
+    }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
   logout(): void {
     if (this.isLoggingOut) {
       return;

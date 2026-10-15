@@ -1,0 +1,133 @@
+// Shared design tokens for the platform (super admin) console.
+//
+// The console is its own surface, so it carries its own look rather than
+// inheriting the tenant app's prebuilt indigo/pink Material theme: a navy shell
+// with teal accents, matching the newer auth screens. Only variables and a few
+// small mixins live here; every component pulls them in with
+// `@use '../tokens' as *;`.
+//
+// The `#{}` interpolation in the mixins' custom-property values is load-bearing.
+// Sass treats a custom-property value as literal CSS, so a bare `$var` would be
+// emitted verbatim as the text "$var" and silently do nothing.
+
+// ----- palette -----
+$navy: #003366;
+$navy-deep: #04213f;
+$navy-light: #0a4387;
+$navy-soft: #eef3fa;
+
+$teal: #16b4a4;
+$teal-deep: #0e8f83;
+$teal-soft: #e2f6f3;
+
+$page-bg: #f2f6fc;
+$card-bg: #ffffff;
+
+$text: #1c2b3a;
+$text-muted: #64748b;
+$border: #e2e8f0;
+$border-strong: #cdd8e6;
+$placeholder: #b7c4d6;
+
+$success: #15803d;
+$success-soft: #e7f6ec;
+$amber: #b45309;
+$amber-soft: #fdf1e3;
+$neutral: #64748b;
+$neutral-soft: #eef1f6;
+
+// ----- shape, depth, motion -----
+$radius-sm: 8px;
+$radius: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$topbar-h: 64px;
+$ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+$shadow-sm: 0 1px 2px rgba(16, 32, 56, 0.06), 0 1px 3px rgba(16, 32, 56, 0.04);
+$shadow-md: 0 6px 16px -4px rgba(16, 32, 56, 0.12), 0 2px 6px -2px rgba(16, 32, 56, 0.06);
+$shadow-navy: 0 12px 26px -14px rgba(0, 51, 102, 0.85);
+
+// ----- page furniture, shared by every console screen -----
+@mixin page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+@mixin eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $teal-deep;
+}
+
+@mixin title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: $navy;
+}
+
+@mixin subtitle {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: $text-muted;
+}
+
+// ----- Material widgets, retinted -----
+//
+// Every block is qualified with the real MDC host class and written as
+// `<class>.<mdc class>`. Once Angular appends its scope attribute that is
+// three class-level selectors, which outranks the prebuilt theme's two-class
+// rules like `.mat-mdc-unelevated-button.mat-primary` no matter which
+// stylesheet the browser sees first.
+//
+// Colours arrive as CSS custom properties because that is the only handle the
+// theme leaves open: the declarations it makes on `html` are overridable from
+// any ancestor element, and the properties inherit down to the MDC internals.
+
+@mixin mdc-filled-button($bg, $fg) {
+  &.mat-mdc-unelevated-button {
+    --mdc-filled-button-container-color: #{$bg};
+    --mdc-filled-button-label-text-color: #{$fg};
+    --mdc-filled-button-container-shape: #{$radius-sm};
+    --mdc-filled-button-disabled-container-color: #{$border-strong};
+    --mdc-filled-button-disabled-label-text-color: #ffffff;
+    --mat-filled-button-state-layer-color: #{$fg};
+    --mat-filled-button-ripple-color: #{$fg};
+  }
+}
+
+@mixin mdc-outlined-button($fg, $outline) {
+  &.mat-mdc-outlined-button {
+    --mdc-outlined-button-label-text-color: #{$fg};
+    --mdc-outlined-button-outline-color: #{$outline};
+    --mdc-outlined-button-container-shape: #{$radius-sm};
+    --mat-outlined-button-state-layer-color: #{$fg};
+    --mat-outlined-button-ripple-color: #{$fg};
+  }
+}
+
+@mixin mdc-outlined-field {
+  &.mat-mdc-form-field {
+    --mdc-outlined-text-field-container-shape: #{$radius-sm};
+    --mdc-outlined-text-field-outline-color: #{$border-strong};
+    --mdc-outlined-text-field-hover-outline-color: #{$navy-light};
+    --mdc-outlined-text-field-focus-outline-color: #{$navy};
+    --mdc-outlined-text-field-focus-outline-width: 2px;
+    --mdc-outlined-text-field-label-text-color: #{$text-muted};
+    --mdc-outlined-text-field-hover-label-text-color: #{$navy};
+    --mdc-outlined-text-field-focus-label-text-color: #{$navy};
+    --mdc-outlined-text-field-input-text-color: #{$text};
+    --mdc-outlined-text-field-input-text-placeholder-color: #{$placeholder};
+    --mdc-outlined-text-field-caret-color: #{$navy};
+  }
+}

@@ -1,68 +1,130 @@
+@use '../../tokens' as *;
+
 .manage-page {
-  max-width: 860px;
+  position: relative;
+  max-width: 880px;
   margin: 0 auto;
 }
 
 .page-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  @include page-head;
+}
+
+.page-title {
+  .eyebrow {
+    @include eyebrow;
+  }
 
   h1 {
-    margin: 0 0 4px;
-    font-size: 22px;
-    font-weight: 600;
-    color: #2b2350;
+    @include title;
   }
 
   p {
-    margin: 0;
-    color: #7a7a8c;
-    font-size: 14px;
+    @include subtitle;
     max-width: 620px;
   }
 }
 
+.btn-outline {
+  height: 44px;
+  padding: 0 18px;
+  font-weight: 600;
+
+  @include mdc-outlined-button($navy, $border-strong);
+
+  mat-icon {
+    margin-right: 6px;
+  }
+
+  &:not([disabled]):hover {
+    --mdc-outlined-button-outline-color: #{$navy};
+  }
+}
+
+.btn-primary {
+  height: 44px;
+  padding: 0 20px;
+  font-weight: 600;
+
+  @include mdc-filled-button($navy, #ffffff);
+
+  &:not([disabled]):hover {
+    box-shadow: $shadow-navy;
+  }
+}
+
+.loader-wrap {
+  position: relative;
+  min-height: 260px;
+
+  // Custom properties inherit across the component boundary, so this retints
+  // the spinner inside <app-page-loader> without touching that component.
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
 .form-card {
-  padding: 24px;
-  border-radius: 12px;
+  padding: 26px 28px 24px;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  &:not(:first-child) {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 1px solid $border;
+  }
 
   h2 {
-    margin: 0 0 4px;
+    margin: 0;
     font-size: 16px;
-    font-weight: 600;
-    color: #2b2350;
-
-    &:not(:first-child) {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(0, 0, 0, 0.08);
-    }
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: $navy;
   }
 
-  .section-hint {
-    margin: 0 0 16px;
-    color: #7a7a8c;
-    font-size: 13px;
+  .step {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: $navy-soft;
+    color: $navy;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
+}
+
+.section-hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: $text-muted;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 0 20px;
-  margin-top: 16px;
+  gap: 4px 20px;
+  margin-top: 18px;
 
   mat-form-field {
     width: 100%;
+
+    @include mdc-outlined-field;
   }
 
   .suffix {
-    color: #9a9aac;
+    padding-right: 10px;
+    color: $text-muted;
     font-size: 13px;
-    padding-right: 8px;
   }
 }
 
@@ -71,4 +133,21 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid $border;
+}
+
+@media (max-width: 600px) {
+  .form-card {
+    padding: 20px 16px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions .btn-outline,
+  .actions .btn-primary {
+    width: 100%;
+  }
 }

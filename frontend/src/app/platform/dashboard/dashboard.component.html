@@ -1,26 +1,33 @@
 <div class="dashboard">
-  <div class="page-head">
-    <div>
+  <header class="page-head">
+    <div class="page-title">
+      <span class="eyebrow">Platform</span>
       <h1>Overview</h1>
-      <p>Platform-wide view of every workspace.</p>
+      <p>Every workspace on this deployment, at a glance.</p>
     </div>
-    <button mat-stroked-button color="primary" (click)="loadSummary()" [disabled]="isLoading">
+
+    <button mat-stroked-button class="btn-outline" (click)="loadSummary()" [disabled]="isLoading">
       <mat-icon>refresh</mat-icon>
       Refresh
     </button>
+  </header>
+
+  <div class="loader-wrap" *ngIf="isLoading">
+    <app-page-loader></app-page-loader>
   </div>
 
-  <app-page-loader *ngIf="isLoading"></app-page-loader>
-
-  <div class="cards" *ngIf="!isLoading && summary">
+  <section class="cards" *ngIf="!isLoading && summary">
     <mat-card class="stat-card" *ngFor="let card of cards" [ngClass]="card.tone">
-      <mat-icon class="card-icon">{{ card.icon }}</mat-icon>
+      <span class="card-icon">
+        <mat-icon>{{ card.icon }}</mat-icon>
+      </span>
       <div class="value">{{ value(card.key) }}</div>
       <div class="label">{{ card.label }}</div>
     </mat-card>
-  </div>
+  </section>
 
   <div class="empty" *ngIf="!isLoading && !summary">
-    No summary available yet.
+    <mat-icon>cloud_off</mat-icon>
+    <p>No summary available yet.</p>
   </div>
 </div>

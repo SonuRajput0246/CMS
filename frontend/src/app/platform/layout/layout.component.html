@@ -1,30 +1,51 @@
 <div class="platform-shell">
-  <mat-toolbar color="primary" class="topbar">
-    <mat-icon class="brand-icon">shield_person</mat-icon>
-    <span class="brand">Platform Console</span>
+  <header class="topbar">
+    <a class="brand" routerLink="/platform/dashboard">
+      <span class="brand-badge">
+        <mat-icon>shield_person</mat-icon>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">Platform Console</span>
+        <span class="brand-eyebrow">Super admin</span>
+      </span>
+    </a>
+
+    <nav class="links" aria-label="Platform sections">
+      <a mat-button class="nav-link" routerLink="/platform/dashboard" routerLinkActive="active-link">
+        <mat-icon>space_dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+      <a mat-button class="nav-link" routerLink="/platform/tenants" routerLinkActive="active-link">
+        <mat-icon>dns</mat-icon>
+        <span>Tenants</span>
+      </a>
+    </nav>
 
     <span class="spacer"></span>
 
-    <nav class="links">
-      <a mat-button routerLink="/platform/dashboard" routerLinkActive="active-link">Dashboard</a>
-      <a mat-button routerLink="/platform/tenants" routerLinkActive="active-link">Tenants</a>
-    </nav>
-
-    <button mat-icon-button [matMenuTriggerFor]="accountMenu" aria-label="Account menu">
-      <mat-icon>account_circle</mat-icon>
+    <button class="account" type="button" [matMenuTriggerFor]="accountMenu" aria-label="Account menu">
+      <span class="avatar">{{ initials }}</span>
+      <span class="account-meta">
+        <span class="account-name">{{ userName }}</span>
+        <span class="account-role">Platform admin</span>
+      </span>
+      <mat-icon class="account-caret">expand_more</mat-icon>
     </button>
 
-    <mat-menu #accountMenu="matMenu">
+    <mat-menu #accountMenu="matMenu" xPosition="before">
       <div class="menu-header">
-        <div class="menu-name">{{ userName }}</div>
-        <div class="menu-email">{{ userEmail }}</div>
+        <span class="menu-avatar">{{ initials }}</span>
+        <span class="menu-id">
+          <span class="menu-name">{{ userName }}</span>
+          <span class="menu-email">{{ userEmail }}</span>
+        </span>
       </div>
       <button mat-menu-item (click)="logout()" [disabled]="isLoggingOut">
         <mat-icon>logout</mat-icon>
         <span>Sign out</span>
       </button>
     </mat-menu>
-  </mat-toolbar>
+  </header>
 
   <main class="content">
     <router-outlet></router-outlet>

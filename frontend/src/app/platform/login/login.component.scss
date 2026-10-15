@@ -1,57 +1,144 @@
+@use '../tokens' as *;
+
 .platform-login {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  height: 100vh;
+  padding: 32px 20px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #2b2350 0%, #614b9d 55%, #8a6fc4 100%);
+  overflow-y: auto;
+  background:
+    radial-gradient(60% 55% at 12% 10%, rgba($teal, 0.32) 0%, rgba($teal, 0) 62%),
+    radial-gradient(70% 60% at 90% 92%, rgba($navy-light, 0.55) 0%, rgba($navy-light, 0) 62%),
+    linear-gradient(150deg, $navy-deep 0%, $navy 52%, #062f5c 100%);
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
-  padding: 28px 28px 32px;
+  max-width: 420px;
+  padding: 34px 32px 26px;
+  box-sizing: border-box;
+  border-radius: $radius-xl;
+  background: $card-bg;
+  box-shadow: 0 30px 60px -28px rgba(2, 18, 36, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: card-in 0.45s $ease both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-badge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
   border-radius: 14px;
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(140deg, $navy 0%, $navy-light 100%);
+  box-shadow: $shadow-navy;
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
+  mat-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 26px;
+    color: #ffffff;
   }
+}
 
-  .brand-icon {
-    width: 44px;
-    height: 44px;
-    font-size: 44px;
-    color: #614b9d;
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.eyebrow {
+  @include eyebrow;
+  margin-bottom: 2px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: $navy;
+}
+
+.lede {
+  margin: 16px 0 22px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: $text-muted;
+}
+
+.field {
+  width: 100%;
+  margin-bottom: 8px;
+
+  @include mdc-outlined-field;
+}
+
+.toggle {
+  --mdc-icon-button-icon-color: #{$text-muted};
+
+  &:hover {
+    --mdc-icon-button-icon-color: #{$navy};
   }
+}
 
-  .brand-text {
-    .title {
-      font-size: 20px;
-      font-weight: 600;
-      line-height: 1.2;
-      color: #2b2350;
-    }
+.submit {
+  width: 100%;
+  height: 48px;
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 
-    .subtitle {
-      font-size: 13px;
-      color: #7a7a8c;
-    }
+  @include mdc-filled-button($navy, #ffffff);
+
+  &:not([disabled]):hover {
+    box-shadow: $shadow-navy;
   }
+}
 
-  .full-width {
-    width: 100%;
-    margin-bottom: 16px;
+.foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid $border;
+  font-size: 12px;
+  line-height: 1.45;
+  color: $text-muted;
+
+  mat-icon {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    font-size: 16px;
+    color: $teal-deep;
   }
+}
 
-  .submit {
-    width: 100%;
-    height: 44px;
-    font-size: 15px;
-    margin-top: 4px;
+@media (max-width: 480px) {
+  .login-card {
+    padding: 26px 20px 20px;
+    border-radius: $radius-lg;
   }
 }

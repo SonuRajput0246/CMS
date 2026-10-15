@@ -1,15 +1,21 @@
 <div class="platform-login">
   <mat-card class="login-card">
     <div class="brand">
-      <mat-icon class="brand-icon">shield_person</mat-icon>
+      <span class="brand-badge">
+        <mat-icon>shield_person</mat-icon>
+      </span>
       <div class="brand-text">
-        <div class="title">Platform Console</div>
-        <div class="subtitle">Super admin access</div>
+        <span class="eyebrow">Super admin</span>
+        <span class="title">Platform Console</span>
       </div>
     </div>
 
+    <p class="lede">
+      Sign in to create workspaces and manage their lifecycle across the platform.
+    </p>
+
     <form [formGroup]="loginForm" (ngSubmit)="LoginUser()">
-      <mat-form-field class="full-width" appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field class="field" appearance="outline" subscriptSizing="dynamic">
         <mat-label>Email</mat-label>
         <input matInput type="email" formControlName="email"
                placeholder="platform@admin.local" autocomplete="username">
@@ -21,11 +27,11 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field class="full-width" appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field class="field" appearance="outline" subscriptSizing="dynamic">
         <mat-label>Password</mat-label>
         <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
                autocomplete="current-password">
-        <button mat-icon-button matSuffix type="button" (click)="togglePasswordHide()"
+        <button mat-icon-button matSuffix type="button" class="toggle" (click)="togglePasswordHide()"
                 [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'">
           <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
@@ -39,5 +45,10 @@
         {{ isLoading ? 'Signing in...' : 'Sign in' }}
       </button>
     </form>
+
+    <div class="foot">
+      <mat-icon>lock</mat-icon>
+      <span>Restricted area. Sign-ins are recorded against the platform audit log.</span>
+    </div>
   </mat-card>
 </div>

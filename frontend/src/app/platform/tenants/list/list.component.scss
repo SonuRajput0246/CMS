@@ -1,39 +1,73 @@
+@use '../../tokens' as *;
+
 .tenant-page {
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .page-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  @include page-head;
+}
+
+.page-title {
+  .eyebrow {
+    @include eyebrow;
+  }
 
   h1 {
-    margin: 0 0 4px;
-    font-size: 22px;
-    font-weight: 600;
-    color: #2b2350;
+    @include title;
   }
 
   p {
-    margin: 0;
-    color: #7a7a8c;
-    font-size: 14px;
+    @include subtitle;
   }
 }
 
-.toolbar {
+.btn-primary {
+  height: 44px;
+  padding: 0 18px;
+  font-weight: 600;
+
+  @include mdc-filled-button($navy, #ffffff);
+
+  mat-icon {
+    margin-right: 6px;
+  }
+
+  &:not([disabled]):hover {
+    box-shadow: $shadow-navy;
+  }
+}
+
+.btn-outline {
+  height: 44px;
+  padding: 0 18px;
+  font-weight: 600;
+
+  @include mdc-outlined-button($navy, $border-strong);
+
+  &:not([disabled]):hover {
+    --mdc-outlined-button-outline-color: #{$navy};
+  }
+}
+
+.filters {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
 
   .search-field {
     width: 320px;
     max-width: 100%;
+
+    @include mdc-outlined-field;
   }
 
   .spacer {
@@ -41,27 +75,75 @@
   }
 }
 
+// Segmented control: the selected pill is navy against a white track.
+.status-filter {
+  --mat-standard-button-toggle-height: 38px;
+  --mat-standard-button-toggle-shape: 10px;
+  --mat-standard-button-toggle-background-color: #ffffff;
+  --mat-standard-button-toggle-text-color: #{$text-muted};
+  --mat-standard-button-toggle-divider-color: #{$border};
+  --mat-standard-button-toggle-selected-state-background-color: #{$navy};
+  --mat-standard-button-toggle-selected-state-text-color: #ffffff;
+  --mat-standard-button-toggle-state-layer-color: #{$navy};
+
+  border: 1px solid $border;
+  border-radius: 10px;
+
+  .mat-button-toggle-label-content {
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
 .table-wrap {
   position: relative;
-  background: #fff;
-  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
 }
 
 .tenant-table {
   width: 100%;
 
+  // The tokens are declared only on `html` by the theme, so redeclaring them
+  // here retints every cell without touching MDC internals.
+  --mat-table-background-color: transparent;
+  --mat-table-header-headline-color: #{$text-muted};
+  --mat-table-row-item-label-text-color: #{$text};
+  --mat-table-row-item-outline-color: #{$border};
+
   th.mat-mdc-header-cell {
+    height: 46px;
+    border-bottom: 1px solid $border;
+    background: #f8fafd;
+    font-size: 11.5px;
     font-weight: 600;
-    color: #4a4a5a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  td.mat-mdc-cell {
+    height: 58px;
+    font-size: 13.5px;
+  }
+
+  tr.mat-mdc-row {
+    transition: background-color 0.15s $ease;
+
+    &:hover td.mat-mdc-cell {
+      background: #f7faff;
+    }
   }
 
   code {
-    background: #f1f0f7;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: $navy-soft;
+    color: $navy;
     font-size: 12px;
+    font-weight: 600;
   }
 
   .actions-head {
@@ -69,44 +151,133 @@
   }
 
   .actions-cell {
-    text-align: right;
     white-space: nowrap;
+    text-align: right;
+
+    // The theme tints `color="primary"`/`color="warn"` icon buttons indigo and
+    // red from a `html .mat-mdc-icon-button.mat-primary` rule. Qualifying with
+    // the cell outranks it, and the colour is enough on its own because
+    // mat-icon's default is `--mat-icon-color: inherit`.
+    button.mat-mdc-icon-button {
+      --mdc-icon-button-icon-color: #{$text-muted};
+      --mat-icon-button-state-layer-color: #{$navy};
+      --mat-icon-button-ripple-color: #{rgba($navy, 0.1)};
+
+      color: $text-muted;
+    }
+
+    button.mat-primary {
+      --mdc-icon-button-icon-color: #{$navy};
+      --mat-icon-button-state-layer-color: #{$navy};
+      --mat-icon-button-ripple-color: #{rgba($navy, 0.1)};
+
+      color: $navy;
+    }
+
+    button.mat-warn {
+      --mdc-icon-button-icon-color: #{$amber};
+      --mat-icon-button-state-layer-color: #{$amber};
+      --mat-icon-button-ripple-color: #{rgba($amber, 0.1)};
+
+      color: $amber;
+    }
   }
 }
 
 .status-chip {
-  display: inline-block;
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
   border-radius: 999px;
+  background: $neutral-soft;
+  color: $neutral;
   font-size: 12px;
   font-weight: 600;
-  background: #ececf3;
-  color: #4a4a5a;
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
 
   &.active {
-    background: #e3f3e5;
-    color: #2e7d32;
+    background: $success-soft;
+    color: $success;
   }
 
   &.inactive {
-    background: #fdeede;
-    color: #ef6c00;
+    background: $amber-soft;
+    color: $amber;
   }
 
   &.archived {
-    background: #ececec;
-    color: #757575;
+    background: #eceff4;
+    color: #7c8798;
   }
 }
 
 .table-loading {
-  display: flex;
-  justify-content: center;
-  padding: 32px;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.72);
+
+  // Custom properties inherit straight through the component boundary, so
+  // declaring the theme's indicator token here retints the circle inside
+  // <mat-spinner> without reaching for ::ng-deep.
+  --mdc-circular-progress-active-indicator-color: #{$navy};
 }
 
 .table-empty {
-  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 24px;
   text-align: center;
-  color: #7a7a8c;
+  color: $text-muted;
+
+  mat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
+    color: $placeholder;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.tenant-paginator {
+  --mat-paginator-container-background-color: #{$card-bg};
+  --mat-paginator-container-text-color: #{$text-muted};
+  --mat-paginator-enabled-icon-color: #{$navy};
+  --mat-paginator-disabled-icon-color: #{$border-strong};
+
+  border-top: 1px solid $border;
+  font-size: 12.5px;
+}
+
+@media (max-width: 900px) {
+  .filters {
+    .search-field {
+      width: 100%;
+    }
+
+    .status-filter {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .btn-primary,
+  .btn-outline {
+    width: 100%;
+  }
 }

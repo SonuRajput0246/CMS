@@ -1,6 +1,7 @@
 <div class="manage-page">
-  <div class="page-head">
-    <div>
+  <header class="page-head">
+    <div class="page-title">
+      <span class="eyebrow">{{ isEdit ? 'Platform · Tenant' : 'Platform · New' }}</span>
       <h1>{{ isEdit ? 'Edit tenant' : 'New tenant' }}</h1>
       <p>
         {{ isEdit
@@ -8,17 +9,26 @@
             : 'Register a workspace and its first administrator.' }}
       </p>
     </div>
-    <button mat-stroked-button (click)="goBack()" [disabled]="isSaving">
+
+    <button mat-stroked-button class="btn-outline" (click)="goBack()" [disabled]="isSaving">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
-  </div>
+  </header>
 
-  <app-page-loader *ngIf="isLoading"></app-page-loader>
+  <div class="loader-wrap" *ngIf="isLoading">
+    <app-page-loader></app-page-loader>
+  </div>
 
   <mat-card class="form-card" *ngIf="!isLoading">
     <form [formGroup]="form" (ngSubmit)="save()">
-      <h2>Workspace</h2>
+      <div class="section-head">
+        <span class="step">01</span>
+        <div>
+          <h2>Workspace</h2>
+          <p class="section-hint">Identity and regional defaults for this workspace.</p>
+        </div>
+      </div>
 
       <div class="grid">
         <mat-form-field appearance="outline">
@@ -65,10 +75,13 @@
       </div>
 
       <ng-container *ngIf="!isEdit">
-        <h2>First administrator</h2>
-        <p class="section-hint">
-          These credentials are handed to the workspace owner out of band.
-        </p>
+        <div class="section-head">
+          <span class="step">02</span>
+          <div>
+            <h2>First administrator</h2>
+            <p class="section-hint">These credentials are handed to the workspace owner out of band.</p>
+          </div>
+        </div>
 
         <div class="grid">
           <mat-form-field appearance="outline">
@@ -112,8 +125,11 @@
       </ng-container>
 
       <div class="actions">
-        <button mat-stroked-button type="button" (click)="goBack()" [disabled]="isSaving">Cancel</button>
-        <button mat-flat-button color="primary" type="submit" [disabled]="isSaving || form.invalid">
+        <button mat-stroked-button class="btn-outline" type="button" (click)="goBack()" [disabled]="isSaving">
+          Cancel
+        </button>
+        <button mat-flat-button color="primary" class="btn-primary" type="submit"
+                [disabled]="isSaving || form.invalid">
           {{ isSaving ? 'Saving...' : (isEdit ? 'Save changes' : 'Create tenant') }}
         </button>
       </div>
