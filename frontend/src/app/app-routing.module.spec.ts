@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, Routes, provideRouter } from '@angular/router';
+import { CanMatchFn, Router, Routes, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { AppConfig } from './core/config/config';
@@ -11,22 +11,29 @@ import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.co
 /**
  * Covers the host-split root table.
  *
- * Two surfaces now share one bundle, and the host is what tells them apart:
- * `admin.*` is the platform console, every other host is the tenant app. That
- * split is expressed as a `canMatch` on each surface's routes, so the checks
- * below come in two kinds:
+ * Two surfaces share one bundle and the host tells them apart: `admin.*` is the
+ * platform console, every other host is the tenant app. Each surface is a
+ * component-less shell carrying a `canMatch` guard, with its own children.
  *
- *   * behavioural -- that a `canMatch` redirect resolves and an unknown URL
- *     under a surface still 404s. These use a stub table, because the real one
- *     lazily loads modules full of Material components and services needing
- *     HttpClient; rendering a real dashboard would test the dashboard.
- *   * structural -- that the real table is gated the way the split requires:
- *     every redirect carries a host gate, and each surface's routes carry the
- *     matching one.
+ * The checks come in two kinds:
  *
- * The host each guard reads cannot be varied from Karma (the page is served
- * from `localhost`), so the hostname logic itself is covered directly in
- * `core/platform-host.spec.ts` and only the wiring is asserted here.
+ *   * behavioural -- the shell pattern itself. The regression it exists for is
+ *     that **a route with `redirectTo` never runs its `canMatch` guards**
+ *     (`processSegmentAgainstRoute` branches to
+ *     `expandSegmentAgainstRouteUsingRedirect` before `matchWithChecks` runs),
+ *     so a *gated redirect* at the top level fires on every host. The first
+ *     surface's redirect therefore points somewhere unreachable, and following
+ *     it is what the failure looks like.
+ *   * structural -- the real table never gates a redirect, and each shell
+ *     holds exactly the routes of its own surface.
+ *
+ * These use stub feature routes rather than the real `cms` table. The real one
+ * lazily loads modules full of Material components and services needing
+ * HttpClient, and rendering an actual dashboard would test the dashboard.
+ *
+ * The host itself cannot be varied from Karma (the page is served from
+ * `localhost`), so the hostname rule is covered directly in
+ * `core/platform-host.spec.ts`.
  */
 @Component({ selector: 'app-stub', standalone: true, template: 'stub' })
 class StubDashboardComponent { }
@@ -34,27 +41,46 @@ class StubDashboardComponent { }
 @Component({ selector: 'app-stub-notfound', standalone: true, template: '404' })
 class StubNotFoundComponent { }
 
+/** The guard a surface the visitor is *not* on would carry. */
+const otherHost: CanMatchFn = () => false;
+/** The guard a surface the visitor *is* on carries. */
+const thisHost: CanMatchFn = () => true;
+
 describe('app routing', () => {
 
-  /** Stands in for one surface's route tree, gated exactly like the real one. */
+  /**
+   * Mirrors the real shape: two component-less shells, the first on a guard
+   * that does not pass, its child a redirect to a URL that has no route.
+   *
+   * The nesting matters. A flat first route with `redirectTo` and `canMatch`
+   * is exactly the broken shape -- the guard is skipped and the redirect
+   * fires -- so this stub reproduces it and asserts the shell avoids it.
+   */
   function stubRoutes(): Routes {
     return [
       {
         path: '',
-        pathMatch: 'full',
-        canMatch: [tenantHostMatch],
-        redirectTo: 'cms/dashboard'
+        canMatch: [otherHost],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'console/dashboard' }
+        ]
       },
       {
-        path: 'cms',
-        canMatch: [tenantHostMatch],
-        children: [{ path: 'dashboard', component: StubDashboardComponent }]
+        path: '',
+        canMatch: [thisHost],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'cms/dashboard' },
+          {
+            path: 'cms',
+            children: [{ path: 'dashboard', component: StubDashboardComponent }]
+          }
+        ]
       },
       { path: '**', component: StubNotFoundComponent }
     ];
   }
 
-  /** First-level path of the activated route, e.g. 'cms' or '**'. */
+  /** First-level path of the activated route, e.g. '' (a shell) or '**'. */
   function matchedRootPath(): string | undefined {
     return TestBed.inject(Router).routerState.snapshot.root.firstChild
       ?.routeConfig?.path;
@@ -77,11 +103,11 @@ describe('app routing', () => {
 
   // ---- root redirect ----------------------------------------------------
 
-  it('redirects / to /cms/dashboard', async () => {
-    const harness = await createHarness();
+  it('redirects / to the surface that is open, not the other one', async () => {
     // Start elsewhere first: re-navigating to the URL the router already holds
     // is a same-URL navigation, which the router ignores -- the redirect would
     // never run and the assertion would pass vacuously.
+    const harness = await createHarness();
     await harness.navigateByUrl('/cms/dashboard');
     await harness.navigateByUrl('/');
     await settle();
@@ -89,13 +115,27 @@ describe('app routing', () => {
     expect(TestBed.inject(Router).url).toBe('/cms/dashboard');
   });
 
-  it('matches the surface route', async () => {
+  it('does not follow a redirect belonging to the surface that did not match', async () => {
+    // THE regression. The first shell's guard does not pass, so its child
+    // redirect must never fire; if it did, the visitor would land on a URL
+    // with no route behind it and get a 404.
+    const harness = await createHarness();
+    await harness.navigateByUrl('/cms/dashboard');
+    await harness.navigateByUrl('/');
+    await settle();
+
+    expect(TestBed.inject(Router).url).not.toBe('/console/dashboard');
+    expect(TestBed.inject(Router).url).toBe('/cms/dashboard');
+  });
+
+  it('matches the shell child route', async () => {
     const harness = await createHarness();
     await settle();
     await harness.navigateByUrl('/cms/dashboard');
     await settle();
 
-    expect(matchedRootPath()).toBe('cms');
+    expect(matchedRootPath()).toBe('');
+    expect(TestBed.inject(Router).url).toBe('/cms/dashboard');
   });
 
   it('still 404s a URL under the surface that has no such screen', async () => {
@@ -105,6 +145,38 @@ describe('app routing', () => {
     // `**` matches any URL while leaving it in the address bar, so this
     // asserts on the matched route rather than on router.url.
     expect(matchedRootPath()).toBe('**');
+  });
+
+  // ---- the constraint the shells exist to satisfy -----------------------
+
+  it('a canMatch on a redirect route is ignored, which is why shells gate', async () => {
+    // Angular runs canMatch in matchSegmentAgainstRoute, which a route with
+    // `redirectTo` bypasses entirely -- processSegmentAgainstRoute branches
+    // straight into expandSegmentAgainstRouteUsingRedirect. This
+    // characterisation test pins that behaviour so the component-less shells
+    // are not later "simplified" back into a gated redirect, which compiles
+    // and reads correctly while redirecting on every host.
+    TestBed.configureTestingModule({
+      providers: [provideRouter([
+        {
+          path: '',
+          pathMatch: 'full',
+          canMatch: [() => false],
+          redirectTo: 'console/dashboard'
+        },
+        { path: 'console/dashboard', component: StubDashboardComponent },
+        { path: 'tenant/home', component: StubDashboardComponent },
+        { path: '**', component: StubNotFoundComponent }
+      ])]
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/tenant/home');
+    await harness.navigateByUrl('/');
+    await settle();
+
+    // The guard returned false and the redirect fired anyway.
+    expect(TestBed.inject(Router).url).toBe('/console/dashboard');
   });
 
   // ---- structural checks against the real table ------------------------
@@ -130,59 +202,64 @@ describe('app routing', () => {
     expect(invalid).toEqual([]);
   });
 
-  it('every real redirect is host-gated', () => {
-    // A redirect without a host gate would fire on both surfaces, so `/` on
-    // the console host would send the operator to the tenant dashboard. This
-    // replaces the old "no route is both redirected and guarded" rule: a
-    // guard on a redirect is now exactly what makes the split work.
-    const ungated = appRoutes.filter(r => r.redirectTo && !r.canMatch?.length);
+  it('no real redirect is gated by canMatch', () => {
+    // The router skips canMatch on a route that has `redirectTo`, so such a
+    // gate compiles, reads correctly, and does nothing -- while its redirect
+    // fires on every host. Every gate in this table must therefore sit on a
+    // route that actually has something to gate.
+    const gatedRedirects = appRoutes.filter(r => r.redirectTo && r.canMatch?.length);
 
-    expect(ungated).toEqual([]);
+    expect(gatedRedirects).toEqual([]);
   });
 
-  it('gates the console routes to the platform host only', () => {
-    const platformGated = appRoutes
-      .filter(r => r.canMatch?.includes(platformHostMatch))
-      .map(r => r.path)
-      .sort();
+  it('gates exactly the two host shells, and only they', () => {
+    const gated = appRoutes.filter(r => r.canMatch?.length);
 
-    expect(platformGated).toEqual(['', 'auth', 'auth/login', 'platform']);
+    expect(gated.map(r => r.path)).toEqual(['', '']);
+    expect(gated[0]?.canMatch).toEqual([platformHostMatch]);
+    expect(gated[1]?.canMatch).toEqual([tenantHostMatch]);
+    expect(gated.every(r => r.children?.length)).toBe(true);
   });
 
-  it('gates the tenant routes to every non-platform host', () => {
-    const tenantGated = appRoutes
-      .filter(r => r.canMatch?.includes(tenantHostMatch))
-      .map(r => r.path)
-      .sort();
+  /** Children of the shell for a given surface, for the checks below. */
+  function shellChildren(guard: CanMatchFn): Routes {
+    return appRoutes.find(r => r.canMatch?.includes(guard))?.children ?? [];
+  }
 
-    expect(tenantGated).toEqual(['', 'auth', 'cms']);
-  });
-
-  it('the redirected host routes point at the other surface', () => {
-    // These two are the "right address, wrong host" bridges: the operator's
-    // `/auth/login` on the console host, and the tenant's `/` on a tenant host.
-    const consoleLogin = appRoutes.find(
-      r => r.path === 'auth/login' && r.canMatch?.includes(platformHostMatch)
-    );
-    expect(consoleLogin?.redirectTo).toBe('platform/login');
-
-    const tenantHome = appRoutes.find(
-      r => r.path === '' && r.canMatch?.includes(tenantHostMatch)
-    );
-    expect(tenantHome?.redirectTo).toBe('cms/dashboard');
-  });
-
-  it('the real table lazy-loads exactly the console and the tenant app', () => {
-    const lazyRoots = appRoutes
+  it('holds every console route in the console shell', () => {
+    const lazy = shellChildren(platformHostMatch)
       .filter(r => typeof r.loadChildren === 'function')
       .map(r => r.path);
 
-    expect(lazyRoots).toEqual(['platform', 'auth', 'cms']);
+    expect(lazy).toEqual(['platform']);
+  });
+
+  it('holds every workspace route in the workspace shell', () => {
+    const lazy = shellChildren(tenantHostMatch)
+      .filter(r => typeof r.loadChildren === 'function')
+      .map(r => r.path);
+
+    expect(lazy).toEqual(['auth', 'cms']);
+  });
+
+  it('redirects the console host only into the console', () => {
+    const redirects = shellChildren(platformHostMatch).filter(r => r.redirectTo);
+
+    expect(redirects.map(r => r.path)).toEqual(['', 'auth/login', 'auth']);
+    // Resolved against the shell (whose path is empty), so they stay inside
+    // the console rather than sending the operator into the tenant app.
+    expect(redirects.every(r => r.redirectTo!.startsWith('platform/'))).toBe(true);
+  });
+
+  it('redirects the workspace host only to its own dashboard', () => {
+    const redirects = shellChildren(tenantHostMatch).filter(r => r.redirectTo);
+
+    expect(redirects.map(r => r.path)).toEqual(['']);
+    expect(redirects[0]?.redirectTo).toBe('cms/dashboard');
   });
 
   it('the real table still 404s unmatched URLs', () => {
     expect(appRoutes.find(r => r.path === '**')?.component)
       .toBe(PageNotFoundComponent);
   });
-
 });
