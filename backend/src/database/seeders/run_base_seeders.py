@@ -2,90 +2,88 @@
 
 Run with `python -m src.database.seeders.run_base_seeders` from backend/.
 
-Reference and infrastructure data seeds first, then the module tree, then
-roles, then the cafe domain data that depends on all of it.
+Ordering is load-bearing twice over:
 
-Ordering constraint that is load-bearing: modules seed before roles.
-role_seeder reads the live `modules` table and grants permissions only for
-modules that exist, so seeding roles first silently produces roles with no
-permissions.
+  1. Modules seed before roles. `role_seeder` reads the live `modules` table and
+     grants permissions only for modules that exist, so seeding roles first
+     silently produces roles with no permissions at all.
+
+  2. Tenants seed before anything tenant-scoped, and each tenant's rows are
+     written inside `tenant_scope`. A tenant-scoped row inserted with no tenant
+     in context fails loudly (`_tenant_id_default` raises) rather than landing
+     unowned, which is why the demo data cannot run before the tenants exist.
+
+Global reference data is seeded once. The tenant defaults and the demo domain
+data are seeded once per tenant, because both are per-tenant by design: two
+cafes have separate roles, separate floor plans and separate sales.
 """
-## No config is resolved here on purpose: the individual seeder modules read
-## config at import time, so a misconfiguration already fails before any
-## session is opened. This module only decides ordering.
+from src.api.tenancy.context import tenant_scope
+
 from src.database.seeders.countries_states_cities_seeder import seed_countries_states_cities
 from src.database.seeders.currencies_seeder import seed_currencies
 from src.database.seeders.enum_seeder import seed_enums
-from src.database.seeders.inventory_category_seeder import seed_inventory_categories
-from src.database.seeders.inventory_seeder import seed_inventories
-from src.database.seeders.inventory_units_seeder import seed_inventory_units
 from src.database.seeders.login_slider_seeder import seed_login_sliders
-from src.database.seeders.prefixes_seeder import seed_prefixes
-from src.database.seeders.role_seeder import seed_roles
-from src.database.seeders.super_admin_seeder import seed_super_admin
-from src.database.seeders.system_setting_seeder import seed_system_settings
-from src.database.seeders.template_seeder import seed_templates
+from src.database.seeders.module_seeder import seed_modules_cms
 
 from src.database.seeders.customer_seeder import seed_cms_customers
 from src.database.seeders.floor_plan_seeder import seed_floor_plan
-from src.database.seeders.module_seeder import seed_modules_cms
+from src.database.seeders.inventory_category_seeder import seed_inventory_categories
+from src.database.seeders.inventory_seeder import seed_inventories
+from src.database.seeders.inventory_units_seeder import seed_inventory_units
+from src.database.seeders.order_seeder import seed_cms_orders
 from src.database.seeders.recipe_category_seeder import seed_recipe_categories
 from src.database.seeders.recipe_seeder import seed_cms_recipes
-from src.database.seeders.order_seeder import seed_cms_orders
+
+from src.database.seeders.tenant_defaults_seeder import seed_tenant_defaults
+from src.database.seeders.tenant_seeder import seed_tenants
 
 
-## Reference data every table depends on, and that domain data depends on.
-def seed_reference_data():
+## Reference data identical for every tenant, and that no tenant row can be
+## built without. Seeded once, with no tenant in context.
+def seed_global_reference_data():
+    print(">>>>> Seeding global reference data")
     seed_login_sliders()
     seed_enums()
-    seed_templates()
-    seed_system_settings()
     seed_currencies("src/database/sql/currencies.sql")
     seed_countries_states_cities("src/database/sql/countries_states_cities.sql")
-    seed_prefixes()
+    ## The module tree is global. It MUST be here, before any tenant's roles,
+    ## because role_seeder resolves permissions against the live modules table.
+    seed_modules_cms()
+
+
+## Demo domain data for the tenant currently in scope. This is what turns the
+## dashboard, KDS and reports from well-formed empty payloads into readable ones
+## on a fresh install. A production tenant does not need it.
+def seed_tenant_domain_data():
+    print(">>>>> Seeding tenant domain data")
     seed_inventory_units()
     seed_inventory_categories()
     seed_inventories()
-
-
-def run_cms_seeders():
-    print(">>>>> Seeding CMS domain data")
-    ## Modules are NOT seeded here -- run_base_seeders() does that before
-    ## roles, because role_seeder resolves permissions against the live
-    ## modules table.
     seed_recipe_categories()
-    ## Floor plan before customers: the customer model has a
-    ## preferred_table_id, and orders reference both.
+    ## Floor plan before customers: a customer has a preferred_table_id, and
+    ## orders reference both.
     seed_floor_plan()
     seed_cms_customers()
-    ## Recipes last: they resolve ingredient lines against inventory and
-    ## categories by name, so both must already exist.
+    ## Recipes after inventory and categories: ingredient lines resolve against
+    ## both by name.
     seed_cms_recipes()
-    ## Orders after everything they reference. Reports, the dashboard and the
-    ## POS summary all read cms_orders, so this is what turns those screens
-    ## from well-formed empty payloads into readable ones.
+    ## Orders last: every report, the dashboard and the POS summary read them.
     seed_cms_orders()
 
 
 def run_base_seeders():
     print("Seeding CMS base data")
 
-    ## Reference data first: enums, currencies, countries and stock are inputs
-    ## to everything below.
-    seed_reference_data()
+    seed_global_reference_data()
 
-    ## Modules next, before roles. role_seeder reads the live `modules` table
-    ## and grants permissions only for modules that exist, so seeding roles
-    ## first silently produces roles with no permissions at all.
-    print(">>>>> Seeding modules")
-    seed_modules_cms()
-
-    ## Now that modules exist, roles can resolve their permissions.
-    seed_roles()
-    seed_super_admin()
-
-    ## Remaining shared tables, then the domain data.
-    run_cms_seeders()
+    for tenant in seed_tenants():
+        print(f">>>>> Seeding tenant '{tenant['slug']}' (id={tenant['id']})")
+        ## Every call under here writes rows stamped with this tenant, and every
+        ## query the seeders run is confined to it. Leaving the scope restores
+        ## the (empty) outer context, so the next tenant does not inherit it.
+        with tenant_scope(tenant["id"], tenant["timezone"]):
+            seed_tenant_defaults(tenant["currency"])
+            seed_tenant_domain_data()
 
     print("***** Base seeders executed successfully. *****")
 

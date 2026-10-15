@@ -34,9 +34,9 @@ by this file and never by hand:
 Read-side enforcement of the split is `src/api/tenancy/filters.py`, which
 applies a `tenant_id` criterion to every BaseTenantModel subclass at query
 time. Nothing in a service or a route has to remember to scope a query, and
-`TENANT_SCOPED_MODELS` there must stay in step with this file -- a model added
-to one and not the other is either unscoped (a leak) or wrongly scoped (a
-table that has no tenant_id column, which raises).
+the set of scoped tables cannot drift from this file: both are derived from the
+same base class, so a model is scoped by what it inherits, not by a hand-kept
+list.
 """
 
 ### The tenant itself. First of everything, because 22 tables below hold a
@@ -99,3 +99,11 @@ from .order_model import (
 # event.listen dedupes on (target, identifier, fn), so app.py also importing
 # this module is harmless.
 from src.api.events import base_events  # noqa: E402,F401  (imported for side effect)
+
+### Confine every ORM query to the current tenant.
+#
+# Same reasoning as base_events above: the listener registers against the ORM
+# Session, so any entry point that imports the models -- app.py, alembic env, a
+# seeder, a script -- gets tenant enforcement. No service opts in, and none can
+# forget to.
+from src.api.tenancy import filters  # noqa: E402,F401  (imported for side effect)

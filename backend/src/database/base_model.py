@@ -9,6 +9,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 ## and to alembic autogenerate.
 from src.database.base import Base
 
+## Reading the context here couples the ORM base to the tenancy package, which
+## is deliberate: this is the same source of truth the query filter reads, so a
+## row is stamped with the tenant its queries will later be confined to. There
+## is no import cycle -- tenancy.context imports only flask.
+from src.api.tenancy.context import get_current_tenant_id
+
 
 class BaseModel(Base):
     """
@@ -28,6 +34,28 @@ class BaseModel(Base):
         Helper to quickly serialize model data for debugging or simple APIs.
         """
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+def _tenant_id_default() -> int:
+    """Stamp a new row with the tenant that is current when it is flushed.
+
+    This is what makes row creation multi-tenant without editing every create
+    path: the unit of work has already resolved a tenant (the login slug, or
+    the JWT for an authenticated call) before it reaches the insert.
+
+    It raises rather than inserting NULL when there is no tenant, so a create
+    that escaped its tenant context fails closed and loudly, instead of writing
+    an unowned row for the NOT NULL constraint to reject later with a message
+    nobody can act on.
+    """
+    tenant_id = get_current_tenant_id()
+    if tenant_id is None:
+        raise RuntimeError(
+            "Refusing to insert a tenant-scoped row: no tenant in context. "
+            "Resolve one via tenancy.resolution.enter_tenant(), set it with "
+            "set_current_tenant_id(), or pass tenant_id explicitly."
+        )
+    return tenant_id
 
 
 class BaseTenantModel(BaseModel):
@@ -54,4 +82,10 @@ class BaseTenantModel(BaseModel):
     tenant_id: Mapped[int] = mapped_column(
         ForeignKey("tenants.id"),
         nullable=False,
+        ## Python-side, so it adds nothing to the DDL and autogenerate sees no
+        ## change. Every INSERT therefore stamps itself with the tenant the
+        ## request is already confined to, and no create path in any service
+        ## has to remember to set it. An explicit tenant_id -- the seeders and
+        ## the tenant bootstrap -- overrides this.
+        default=_tenant_id_default,
     )

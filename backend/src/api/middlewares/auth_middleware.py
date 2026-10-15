@@ -6,6 +6,7 @@ from src.api.models.user_model import User
 from src.api.models.token_model import Token
 from src.database.session import db_session
 from src.api.utils.errors import UnauthorizedError
+from src.api.tenancy.context import set_current_tenant_id
 
 
 def authenticate():
@@ -45,6 +46,21 @@ def authenticate():
 
         if not user.is_active:
             raise UnauthorizedError("User account is deactivated")
+
+        ## 3a. Bind the tenant before any other tenant-scoped query runs.
+        ##
+        ## The user row is the authority, not the claim: user ids are unique
+        ## across tenants, so the lookup above is unambiguous, whereas the claim
+        ## is only as trustworthy as the signature. A mismatch means the token
+        ## was minted for a different tenant than the account now lives in -- a
+        ## move between tenants -- and is refused rather than honoured under the
+        ## new one. Every query the request makes from here on is confined to
+        ## this tenant by src/api/tenancy/filters.py.
+        claim_tenant_id = payload.get("tenant_id")
+        if claim_tenant_id is not None and claim_tenant_id != user.tenant_id:
+            raise UnauthorizedError("Token tenant mismatch")
+
+        set_current_tenant_id(user.tenant_id)
 
         ## 3b. Enforce revocation.
         ##

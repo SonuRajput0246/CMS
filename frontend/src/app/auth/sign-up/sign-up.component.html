@@ -25,6 +25,17 @@
                     <span>Password must be at least 6 characters. We'll email you a code to verify your account.</span>
                 </div>
 
+                <!-- Company Code -->
+                <mat-form-field appearance="outline" floatLabel="always">
+                    <mat-label>Company Code</mat-label>
+                    <input matInput type="text" formControlName="tenant_slug" placeholder="Enter Company Code"
+                        autocomplete="organization">
+                    <mat-icon matIconPrefix class="field-icon">storefront</mat-icon>
+                    <mat-error *ngIf="signUpForm.get('tenant_slug')?.hasError('required')">
+                        Company Code is required
+                    </mat-error>
+                </mat-form-field>
+
                 <!-- Name — two columns, collapses to one on narrow screens -->
                 <div class="section-grid name-grid">
 

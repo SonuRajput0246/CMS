@@ -7,6 +7,9 @@ from sqlalchemy import select
 from src.api.extensions import bcrypt
 from src.api.models import EmailOTP, Token, Module, RoleModuleAccess
 from src.api.models.user_model import User
+from src.api.models.role_model import Role
+from src.api.tenancy.resolution import enter_tenant
+from src.api.tenancy.context import set_current_tenant_id
 from src.api.schemas.auth_schema import LoginResponseSchema
 from src.api.utils.mfa import generate_secret, get_uri, verify_otp
 from src.api.utils.security import hash_value
@@ -22,7 +25,13 @@ class AuthService:
 
     def register_user(self, data: dict):
         try:
-            ## 1. Check for existing user
+            ## 0. Resolve the tenant first. The duplicate-email check below and
+            ##    the row we insert are both scoped to it, and it is what stamps
+            ##    the new user with a tenant_id.
+            if enter_tenant(self.db, data.get("tenant_slug")) is None:
+                return service_response(False, "Unknown or inactive company code.", None, 400)
+
+            ## 1. Check for existing user (this tenant only, via the query filter)
             stmt = select(User).filter_by(is_deleted=False, email=data['email'])
             existing_user = self.db.execute(stmt).scalar_one_or_none()
             if existing_user:
@@ -31,13 +40,27 @@ class AuthService:
             ## 2. Hash Password
             hashed_password = bcrypt.generate_password_hash(data['password'], 12).decode("utf-8")
 
-            ## 3. Create User instance
+            ## 3. Default role for a self-registered account, found by code, not
+            ##    id. Ids differ per tenant and the old literal `1` meant "Super
+            ##    Admin" in the single-tenant schema -- the worst possible grant
+            ##    for a public sign-up.
+            default_role = (
+                self.db.query(Role)
+                .filter_by(role_code="STAFF", is_deleted=False)
+                .first()
+            )
+            if default_role is None:
+                raise APIError(
+                    "This company has no default role configured. Ask an administrator to set one up."
+                )
+
+            ## 4. Create User instance
             new_user = User(
                 first_name=data['first_name'],
                 last_name=data['last_name'],
                 email=data['email'],
                 password=hashed_password,
-                role_id=1,  ## LATER CHANGE IT & SET CUSTOMER/GUEST ROLE_ID
+                role_id=default_role.id,
                 is_email_verified=False,
                 is_active=True
             )
@@ -62,7 +85,7 @@ class AuthService:
                 201
             )
 
-        except ResourceConflictError:
+        except (ResourceConflictError, APIError):
             self.db.rollback()
             raise
 
@@ -73,6 +96,8 @@ class AuthService:
 
 
     def verify_email(self, data: dict):
+        if enter_tenant(self.db, data.get("tenant_slug")) is None:
+            return {"status": False, "message": "Unknown or inactive company code.", "code": 401}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return {"status": False, "message": "User not found.", "code": 404}
@@ -109,6 +134,10 @@ class AuthService:
         access_token = jwt.encode(
             {
                 "user_id": user.id,
+                ## The tenant travels in the token so that a request can be
+                ## confined to it before the user row is even read, and so a
+                ## token cannot silently outlive a move between tenants.
+                "tenant_id": user.tenant_id,
                 "iat": datetime.now(timezone.utc),
                 "exp": access_exp,
                 # jti makes each issuance distinct.
@@ -128,7 +157,8 @@ class AuthService:
 
         refresh_exp = datetime.now(timezone.utc) + timedelta(days=current_app.config["JWT_REFRESH_TOKEN_EXPIRE_DAYS"])
         refresh_token = jwt.encode(
-            {"user_id": user.id, "iat": datetime.now(timezone.utc),
+            {"user_id": user.id, "tenant_id": user.tenant_id,
+             "iat": datetime.now(timezone.utc),
              "exp": refresh_exp, "jti": uuid.uuid4().hex},
             current_app.config["JWT_SECRET_KEY"], algorithm=current_app.config["JWT_ALGORITHM"]
         )
@@ -310,6 +340,8 @@ class AuthService:
 
 
     def user_login(self, data):
+        if enter_tenant(self.db, data.get("tenant_slug")) is None:
+            return {"status": False, "message": "Unknown or inactive company code.", "code": 401}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user or not bcrypt.check_password_hash(user.password.encode('utf-8'), data['password'].encode('utf-8')):
             return {"status": False, "message": "Invalid email or password.", "code": 401}
@@ -362,6 +394,10 @@ class AuthService:
             if not user:
                 return {"status": False, "message": "User not found", "code": 404}
 
+            ## The temp token was minted before the user was known. Now that it
+            ## is, bind the tenant before anything else touches the database.
+            set_current_tenant_id(user.tenant_id)
+
             if not user.mfa_secret:
                 return {"status": False, "message": "MFA not initiated", "code": 400}
 
@@ -375,6 +411,8 @@ class AuthService:
 
 
     def send_otp_on_email(self, data):
+        if enter_tenant(self.db, data.get("tenant_slug")) is None:
+            return {"status": False, "message": "Unknown or inactive company code."}, 404
         user = self.db.query(User).filter_by(email=data['email'], is_deleted=False).first()
         if not user:
             return {"status": False, "message": "User not found"}, 404
@@ -393,6 +431,8 @@ class AuthService:
 
 
     def activate_account(self, data):
+        if enter_tenant(self.db, data.get("tenant_slug")) is None:
+            return {"error": "Unknown or inactive company code.", "code": 404}
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return {"error": "User not found.", "code": 404}
@@ -444,6 +484,10 @@ class AuthService:
         if not user:
             return {"error": "User not found.", "code": 404}
 
+        ## Bind the tenant before the Token lookup below, which is itself
+        ## tenant-scoped.
+        set_current_tenant_id(user.tenant_id)
+
         ## Validate refresh token from DB (Hashed)
         db_token = self.db.query(Token).filter_by(
             user_id=user.id,
@@ -470,6 +514,8 @@ class AuthService:
 
 
     def reset_user_password(self, data):
+        if enter_tenant(self.db, data.get("tenant_slug")) is None:
+            return service_response(False, "Unknown or inactive company code.", None, 404)
         user = self.db.query(User).filter_by(is_deleted=False, email=data['email']).first()
         if not user:
             return service_response(False, "User not found", None, 404)

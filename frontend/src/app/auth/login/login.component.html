@@ -16,6 +16,13 @@
                         <div class="head">User Login</div>
 
                         <mat-form-field class="custom-input" appearance="outline" subscriptSizing="dynamic" style="margin-bottom: 10px;">
+                            <input matInput type="text" formControlName="tenant_slug" placeholder="Enter Company Code" autocomplete="organization">
+                            <mat-error *ngIf="loginForm.get('tenant_slug')?.hasError('required')">
+                                Company code is required
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field class="custom-input" appearance="outline" subscriptSizing="dynamic" style="margin-bottom: 10px;">
                             <input matInput type="email" formControlName="email" placeholder="Enter Email">
                             <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
                                 Email is required

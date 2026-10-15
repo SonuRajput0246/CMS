@@ -67,7 +67,7 @@ from src.api.models.order_model import (
 from src.api.models.recipe_model import Recipe
 from src.api.models.table_model import Table
 from src.api.services.document_sequence_service import DocumentSequenceService
-from src.api.utils.datetime_helper import business_timezone
+from src.api.utils.datetime_helper import effective_business_timezone
 from src.database.session import db_session
 
 
@@ -127,7 +127,7 @@ def _local_to_utc_naive(day, hour, minute=0):
     Reports bucket by business-local hour, so a naive local timestamp written
     straight to the column shifts every bucket by the UTC offset.
     """
-    tz = business_timezone()
+    tz = effective_business_timezone()
     local = datetime(day.year, day.month, day.day, hour, minute, tzinfo=tz)
     return local.astimezone(timezone.utc).replace(tzinfo=None)
 
@@ -324,7 +324,7 @@ def seed_orders():
     ## customer_id set directly, so the relationship is not populated.
     customer_by_id = {c.id: c for c in customers}
 
-    tz = business_timezone()
+    tz = effective_business_timezone()
     today = datetime.now(tz).date()
     created = 0
     occupied_table_ids = set()

@@ -4,6 +4,7 @@ from sqlalchemy import or_, text
 import re
 
 from src.api.models.user_model import User
+from src.api.models.role_model import Role
 from src.api.services.enum_service import EnumService
 
 from src.api.utils.responses import service_response
@@ -119,6 +120,14 @@ class UserService:
                 if not data.get(field):
                     return service_response(False, f"Field {field} is required", None, 400)
 
+            ## The role has to belong to this tenant. role_id arrives from the
+            ## client and the foreign key only checks that *a* role with that id
+            ## exists, so without this lookup a caller could attach another
+            ## tenant's role to their own user.
+            role = self.db.query(Role).filter_by(id=data["role_id"], is_deleted=False).first()
+            if not role:
+                return service_response(False, "Role not found", None, 404)
+
             hashed_password = bcrypt.generate_password_hash(
                 data["password"], 12
             ).decode("utf-8")
@@ -128,7 +137,7 @@ class UserService:
                 last_name=data.get("last_name"),
                 email=data.get("email"),
                 password=hashed_password,
-                role_id=data.get("role_id"),
+                role_id=role.id,
                 is_email_verified=True,
                 is_active=data.get("is_active", True),
                 is_deleted=False
@@ -140,6 +149,12 @@ class UserService:
             user = self.db.query(User).filter_by(is_deleted=False, id=user_id).first()
             if not user:
                 return service_response(False, "User not found", None, 404)
+
+            if "role_id" in data:
+                ## Same tenant check as on create: the id comes from the client.
+                role = self.db.query(Role).filter_by(id=data["role_id"], is_deleted=False).first()
+                if not role:
+                    return service_response(False, "Role not found", None, 404)
 
             ALLOWED_FIELDS = ("first_name", "last_name", "role_id", "is_active", "is_deleted")
             for field in ALLOWED_FIELDS:

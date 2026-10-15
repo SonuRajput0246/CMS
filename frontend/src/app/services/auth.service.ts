@@ -39,9 +39,8 @@ export class AuthService {
     );
   }
 
-  sendOtp(email: string, type: string): Observable<IEntityResponse> {
-    console.log('sendOtp', email, type);
-    return this.http.post<IEntityResponse>(`${this.baseURL}/api/v1/auth/send-otp`, { 'email': email, 'otp_type': type})
+  sendOtp(email: string, type: string, tenantSlug: string): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(`${this.baseURL}/api/v1/auth/send-otp`, { 'tenant_slug': tenantSlug, 'email': email, 'otp_type': type })
   }
 
   activateAccount(payload: any): Observable<IEntityResponse> {

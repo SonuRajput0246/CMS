@@ -81,7 +81,12 @@ class UserAccountService:
         ## Only a super admin deletes immediately. Everyone else gets a pending
         ## request an admin reviews, which is also the path to take for a user
         ## with live orders.
-        isImmediateDeletion = user.role_id == 1
+        ##
+        ## Matched on role_code, not role_id: role ids are per tenant now, so
+        ## `role_id == 1` identified nothing in particular. It only "worked"
+        ## before because the single-tenant schema happened to make the super
+        ## admin id 1.
+        isImmediateDeletion = user.role is not None and user.role.role_code == "SUPER_ADMIN"
         ### Add this check in deactivate use also
 
         ## Validate the enum-backed columns before writing. Keys must match

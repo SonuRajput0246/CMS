@@ -31,6 +31,8 @@ figure.
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from src.api.tenancy.context import get_current_tenant_timezone
+
 
 ## Resolved once: the IANA zone name is validated and cached, because every
 ## report query hits these helpers and ZoneInfo() is not free.
@@ -65,6 +67,28 @@ def business_timezone() -> ZoneInfo:
 def business_timezone_name() -> str:
     business_timezone()
     return _BUSINESS_TZ_NAME
+
+
+def effective_business_timezone() -> ZoneInfo:
+    """The zone to use now: the current tenant's, else the configured default.
+
+    `business_timezone()` is deliberately one process-wide value, because every
+    existing report reads it and a tenant-varying result would change output for
+    callers that never opted in. This is the opt-in: it consults the zone bound
+    by `tenancy.context.tenant_scope`, so a tenant's seeded history is timed in
+    that tenant's local day, and it falls back to the config default for global
+    work (reference seeding, migrations) where no tenant is bound.
+    """
+    name = get_current_tenant_timezone()
+    if name:
+        try:
+            return ZoneInfo(name)
+        except (ZoneInfoNotFoundError, ValueError, TypeError, KeyError):
+            ## A bad zone on the tenant row must not take the caller down. The
+            ## configured default is wrong-but-consistent, exactly as
+            ## business_timezone() treats a bad name.
+            pass
+    return business_timezone()
 
 
 def reset_timezone_cache() -> None:

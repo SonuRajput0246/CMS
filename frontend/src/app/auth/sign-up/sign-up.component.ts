@@ -31,6 +31,7 @@ export class SignUpComponent {
 
   private createForm(): void {
     this.signUpForm = this.fb.group({
+      tenant_slug: ['', [Validators.required]],
       first_name: ['', [Validators.required]],
       last_name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
@@ -69,7 +70,7 @@ export class SignUpComponent {
         next: (res) => {
           if (res?.status) {
             this._snackbar.openSnackBar(res?.message!, "success");
-            this._router.navigate(['/auth/otp-verification'], { state: { email: this.signUpForm.value.email, type: 'email_verification' } });
+            this._router.navigate(['/auth/otp-verification'], { state: { email: this.signUpForm.value.email, type: 'email_verification', tenant_slug: this.signUpForm.value.tenant_slug } });
           } else {
             this._snackbar.openSnackBar(res?.message!, "error");
           }

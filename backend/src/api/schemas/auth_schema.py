@@ -5,19 +5,20 @@ from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from src.api.schemas.mixins.otp_mixin import OTPFieldMixin
 from src.api.schemas.mixins.name_mixin import NameFieldsMixin
 from src.api.schemas.mixins.email_mixin import EmailFieldMixin
+from src.api.schemas.mixins.tenant_mixin import TenantFieldMixin
 from src.api.schemas.mixins.password_mixin import PasswordUpdateMixin, PasswordVerifyMixin
 
 
-class RegisterUserSchema(BaseSchema, NameFieldsMixin, EmailFieldMixin, PasswordUpdateMixin):
+class RegisterUserSchema(BaseSchema, TenantFieldMixin, NameFieldsMixin, EmailFieldMixin, PasswordUpdateMixin):
     pass
 
-class VerifyEmailSchema(BaseSchema, EmailFieldMixin, OTPFieldMixin):
+class VerifyEmailSchema(BaseSchema, TenantFieldMixin, EmailFieldMixin, OTPFieldMixin):
     pass
 
-class LoginSchema(BaseSchema, EmailFieldMixin, PasswordVerifyMixin):
+class LoginSchema(BaseSchema, TenantFieldMixin, EmailFieldMixin, PasswordVerifyMixin):
     pass
 
-class SendOtpOnEmailSchema(BaseSchema, EmailFieldMixin):
+class SendOtpOnEmailSchema(BaseSchema, TenantFieldMixin, EmailFieldMixin):
     otp_type = fields.String(
         required=True,
         validate=validate.OneOf(
@@ -29,10 +30,10 @@ class SendOtpOnEmailSchema(BaseSchema, EmailFieldMixin):
         }
     )
 
-class ActivateAccountSchema(BaseSchema, EmailFieldMixin, OTPFieldMixin):
+class ActivateAccountSchema(BaseSchema, TenantFieldMixin, EmailFieldMixin, OTPFieldMixin):
     pass
 
-class ResetPasswordSchema(BaseSchema, EmailFieldMixin, OTPFieldMixin, PasswordUpdateMixin):
+class ResetPasswordSchema(BaseSchema, TenantFieldMixin, EmailFieldMixin, OTPFieldMixin, PasswordUpdateMixin):
     pass
 
 class LoginResponseSchema(SQLAlchemyAutoSchema):

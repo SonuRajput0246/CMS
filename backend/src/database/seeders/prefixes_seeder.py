@@ -37,6 +37,10 @@ def seed_prefixes():
     except Exception as e:
         db_session.rollback()
         print("!!! Error seeding prefixes:", str(e))
+        ## Re-raise: this runs during tenant provisioning now, and a swallowed
+        ## error leaves the tenant without the prefixes DocumentSequenceService
+        ## needs, so the first order number fails far from the real cause.
+        raise
 
     finally:
         ## We use .remove() for scoped_sessions to return the connection to the pool
