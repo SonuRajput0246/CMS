@@ -33,6 +33,23 @@ class BaseConfig:
     OTP_EXPIRY_MINUTES = int(os.getenv("OTP_EXPIRY_MINUTES", 10))
     OTP_ATTEMPTS = int(os.getenv("OTP_ATTEMPTS", 3))
 
+    ## Platform (super admin) console.
+    ##
+    ## The platform admin has no refresh cookie of its own, so this expiry is
+    ## the whole session lifetime. It defaults longer than the 15-minute tenant
+    ## access token because an operator switching tenants would otherwise be
+    ## logged out mid-work, but short enough that a stolen token goes stale.
+    SUPER_ADMIN_TOKEN_EXPIRES_MIN = int(os.getenv("SUPER_ADMIN_TOKEN_EXPIRES_MIN", 60))
+
+    ## Bootstrap credentials for the FIRST platform admin, seeded by
+    ## src/database/seeders/platform_admin_seeder.py. Overridable per
+    ## environment; the defaults exist so a fresh database can be signed into
+    ## at all, and MUST be changed before anything is exposed.
+    PLATFORM_ADMIN_EMAIL = os.getenv("PLATFORM_ADMIN_EMAIL", "platform@admin.local")
+    PLATFORM_ADMIN_PASSWORD = os.getenv("PLATFORM_ADMIN_PASSWORD", "Platform@123")
+    PLATFORM_ADMIN_FIRST_NAME = os.getenv("PLATFORM_ADMIN_FIRST_NAME", "Platform")
+    PLATFORM_ADMIN_LAST_NAME = os.getenv("PLATFORM_ADMIN_LAST_NAME", "Admin")
+
     ## Cookies
     COOKIE_SECURE = os.getenv("COOKIE_SECURE")
     COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE")

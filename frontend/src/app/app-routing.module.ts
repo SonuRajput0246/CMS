@@ -2,34 +2,68 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.component';
 import { UnauthorizedAccessComponent } from './shared/unauthorized-access/unauthorized-access.component';
+import { platformHostMatch, tenantHostMatch } from './core/platform-host.guard';
 
 /**
- * The route table is a plain static array evaluated at module load.
+ * The route table is a static array, but it is no longer a single product's.
  *
- * There is no instance gate here, and deliberately so. The table used to carry
- * a `canMatch` per product so only the active one could match, which existed
- * solely because one build served two products. With one product the gate had
- * nothing to decide, and it was not free either: `canMatch` defers the decision
- * to navigation time, because the type was resolved from the backend during
- * bootstrap and is not knowable while NgModule metadata is being read.
+ * Two surfaces share this bundle and must never be reachable from each other:
+ * the tenant app and the platform (super admin) console. Which one a visitor
+ * gets is decided by the host -- `admin.localhost:4200` is the console, every
+ * other host is a workspace -- so each surface's routes carry a `canMatch`
+ * guard keyed on the hostname.
  *
- * That constraint is also why the bare `/` route used to be a component rather
- * than a `redirectTo` -- an instance-aware redirect has no static string to
- * redirect to. The path is a literal now, so the redirect is declared as one
- * and the component that existed only to compute it is gone.
+ * `canMatch`, not `canActivate`, is deliberate: it is consulted before a lazy
+ * module is fetched, so the console's chunks are never downloaded on a tenant
+ * host and the tenant's never are on the console host. It is also what lets
+ * `/auth/login` mean two different things, since the path alone cannot tell
+ * the two surfaces apart.
+ *
+ * The guards are exhaustive -- one host guard always passes -- so navigation
+ * always resolves to exactly one surface instead of falling through to the
+ * 404 page.
  */
 export const routes: Routes = [
+  // ---- Platform console: only on the admin host. ----
   {
     path: '',
     pathMatch: 'full',
+    canMatch: [platformHostMatch],
+    redirectTo: 'platform/dashboard'
+  },
+  {
+    path: 'auth',
+    pathMatch: 'full',
+    canMatch: [platformHostMatch],
+    redirectTo: 'platform/login'
+  },
+  {
+    // The URL the operator reaches for first on the console host.
+    path: 'auth/login',
+    canMatch: [platformHostMatch],
+    redirectTo: 'platform/login'
+  },
+  {
+    path: 'platform',
+    canMatch: [platformHostMatch],
+    loadChildren: () => import('./platform/platform.module').then(a => a.PlatformModule)
+  },
+
+  // ---- Tenant app: every other host. ----
+  {
+    path: '',
+    pathMatch: 'full',
+    canMatch: [tenantHostMatch],
     redirectTo: 'cms/dashboard'
   },
   {
     path: 'auth',
+    canMatch: [tenantHostMatch],
     loadChildren: () => import('./auth/auth.module').then(a => a.AuthModule)
   },
   {
     path: 'cms',
+    canMatch: [tenantHostMatch],
     loadChildren: () => import('./cms/cms.module').then(a => a.CmsModule)
   },
   {

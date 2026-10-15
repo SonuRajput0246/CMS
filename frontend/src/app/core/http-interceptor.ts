@@ -32,7 +32,15 @@ export class HttpIntercept implements HttpInterceptor {
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
-        const accessToken = sessionStorage.getItem('cms_accessToken');
+        //// The console and the tenant app share this browser, so the two
+        //// sessions are told apart by URL: a call to /api/super-admin carries
+        //// the platform token and no tenant header, everything else carries
+        //// the tenant token and slug.
+        const isSuperAdminApi = req.url.includes('/api/super-admin/');
+
+        const accessToken = isSuperAdminApi
+            ? sessionStorage.getItem('cms_sa_accessToken')
+            : sessionStorage.getItem('cms_accessToken');
 
         //// Do NOT attach token for login or public APIs
         const isPublicApi =
@@ -40,7 +48,9 @@ export class HttpIntercept implements HttpInterceptor {
             req.url.includes('/auth/get-fresh-token') ||
             req.url.includes('/assets/');
 
-        let authReq = this.addTenantHeader(req);
+        //// A platform caller has no workspace, so it must not send a slug --
+        //// doing so would make the backend read it as a tenant request.
+        let authReq = isSuperAdminApi ? req : this.addTenantHeader(req);
 
         if (accessToken && !isPublicApi) {
             authReq = this.addToken(authReq, accessToken);
@@ -57,6 +67,11 @@ export class HttpIntercept implements HttpInterceptor {
                     authReq.url.includes('/user-account/update-password') ||
                     authReq.url.includes('/auth/activate-account');
                 if (error.status === 401 && !isPublicApi && !isAuthOrValidationApi) {
+                    //// The tenant refresh mints a tenant token, which the
+                    //// platform API rejects; a platform 401 is terminal.
+                    if (isSuperAdminApi) {
+                        return this.handlePlatform401();
+                    }
                     return this.handle401Error(authReq, next);
                 }
                 
@@ -137,5 +152,18 @@ export class HttpIntercept implements HttpInterceptor {
         localStorage.clear();
         this.router.navigate(['/auth/login']);
         return throwError(() => new Error('Session expired'));
+    }
+
+    /**
+     * A platform token cannot be refreshed: `/auth/get-fresh-token` is the
+     * tenant endpoint and signs a tenant token, which `/api/super-admin`
+     * refuses. So a 401 clears the platform session and returns to the
+     * console's sign-in, leaving any tenant session untouched.
+     */
+    private handlePlatform401(): Observable<never> {
+        sessionStorage.removeItem('cms_sa_accessToken');
+        localStorage.removeItem('cms_sa_profile');
+        this.router.navigate(['/platform/login'], { replaceUrl: true });
+        return throwError(() => new Error('Platform session expired'));
     }
 }

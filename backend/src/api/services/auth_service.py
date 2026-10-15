@@ -8,6 +8,7 @@ from src.api.extensions import bcrypt
 from src.api.models import EmailOTP, Token, Module, RoleModuleAccess
 from src.api.models.user_model import User
 from src.api.models.role_model import Role
+from src.api.models.tenant_model import Tenant
 from src.api.tenancy.resolution import enter_request_tenant
 from src.api.tenancy.context import set_current_tenant_id
 from src.api.schemas.auth_schema import LoginResponseSchema
@@ -396,6 +397,13 @@ class AuthService:
 
             ## The temp token was minted before the user was known. Now that it
             ## is, bind the tenant before anything else touches the database.
+            ##
+            ## Same live-tenant check as login and refresh: this path mints a
+            ## real session, so it must not be the way around a deactivated
+            ## workspace.
+            if not self._tenant_is_live(user.tenant_id):
+                return {"status": False, "message": "Workspace is inactive.", "code": 403}
+
             set_current_tenant_id(user.tenant_id)
 
             if not user.mfa_secret:
@@ -465,6 +473,17 @@ class AuthService:
 
 
 
+    def _tenant_is_live(self, tenant_id) -> bool:
+        """Is the tenant still active, not archived?
+
+        Shared by the refresh and MFA paths so both enforce Deactivate the
+        same way `authenticate` does. `tenants` is a global table, so this
+        reads with no tenant bound -- which is the only reason it can be asked
+        *before* the tenant is set.
+        """
+        tenant = self.db.query(Tenant).filter_by(id=tenant_id, is_deleted=False).first()
+        return tenant is not None and tenant.is_active
+
     def get_fresh_tokens(self):
         ## Read refresh token from HttpOnly cookie
         refresh_token = request.cookies.get("cms_refreshToken")
@@ -486,6 +505,15 @@ class AuthService:
 
         ## Bind the tenant before the Token lookup below, which is itself
         ## tenant-scoped.
+        ##
+        ## A deactivated cafe must not be able to keep itself alive by
+        ## refreshing. Without this, blocking login would have stopped nothing
+        ## already signed in: the refresh cookie would have gone on minting new
+        ## access tokens indefinitely, so "Deactivate" would only have applied
+        ## to users who happened to be logged out at the time.
+        if not self._tenant_is_live(user.tenant_id):
+            return {"error": "Workspace is inactive.", "code": 403}
+
         set_current_tenant_id(user.tenant_id)
 
         ## Validate refresh token from DB (Hashed)

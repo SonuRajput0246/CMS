@@ -1,0 +1,32 @@
+<div class="platform-shell">
+  <mat-toolbar color="primary" class="topbar">
+    <mat-icon class="brand-icon">shield_person</mat-icon>
+    <span class="brand">Platform Console</span>
+
+    <span class="spacer"></span>
+
+    <nav class="links">
+      <a mat-button routerLink="/platform/dashboard" routerLinkActive="active-link">Dashboard</a>
+      <a mat-button routerLink="/platform/tenants" routerLinkActive="active-link">Tenants</a>
+    </nav>
+
+    <button mat-icon-button [matMenuTriggerFor]="accountMenu" aria-label="Account menu">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+
+    <mat-menu #accountMenu="matMenu">
+      <div class="menu-header">
+        <div class="menu-name">{{ userName }}</div>
+        <div class="menu-email">{{ userEmail }}</div>
+      </div>
+      <button mat-menu-item (click)="logout()" [disabled]="isLoggingOut">
+        <mat-icon>logout</mat-icon>
+        <span>Sign out</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

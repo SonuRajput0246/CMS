@@ -16,6 +16,9 @@ Ordering is load-bearing twice over:
 Global reference data is seeded once. The tenant defaults and the demo domain
 data are seeded once per tenant, because both are per-tenant by design: two
 cafes have separate roles, separate floor plans and separate sales.
+
+The platform (super admin) account is global too: it sits in `super_admin_users`
+and owns no tenant, because it is what creates them.
 """
 from src.api.tenancy.context import tenant_scope
 
@@ -24,6 +27,7 @@ from src.database.seeders.currencies_seeder import seed_currencies
 from src.database.seeders.enum_seeder import seed_enums
 from src.database.seeders.login_slider_seeder import seed_login_sliders
 from src.database.seeders.module_seeder import seed_modules_cms
+from src.database.seeders.platform_admin_seeder import seed_platform_admin
 
 from src.database.seeders.customer_seeder import seed_cms_customers
 from src.database.seeders.floor_plan_seeder import seed_floor_plan
@@ -49,6 +53,10 @@ def seed_global_reference_data():
     ## The module tree is global. It MUST be here, before any tenant's roles,
     ## because role_seeder resolves permissions against the live modules table.
     seed_modules_cms()
+    ## The platform admin manages tenants, so it exists ahead of them and is
+    ## seeded once, globally. See platform_admin_seeder for why it is not
+    ## per-tenant like the accounts inside `users`.
+    seed_platform_admin()
 
 
 ## Demo domain data for the tenant currently in scope. This is what turns the

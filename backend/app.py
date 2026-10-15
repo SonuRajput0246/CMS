@@ -16,6 +16,11 @@ from src.api.routes.user_account_route import account_bp
 from src.api.routes.template_route import template_bp
 from src.api.routes.inventory_route import inventory_bp
 
+## The platform console: manages tenants, so it owns no tenant and sits in its
+## own URL space. Registered before the cafe routes only for readability -- the
+## rule sets do not overlap.
+from src.api.routes.super_admin_route import super_admin_bp
+
 ### CMS (Cafe Management System) routes
 from src.api.routes.table_zone_route import table_zone_bp
 from src.api.routes.table_route import table_bp
@@ -66,6 +71,10 @@ def create_app():
     app.register_blueprint(common_bp, url_prefix="/api/v1/common")
     app.register_blueprint(account_bp, url_prefix="/api/v1/user-account")
     app.register_blueprint(template_bp, url_prefix="/api/v1/template")
+
+    ## Platform admin. Its own prefix because its guard, its identity table and
+    ## its lack of a tenant context are all different from the routes below.
+    app.register_blueprint(super_admin_bp, url_prefix="/api/super-admin")
 
     ## Inventory is shared with the CMS domain, not a leftover of the hotel
     ## one. Recipe.calculate_cost_from_ingredients() multiplies each ingredient

@@ -1,0 +1,43 @@
+<div class="platform-login">
+  <mat-card class="login-card">
+    <div class="brand">
+      <mat-icon class="brand-icon">shield_person</mat-icon>
+      <div class="brand-text">
+        <div class="title">Platform Console</div>
+        <div class="subtitle">Super admin access</div>
+      </div>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="LoginUser()">
+      <mat-form-field class="full-width" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email"
+               placeholder="platform@admin.local" autocomplete="username">
+        <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+          Email is required
+        </mat-error>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+          Enter a valid email address
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Password</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
+               autocomplete="current-password">
+        <button mat-icon-button matSuffix type="button" (click)="togglePasswordHide()"
+                [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'">
+          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+          Password is required
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" class="submit" type="submit"
+              [disabled]="isLoading || loginForm.invalid">
+        {{ isLoading ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+  </mat-card>
+</div>

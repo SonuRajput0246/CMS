@@ -1,0 +1,26 @@
+<div class="dashboard">
+  <div class="page-head">
+    <div>
+      <h1>Overview</h1>
+      <p>Platform-wide view of every workspace.</p>
+    </div>
+    <button mat-stroked-button color="primary" (click)="loadSummary()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+
+  <app-page-loader *ngIf="isLoading"></app-page-loader>
+
+  <div class="cards" *ngIf="!isLoading && summary">
+    <mat-card class="stat-card" *ngFor="let card of cards" [ngClass]="card.tone">
+      <mat-icon class="card-icon">{{ card.icon }}</mat-icon>
+      <div class="value">{{ value(card.key) }}</div>
+      <div class="label">{{ card.label }}</div>
+    </mat-card>
+  </div>
+
+  <div class="empty" *ngIf="!isLoading && !summary">
+    No summary available yet.
+  </div>
+</div>

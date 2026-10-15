@@ -1,0 +1,74 @@
+.manage-page {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 600;
+    color: #2b2350;
+  }
+
+  p {
+    margin: 0;
+    color: #7a7a8c;
+    font-size: 14px;
+    max-width: 620px;
+  }
+}
+
+.form-card {
+  padding: 24px;
+  border-radius: 12px;
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2b2350;
+
+    &:not(:first-child) {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .section-hint {
+    margin: 0 0 16px;
+    color: #7a7a8c;
+    font-size: 13px;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0 20px;
+  margin-top: 16px;
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .suffix {
+    color: #9a9aac;
+    font-size: 13px;
+    padding-right: 8px;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}

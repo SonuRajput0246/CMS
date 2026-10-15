@@ -5,20 +5,28 @@ import { RouterTestingHarness } from '@angular/router/testing';
 
 import { AppConfig } from './core/config/config';
 import { routes as appRoutes } from './app-routing.module';
+import { platformHostMatch, tenantHostMatch } from './core/platform-host.guard';
 import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.component';
 
 /**
- * Covers the root redirect and the shape of the exported route table.
+ * Covers the host-split root table.
  *
- * There is no instance gate to test any more. The table used to carry a
- * `canMatch` per product so only the active one could match; with one product
- * there is nothing to gate, and `redirectTo` replaced the redirect component
- * because the target path is a literal again.
+ * Two surfaces now share one bundle, and the host is what tells them apart:
+ * `admin.*` is the platform console, every other host is the tenant app. That
+ * split is expressed as a `canMatch` on each surface's routes, so the checks
+ * below come in two kinds:
  *
- * The behavioural tests use stub feature routes rather than the real `cms`
- * table. The real one lazily loads modules full of Material components and
- * services that need HttpClient, and rendering an actual dashboard would test
- * the dashboard. What is worth testing is the redirect and the table's shape.
+ *   * behavioural -- that a `canMatch` redirect resolves and an unknown URL
+ *     under a surface still 404s. These use a stub table, because the real one
+ *     lazily loads modules full of Material components and services needing
+ *     HttpClient; rendering a real dashboard would test the dashboard.
+ *   * structural -- that the real table is gated the way the split requires:
+ *     every redirect carries a host gate, and each surface's routes carry the
+ *     matching one.
+ *
+ * The host each guard reads cannot be varied from Karma (the page is served
+ * from `localhost`), so the hostname logic itself is covered directly in
+ * `core/platform-host.spec.ts` and only the wiring is asserted here.
  */
 @Component({ selector: 'app-stub', standalone: true, template: 'stub' })
 class StubDashboardComponent { }
@@ -28,22 +36,18 @@ class StubNotFoundComponent { }
 
 describe('app routing', () => {
 
-  /**
-   * Mirrors the real shapes: one product route that is a container with
-   * children, matching the real `cms` route which is a `loadChildren` module
-   * with its own child routes.
-   *
-   * The nesting matters. A bare leaf route (`path: 'cms'` + `loadComponent`)
-   * cannot match `/cms/dashboard` at all -- it consumes only `cms` and leaves
-   * `dashboard` unmatched, so it always falls through to `**`. A leaf would
-   * make the redirect assertions pass for the wrong reason and would hide a
-   * genuinely broken real route.
-   */
+  /** Stands in for one surface's route tree, gated exactly like the real one. */
   function stubRoutes(): Routes {
     return [
-      { path: '', pathMatch: 'full', redirectTo: 'cms/dashboard' },
+      {
+        path: '',
+        pathMatch: 'full',
+        canMatch: [tenantHostMatch],
+        redirectTo: 'cms/dashboard'
+      },
       {
         path: 'cms',
+        canMatch: [tenantHostMatch],
         children: [{ path: 'dashboard', component: StubDashboardComponent }]
       },
       { path: '**', component: StubNotFoundComponent }
@@ -85,20 +89,7 @@ describe('app routing', () => {
     expect(TestBed.inject(Router).url).toBe('/cms/dashboard');
   });
 
-  it('redirects / to /cms/dashboard for an unknown top-level path too', async () => {
-    // Not a 404: the bare path is the app's home, so anything that does not
-    // match a real route first lands here and falls to the dashboard.
-    const harness = await createHarness();
-    await harness.navigateByUrl('/cms/dashboard');
-    await harness.navigateByUrl('/');
-    await settle();
-
-    expect(matchedRootPath()).toBe('cms');
-  });
-
-  // ---- the cms route is reachable ---------------------------------------
-
-  it('matches the cms route without any guard', async () => {
+  it('matches the surface route', async () => {
     const harness = await createHarness();
     await settle();
     await harness.navigateByUrl('/cms/dashboard');
@@ -107,7 +98,7 @@ describe('app routing', () => {
     expect(matchedRootPath()).toBe('cms');
   });
 
-  it('still 404s a URL under the product that has no such screen', async () => {
+  it('still 404s a URL under the surface that has no such screen', async () => {
     const harness = await createHarness();
     await harness.navigateByUrl('/cms/does-not-exist');
 
@@ -125,9 +116,9 @@ describe('app routing', () => {
   });
 
   it('no real route lacks component, redirectTo, children or loadChildren', () => {
-    // NG04014's exact precondition. This is the regression: the root route
-    // once carried only a canActivate, which compiled cleanly and then threw
-    // the moment the router validated its config at bootstrap.
+    // NG04014's exact precondition. A route once carried only a guard, which
+    // compiled cleanly and then threw the moment the router validated its
+    // config at bootstrap.
     const invalid = appRoutes.filter(
       r => r.redirectTo === undefined
         && !r.component
@@ -139,37 +130,54 @@ describe('app routing', () => {
     expect(invalid).toEqual([]);
   });
 
-  it('no real route is both redirected and guarded', () => {
-    const conflicted = appRoutes.filter(
-      r => r.redirectTo && (r.canActivate?.length || r.canMatch?.length)
+  it('every real redirect is host-gated', () => {
+    // A redirect without a host gate would fire on both surfaces, so `/` on
+    // the console host would send the operator to the tenant dashboard. This
+    // replaces the old "no route is both redirected and guarded" rule: a
+    // guard on a redirect is now exactly what makes the split work.
+    const ungated = appRoutes.filter(r => r.redirectTo && !r.canMatch?.length);
+
+    expect(ungated).toEqual([]);
+  });
+
+  it('gates the console routes to the platform host only', () => {
+    const platformGated = appRoutes
+      .filter(r => r.canMatch?.includes(platformHostMatch))
+      .map(r => r.path)
+      .sort();
+
+    expect(platformGated).toEqual(['', 'auth', 'auth/login', 'platform']);
+  });
+
+  it('gates the tenant routes to every non-platform host', () => {
+    const tenantGated = appRoutes
+      .filter(r => r.canMatch?.includes(tenantHostMatch))
+      .map(r => r.path)
+      .sort();
+
+    expect(tenantGated).toEqual(['', 'auth', 'cms']);
+  });
+
+  it('the redirected host routes point at the other surface', () => {
+    // These two are the "right address, wrong host" bridges: the operator's
+    // `/auth/login` on the console host, and the tenant's `/` on a tenant host.
+    const consoleLogin = appRoutes.find(
+      r => r.path === 'auth/login' && r.canMatch?.includes(platformHostMatch)
     );
+    expect(consoleLogin?.redirectTo).toBe('platform/login');
 
-    expect(conflicted).toEqual([]);
+    const tenantHome = appRoutes.find(
+      r => r.path === '' && r.canMatch?.includes(tenantHostMatch)
+    );
+    expect(tenantHome?.redirectTo).toBe('cms/dashboard');
   });
 
-  it('the real root route redirects rather than rendering a component', () => {
-    // A component here would be a leftover of the instance-aware redirect,
-    // which needed one because redirectTo takes a static string and the
-    // target used to depend on the resolved product.
-    const root = appRoutes.find(r => r.path === '');
-    expect(root?.redirectTo).toBe('cms/dashboard');
-    expect(root?.component).toBeUndefined();
-  });
-
-  it('the real cms route is not instance-gated', () => {
-    // There is one product, so a canMatch here would have nothing to decide.
-    expect(appRoutes.find(r => r.path === 'cms')?.canMatch).toBeUndefined();
-    expect(appRoutes.find(r => r.path === 'cms')?.loadChildren).toBeDefined();
-  });
-
-  it('the real table has exactly one product route', () => {
-    // Guards against a second product's route being pasted back in without its
-    // lazy module, which would compile and then fail at navigation time.
+  it('the real table lazy-loads exactly the console and the tenant app', () => {
     const lazyRoots = appRoutes
       .filter(r => typeof r.loadChildren === 'function')
       .map(r => r.path);
 
-    expect(lazyRoots).toEqual(['auth', 'cms']);
+    expect(lazyRoots).toEqual(['platform', 'auth', 'cms']);
   });
 
   it('the real table still 404s unmatched URLs', () => {

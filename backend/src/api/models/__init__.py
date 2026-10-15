@@ -28,8 +28,11 @@ by this file and never by hand:
 
   * `BaseTenantModel` -> the row belongs to one tenant. 22 tables.
   * `BaseModel` / `Base` -> shared reference data, identical for every tenant.
-    8 tables: the geography and currency tables, the module/menu tree, the
-    enum definitions, and the login carousel.
+    11 tables: the geography and currency tables, the module/menu tree, the
+    enum definitions, the login carousel, and the three platform-admin tables
+    (super_admin_users, super_admin_tokens, audit_logs). The platform-admin
+    trio is global because it belongs to the operator, not to a cafe -- see
+    src/api/models/super_admin_user_model.py.
 
 Read-side enforcement of the split is `src/api/tenancy/filters.py`, which
 applies a `tenant_id` criterion to every BaseTenantModel subclass at query
@@ -64,6 +67,13 @@ from .template_model import Template
 from .enum_definitions_model import EnumDefinition
 from .enum_options_model import EnumOption
 from .role_module_access_model import RoleModuleAccess
+
+### Platform (super admin) identity, session and audit. All global -- no
+### tenant can own them. SuperAdminToken is imported after SuperAdminUser so
+### its foreign key target is already in the registry.
+from .super_admin_user_model import SuperAdminUser
+from .super_admin_token_model import SuperAdminToken
+from .audit_log_model import AuditLog
 
 ### CMS Models (Cafe Management System)
 # NOTE: import order matters. Parents first so children's relationship()

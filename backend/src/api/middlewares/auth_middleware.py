@@ -3,6 +3,7 @@ from functools import wraps
 from sqlalchemy import select
 from flask import request, current_app, g
 from src.api.models.user_model import User
+from src.api.models.tenant_model import Tenant
 from src.api.models.token_model import Token
 from src.database.session import db_session
 from src.api.utils.errors import UnauthorizedError
@@ -59,6 +60,22 @@ def authenticate():
         claim_tenant_id = payload.get("tenant_id")
         if claim_tenant_id is not None and claim_tenant_id != user.tenant_id:
             raise UnauthorizedError("Token tenant mismatch")
+
+        ## 3a-bis. The tenant itself must still be live.
+        ##
+        ## Checking this only at login would mean a cafe deactivated by the
+        ## platform kept operating for the whole remaining life of every token
+        ## it already held -- and kept renewing, since the refresh path is a
+        ## different check. This is the point the platform console depends on:
+        ## Deactivate has to bite on the very next request, not the next login.
+        ##
+        ## Read before `set_current_tenant_id`, and harmless either way: `tenants`
+        ## is a BaseModel table, so no tenant criterion applies to it.
+        tenant = db_session.execute(
+            select(Tenant).filter_by(id=user.tenant_id, is_deleted=False)
+        ).scalar_one_or_none()
+        if tenant is None or not tenant.is_active:
+            raise UnauthorizedError("Workspace is inactive")
 
         set_current_tenant_id(user.tenant_id)
 

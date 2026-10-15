@@ -1,0 +1,122 @@
+<div class="manage-page">
+  <div class="page-head">
+    <div>
+      <h1>{{ isEdit ? 'Edit tenant' : 'New tenant' }}</h1>
+      <p>
+        {{ isEdit
+            ? 'Update this workspace\'s details. Changing the subdomain moves its URL.'
+            : 'Register a workspace and its first administrator.' }}
+      </p>
+    </div>
+    <button mat-stroked-button (click)="goBack()" [disabled]="isSaving">
+      <mat-icon>arrow_back</mat-icon>
+      Back
+    </button>
+  </div>
+
+  <app-page-loader *ngIf="isLoading"></app-page-loader>
+
+  <mat-card class="form-card" *ngIf="!isLoading">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <h2>Workspace</h2>
+
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" placeholder="Demo Cafe">
+          <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('maxlength')">Name is too long</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Subdomain</mat-label>
+          <input matInput formControlName="slug" placeholder="demo">
+          <span class="suffix" matSuffix>.localhost</span>
+          <mat-hint>Lowercase letters, numbers and hyphens.</mat-hint>
+          <mat-error *ngIf="form.get('slug')?.hasError('required')">Subdomain is required</mat-error>
+          <mat-error
+            *ngIf="form.get('slug')?.hasError('pattern') || form.get('slug')?.hasError('minlength')">
+            Use lowercase letters, numbers and hyphens (2-50 characters).
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Timezone</mat-label>
+          <input matInput formControlName="timezone" list="tz-options" placeholder="Asia/Kolkata">
+          <datalist id="tz-options">
+            <option *ngFor="let tz of timezoneSuggestions" [value]="tz"></option>
+          </datalist>
+          <mat-hint>IANA zone, e.g. Asia/Kolkata.</mat-hint>
+          <mat-error *ngIf="form.get('timezone')?.hasError('required')">Timezone is required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Currency</mat-label>
+          <input matInput formControlName="currency" list="ccy-options" placeholder="INR" maxlength="3">
+          <datalist id="ccy-options">
+            <option *ngFor="let c of currencySuggestions" [value]="c"></option>
+          </datalist>
+          <mat-hint>3-letter ISO 4217 code.</mat-hint>
+          <mat-error *ngIf="form.get('currency')?.hasError('required')">Currency is required</mat-error>
+          <mat-error *ngIf="form.get('currency')?.hasError('pattern')">
+            Use a 3-letter code, e.g. INR.
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <ng-container *ngIf="!isEdit">
+        <h2>First administrator</h2>
+        <p class="section-hint">
+          These credentials are handed to the workspace owner out of band.
+        </p>
+
+        <div class="grid">
+          <mat-form-field appearance="outline">
+            <mat-label>First name</mat-label>
+            <input matInput formControlName="admin_first_name">
+            <mat-error *ngIf="form.get('admin_first_name')?.hasError('required')">
+              First name is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Last name</mat-label>
+            <input matInput formControlName="admin_last_name">
+            <mat-error *ngIf="form.get('admin_last_name')?.hasError('required')">
+              Last name is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="admin_email">
+            <mat-error *ngIf="form.get('admin_email')?.hasError('required')">Email is required</mat-error>
+            <mat-error *ngIf="form.get('admin_email')?.hasError('email')">Enter a valid email</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" formControlName="admin_password">
+            <mat-hint>Between 6 and 20 characters.</mat-hint>
+            <mat-error *ngIf="form.get('admin_password')?.hasError('required')">
+              Password is required
+            </mat-error>
+            <mat-error *ngIf="form.get('admin_password')?.hasError('minlength')">
+              At least 6 characters
+            </mat-error>
+            <mat-error *ngIf="form.get('admin_password')?.hasError('maxlength')">
+              At most 20 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </ng-container>
+
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="goBack()" [disabled]="isSaving">Cancel</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="isSaving || form.invalid">
+          {{ isSaving ? 'Saving...' : (isEdit ? 'Save changes' : 'Create tenant') }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</div>

@@ -14,8 +14,22 @@ import { Injectable } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class TenantService {
 
-  /** Labels that are infrastructure, not a workspace. */
-  private static readonly RESERVED = ['localhost', 'www', 'api', 'app'];
+  /**
+   * Labels that are infrastructure, not a workspace. Mirrors the backend's
+   * `_RESERVED_LABELS` (backend/src/api/tenancy/resolution.py): `admin` and
+   * `superadmin` name the platform console, so a request arriving at one of
+   * them is not a tenant request and must send no slug.
+   */
+  private static readonly RESERVED = [
+    'localhost',
+    'www',
+    'api',
+    'app',
+    'admin',
+    'superadmin',
+    'sa',
+    'panel',
+  ];
 
   /** The current tenant slug, or null when the URL names no tenant. */
   readonly slug: string | null;
