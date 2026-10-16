@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 import { UserService } from '../../../services/user.service';
@@ -33,6 +33,18 @@ export class ListComponent implements OnInit {
   pageDet: IGenricGrid = { total_docs: 0, limit: 10 } as IGenricGrid;
   displayedColumns: string[] = ['sr', 'firstName', 'lastName', 'role', 'email', 'status', 'actions'];
   dataSource = new MatTableDataSource<IUsers>();
+
+  /**
+   * Config for the paginator's built-in page-size select: a panel class, so the
+   * stylesheet can size the option list (Material renders it in the CDK
+   * overlay, outside this component's view), and no option centring, so the
+   * panel wraps the options instead of padding itself open to line the selected
+   * value up with the trigger.
+   */
+  readonly pageSizeSelect: MatPaginatorSelectConfig = {
+    panelClass: 'compact-page-size-panel',
+    disableOptionCentering: true
+  };
 
   // Request Object with Defaults
   requestData: ISearchRequest = {
