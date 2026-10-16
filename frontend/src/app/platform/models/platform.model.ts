@@ -15,12 +15,39 @@ export interface IPlatformProfile {
   last_name: string;
   email: string;
   is_active: boolean;
+  mfa_enabled?: boolean;
   last_password_update_at?: string | null;
 }
 
 export interface IPlatformLoginData {
   access_token: string;
   profile: IPlatformProfile;
+}
+
+/**
+ * The first step's answer when MFA is involved: no session yet, just a
+ * short-lived token to present alongside the code. Its presence (rather than
+ * `access_token`'s) is what tells the login screen to move to the second step
+ * instead of finishing the sign-in.
+ *
+ * `mfa_setup_required` splits that second step in two. MFA is compulsory for
+ * every platform administrator, so an account that has not enrolled yet is
+ * handed `qr_uri`/`secret` *with* the token and must confirm a code from the
+ * app it just scanned before `verify-mfa` will issue a session. An account that
+ * is already enrolled gets no secret -- it only has to prove the one it has.
+ */
+export interface IPlatformMfaChallenge {
+  mfa_required: true;
+  mfa_setup_required: boolean;
+  temp_token: string;
+  qr_uri?: string;
+  secret?: string;
+}
+
+/** Enrolment payload: the otpauth URI to render as a QR, plus its secret. */
+export interface IPlatformMfaSetup {
+  qr_uri: string;
+  secret: string;
 }
 
 export interface ITenantSummary {
@@ -80,4 +107,79 @@ export interface IPlatformConfig {
   public_base_url: string;
   /** e.g. `localhost:4200`, `example.com` -- what a tenant slug is prefixed with. */
   tenant_host_suffix: string;
+}
+
+/**
+ * One row of the `currencies` table, as offered by the tenant form's picker.
+ *
+ * `code` is the value written back to the tenant; `name` and `symbol` exist
+ * only so the option can say "INR - Indian Rupee" instead of asking the
+ * operator to know what a bare three-letter code means.
+ */
+export interface ICurrencyOption {
+  code: string;
+  name: string;
+  symbol?: string | null;
+}
+
+/**
+ * One IANA zone, exactly the string `ZoneInfo` validates on save -- served
+ * from Python's own zone data, so an option offered here can never be
+ * rejected by `tenant_management_service`.
+ */
+export interface ITimezoneOption {
+  name: string;
+}
+
+/**
+ * One row of `audit_logs`, as served by `GET /api/super-admin/audit-logs`.
+ *
+ * `details` is the free-form JSON text the writer stored (changed fields,
+ * previous/next values) and is deliberately typed as a raw string: it is shown
+ * to the operator verbatim, not parsed into a shape the UI then has to trust.
+ * `actor_email` is copied in at write time and may outlive the account, which
+ * is why it is shown instead of joined from `super_admin_id`.
+ */
+export interface IAuditLog {
+  id: number;
+  super_admin_id: number | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  details: string | null;
+  ip_address: string | null;
+  created_at: string | null;
+}
+
+/**
+ * A platform operator, as served by `GET /api/super-admin/admins`. Never
+ * carries the password or the MFA secret -- the server strips both.
+ */
+export interface ISuperAdmin {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  is_active: boolean;
+  is_deleted: boolean;
+  mfa_enabled: boolean;
+  last_password_update_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/** Create payload for a new operator. The password is set out of band. */
+export interface ICreateSuperAdmin {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+}
+
+/** Partial edit payload -- the service only touches fields that are present. */
+export interface IUpdateSuperAdmin {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
 }

@@ -1,0 +1,385 @@
+@use '../../tokens' as *;
+
+.admin-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-head {
+  @include page-head;
+}
+
+.page-title {
+  .eyebrow {
+    @include eyebrow;
+  }
+
+  h1 {
+    @include title;
+  }
+
+  p {
+    @include subtitle;
+  }
+}
+
+.btn-primary {
+  height: 44px;
+  padding: 0 18px;
+
+  @include console-button($press-shine);
+  @include mdc-filled-button($navy, #ffffff, $navy-light);
+  @include filled-button-feedback;
+
+  mat-icon {
+    margin-right: 6px;
+  }
+}
+
+.btn-outline {
+  height: 44px;
+  padding: 0 18px;
+
+  @include console-button;
+  @include mdc-outlined-button($navy, $border-strong);
+  @include outlined-button-feedback;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+
+  @include rise-in(60ms);
+
+  .search-field {
+    width: 280px;
+    max-width: 100%;
+
+    @include mdc-outlined-field;
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+}
+
+// The segmented Active/Inactive/All filter. Geometry matches the tenant list so
+// the two consoles read as one product.
+.status-filter {
+  height: 44px;
+  border: 1px solid $border-strong;
+  border-radius: $radius-sm;
+  background: $navy-soft;
+
+  --mat-standard-button-toggle-selected-state-background-color: #{$card-bg};
+  --mat-standard-button-toggle-selected-state-text-color: #{$navy};
+  --mat-standard-button-toggle-text-color: #{$text-muted};
+
+  .mat-button-toggle {
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mat-button-toggle-button {
+    height: 42px;
+  }
+
+  .mat-button-toggle-checked {
+    box-shadow: $shadow-sm;
+  }
+
+  // Material paints a focus overlay that lingers after a click; the checked
+  // pill is already the lightest surface, so the veil only muddies it.
+  .mat-button-toggle-checked .mat-button-toggle-focus-overlay {
+    opacity: 0;
+  }
+}
+
+.table-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+
+  &.is-refreshing {
+    .admin-table,
+    .admin-paginator {
+      opacity: 0.45;
+      pointer-events: none;
+      transition: opacity 0.18s $ease;
+    }
+  }
+}
+
+.admin-table {
+  width: 100%;
+
+  --mat-table-background-color: transparent;
+  --mat-table-header-headline-color: #{$text-muted};
+  --mat-table-row-item-label-text-color: #{$text};
+  --mat-table-row-item-outline-color: #{$border};
+
+  th.mat-mdc-header-cell {
+    height: 46px;
+    border-bottom: 1px solid $border;
+    background: #f8fafd;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  td.mat-mdc-cell {
+    height: 58px;
+    font-size: 13.5px;
+  }
+
+  tr.mat-mdc-row {
+    transition: background-color 0.15s $ease;
+
+    &:hover td.mat-mdc-cell {
+      background: #f7faff;
+    }
+  }
+
+  .person {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: $navy-soft;
+    color: $navy;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .person-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+  }
+
+  .name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: $navy;
+  }
+
+  .you {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: $teal-soft;
+    color: $teal-deep;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .email {
+    overflow: hidden;
+    font-size: 12.5px;
+    color: $text-muted;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .muted {
+    color: $text-muted;
+  }
+
+  .actions-head {
+    text-align: right;
+  }
+
+  .actions-cell {
+    white-space: nowrap;
+    text-align: right;
+
+    button.mat-mdc-icon-button {
+      --mdc-icon-button-icon-color: #{$text-muted};
+      --mat-icon-button-state-layer-color: #{$navy};
+      --mat-icon-button-ripple-color: #{rgba($navy, 0.1)};
+
+      color: $text-muted;
+
+      @include icon-button-feedback($navy-soft);
+    }
+
+    // Destructive verbs (deactivate) get the amber wash; the others keep navy.
+    button.row-action.danger {
+      --mdc-icon-button-icon-color: #{$amber};
+      --mat-icon-button-state-layer-color: #{$amber};
+      --mat-icon-button-ripple-color: #{rgba($amber, 0.1)};
+
+      color: $amber;
+
+      &:hover:not([disabled]) {
+        background: $amber-soft;
+      }
+    }
+  }
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  background: $neutral-soft;
+  color: $neutral;
+  font-size: 12px;
+  font-weight: 600;
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &.active {
+    background: $success-soft;
+    color: $success;
+  }
+
+  &.inactive {
+    background: $amber-soft;
+    color: $amber;
+  }
+}
+
+.mfa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  background: $neutral-soft;
+  color: $neutral;
+  font-size: 12px;
+  font-weight: 600;
+
+  mat-icon {
+    width: 15px;
+    height: 15px;
+    font-size: 15px;
+  }
+
+  &.on {
+    background: $success-soft;
+    color: $success;
+  }
+
+  &.off {
+    background: $amber-soft;
+    color: $amber;
+  }
+}
+
+.table-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.72);
+
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+.table-refreshing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid $border;
+  border-radius: 999px;
+  background: $card-bg;
+  box-shadow: $shadow-md;
+  color: $navy;
+  font-size: 12.5px;
+  font-weight: 600;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+.table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 24px;
+  text-align: center;
+  color: $text-muted;
+
+  mat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
+    color: $placeholder;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.admin-paginator {
+  --mat-paginator-container-background-color: #{$card-bg};
+  --mat-paginator-container-text-color: #{$text-muted};
+  --mat-paginator-enabled-icon-color: #{$navy};
+  --mat-paginator-disabled-icon-color: #{$border-strong};
+
+  border-top: 1px solid $border;
+  font-size: 12.5px;
+}
+
+:host ::ng-deep .admin-paginator button.mat-icon-button {
+  @include icon-button-feedback($navy-soft);
+}
+
+@media (max-width: 900px) {
+  .filters {
+    .search-field,
+    .status-filter {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .btn-primary,
+  .btn-outline {
+    width: 100%;
+  }
+}

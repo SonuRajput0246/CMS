@@ -1,0 +1,298 @@
+@use '../tokens' as *;
+
+.activity-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-head {
+  @include page-head;
+}
+
+.page-title {
+  .eyebrow {
+    @include eyebrow;
+  }
+
+  h1 {
+    @include title;
+  }
+
+  p {
+    @include subtitle;
+  }
+}
+
+.count-chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: $navy-soft;
+  color: $navy;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+
+  @include rise-in(60ms);
+
+  .filter-field {
+    width: 210px;
+    max-width: 100%;
+
+    @include mdc-outlined-field;
+  }
+
+  .id-field {
+    width: 120px;
+    max-width: 100%;
+
+    @include mdc-outlined-field;
+  }
+
+  .date-field {
+    width: 168px;
+    max-width: 100%;
+
+    @include mdc-outlined-field;
+  }
+}
+
+.btn-primary {
+  height: 44px;
+  padding: 0 18px;
+
+  @include console-button($press-shine);
+  @include mdc-filled-button($navy, #ffffff, $navy-light);
+  @include filled-button-feedback;
+
+  mat-icon {
+    margin-right: 6px;
+  }
+}
+
+.btn-outline {
+  height: 44px;
+  padding: 0 18px;
+
+  @include console-button;
+  @include mdc-outlined-button($navy, $border-strong);
+  @include outlined-button-feedback;
+}
+
+.table-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+
+  &.is-refreshing {
+    .activity-table,
+    .activity-paginator {
+      opacity: 0.45;
+      pointer-events: none;
+      transition: opacity 0.18s $ease;
+    }
+  }
+}
+
+.activity-table {
+  width: 100%;
+
+  --mat-table-background-color: transparent;
+  --mat-table-header-headline-color: #{$text-muted};
+  --mat-table-row-item-label-text-color: #{$text};
+  --mat-table-row-item-outline-color: #{$border};
+
+  th.mat-mdc-header-cell {
+    height: 46px;
+    border-bottom: 1px solid $border;
+    background: #f8fafd;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  td.mat-mdc-cell {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 13px;
+    vertical-align: top;
+  }
+
+  tr.mat-mdc-row {
+    transition: background-color 0.15s $ease;
+
+    &:hover td.mat-mdc-cell {
+      background: #f7faff;
+    }
+  }
+
+  .when {
+    display: block;
+    font-weight: 600;
+    color: $navy;
+    white-space: nowrap;
+  }
+
+  .ip {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: $text-muted;
+  }
+
+  code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: $navy-soft;
+    color: $navy;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  // The writer's JSON, clamped so one verbose row cannot stretch the table.
+  code.details {
+    display: -webkit-box;
+    max-width: 320px;
+    overflow: hidden;
+    background: $neutral-soft;
+    color: $text;
+    font-weight: 500;
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  background: $neutral-soft;
+  color: $neutral;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &.success {
+    background: $success-soft;
+    color: $success;
+  }
+
+  &.warn {
+    background: $amber-soft;
+    color: $amber;
+  }
+
+  &.amber {
+    background: $amber-soft;
+    color: $amber;
+  }
+
+  &.neutral {
+    background: $navy-soft;
+    color: $navy;
+  }
+}
+
+.table-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.72);
+
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+.table-refreshing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid $border;
+  border-radius: 999px;
+  background: $card-bg;
+  box-shadow: $shadow-md;
+  color: $navy;
+  font-size: 12.5px;
+  font-weight: 600;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+.table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 24px;
+  text-align: center;
+  color: $text-muted;
+
+  mat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
+    color: $placeholder;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.activity-paginator {
+  --mat-paginator-container-background-color: #{$card-bg};
+  --mat-paginator-container-text-color: #{$text-muted};
+  --mat-paginator-enabled-icon-color: #{$navy};
+  --mat-paginator-disabled-icon-color: #{$border-strong};
+
+  border-top: 1px solid $border;
+  font-size: 12.5px;
+}
+
+:host ::ng-deep .activity-paginator button.mat-icon-button {
+  @include icon-button-feedback($navy-soft);
+}
+
+@media (max-width: 900px) {
+  .filters {
+    .filter-field,
+    .id-field,
+    .date-field {
+      width: 100%;
+    }
+  }
+}

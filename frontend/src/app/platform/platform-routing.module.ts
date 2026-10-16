@@ -5,6 +5,9 @@ import { platformAuthGuard } from '../core/platform-auth.guard';
 import { PlatformLoginComponent } from './login/login.component';
 import { PlatformLayoutComponent } from './layout/layout.component';
 import { PlatformDashboardComponent } from './dashboard/dashboard.component';
+import { PlatformActivityComponent } from './activity/activity.component';
+import { AdminListComponent } from './admins/list/list.component';
+import { PlatformSecurityComponent } from './security/security.component';
 import { TenantListComponent } from './tenants/list/list.component';
 import { ManageTenantComponent } from './tenants/manage-tenant/manage-tenant.component';
 
@@ -48,6 +51,18 @@ const routes: Routes = [
       {
         path: 'tenants/:id/edit',
         component: ManageTenantComponent,
+      },
+      {
+        path: 'activity',
+        component: PlatformActivityComponent,
+      },
+      {
+        path: 'admins',
+        component: AdminListComponent,
+      },
+      {
+        path: 'security',
+        component: PlatformSecurityComponent,
       },
     ],
   },

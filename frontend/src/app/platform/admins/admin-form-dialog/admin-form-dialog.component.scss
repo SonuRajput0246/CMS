@@ -1,0 +1,57 @@
+@use '../../tokens' as *;
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  min-width: 460px;
+
+  .row {
+    display: flex;
+    gap: 12px;
+
+    mat-form-field {
+      flex: 1 1 0;
+    }
+  }
+
+  mat-form-field {
+    width: 100%;
+
+    @include mdc-outlined-field;
+  }
+}
+
+.dialog-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: $radius-sm;
+  background: $navy-soft;
+  color: $text-muted;
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  mat-icon {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    font-size: 16px;
+    color: $teal-deep;
+  }
+}
+
+@media (max-width: 560px) {
+  .dialog-form {
+    min-width: 0;
+
+    .row {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+}

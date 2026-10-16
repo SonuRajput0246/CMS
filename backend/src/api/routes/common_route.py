@@ -2,7 +2,7 @@ from flask import request, jsonify, Blueprint
 
 from src.api.middlewares.authorization import SELF_SERVICE, requires_module
 from src.api.schemas.common_schema import GetAllStatesSchema, GetAllCountriesSchema, GetAllCitiesSchema, \
-    GetAllCurrenciesSchema, GetEnumOptionsSchema
+    GetAllCurrenciesSchema, GetAllTimezonesSchema, GetEnumOptionsSchema
 from src.api.services.common_service import CommonService
 from src.database.session import db_session
 
@@ -46,6 +46,12 @@ class CommonRoute:
         result, status_code = self.common_service.get_all_currencies_list(validated_data)
         return jsonify(result), status_code
 
+    def get_all_timezones(self):
+        payload = request.get_json() or {}
+        validated_data = GetAllTimezonesSchema().load(payload)
+        result, status_code = self.common_service.get_all_timezones_list(validated_data)
+        return jsonify(result), status_code
+
     def get_enum_options(self):
         payload = request.get_json() or {}
         validated_data = GetEnumOptionsSchema().load(payload)
@@ -62,4 +68,5 @@ common_bp.add_url_rule('/get-all-countries', view_func=requires_module(SELF_SERV
 common_bp.add_url_rule('/get-all-states', view_func=requires_module(SELF_SERVICE)(common_route.get_all_states), methods=['POST'])
 common_bp.add_url_rule('/get-all-cities', view_func=requires_module(SELF_SERVICE)(common_route.get_all_cities), methods=['POST'])
 common_bp.add_url_rule('/get-all-currencies', view_func=requires_module(SELF_SERVICE)(common_route.get_all_currencies), methods=['POST'])
+common_bp.add_url_rule('/get-all-timezones', view_func=requires_module(SELF_SERVICE)(common_route.get_all_timezones), methods=['POST'])
 common_bp.add_url_rule('/get-enum-options', view_func=requires_module(SELF_SERVICE)(common_route.get_enum_options), methods=['POST'])

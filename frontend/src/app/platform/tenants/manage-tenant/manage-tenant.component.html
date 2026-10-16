@@ -52,21 +52,41 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Timezone</mat-label>
-          <input matInput formControlName="timezone" list="tz-options" placeholder="Asia/Kolkata">
-          <datalist id="tz-options">
-            <option *ngFor="let tz of timezoneSuggestions" [value]="tz"></option>
-          </datalist>
-          <mat-hint>IANA zone, e.g. Asia/Kolkata.</mat-hint>
+          <mat-select formControlName="timezone">
+            <mat-option>
+              <ngx-mat-select-search
+                [formControl]="timezoneFilter"
+                placeholderLabel="Search timezone"
+                noEntriesFoundLabel="No matching timezone"
+                ariaLabel="Search timezone">
+              </ngx-mat-select-search>
+            </mat-option>
+            <mat-option *ngFor="let tz of filteredTimezones" [value]="tz.name">
+              {{ tz.name }}
+            </mat-option>
+          </mat-select>
+          <mat-hint *ngIf="isLookupsLoading">Loading timezones...</mat-hint>
+          <mat-hint *ngIf="!isLookupsLoading">IANA zone, e.g. Asia/Kolkata.</mat-hint>
           <mat-error *ngIf="form.get('timezone')?.hasError('required')">Timezone is required</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Currency</mat-label>
-          <input matInput formControlName="currency" list="ccy-options" placeholder="INR" maxlength="3">
-          <datalist id="ccy-options">
-            <option *ngFor="let c of currencySuggestions" [value]="c"></option>
-          </datalist>
-          <mat-hint>3-letter ISO 4217 code.</mat-hint>
+          <mat-select formControlName="currency">
+            <mat-option>
+              <ngx-mat-select-search
+                [formControl]="currencyFilter"
+                placeholderLabel="Search currency"
+                noEntriesFoundLabel="No matching currency"
+                ariaLabel="Search currency">
+              </ngx-mat-select-search>
+            </mat-option>
+            <mat-option *ngFor="let c of filteredCurrencies" [value]="c.code">
+              {{ currencyLabel(c) }}
+            </mat-option>
+          </mat-select>
+          <mat-hint *ngIf="isLookupsLoading">Loading currencies...</mat-hint>
+          <mat-hint *ngIf="!isLookupsLoading">3-letter ISO 4217 code.</mat-hint>
           <mat-error *ngIf="form.get('currency')?.hasError('required')">Currency is required</mat-error>
           <mat-error *ngIf="form.get('currency')?.hasError('pattern')">
             Use a 3-letter code, e.g. INR.
@@ -143,5 +163,48 @@
         </button>
       </div>
     </form>
+  </mat-card>
+
+  <!-- Per-tenant history: the trail this workspace has already written. Only an
+       existing tenant has one, so this never renders on create. -->
+  <mat-card class="history-card" *ngIf="isEdit && !isLoading">
+    <div class="history-head">
+      <div class="history-title">
+        <mat-icon>history</mat-icon>
+        <div>
+          <h2>Recent activity</h2>
+          <p>
+            {{ historyTotal
+                ? historyTotal + ' recorded change' + (historyTotal === 1 ? '' : 's')
+                : 'Nothing recorded yet' }}
+          </p>
+        </div>
+      </div>
+
+      <button mat-stroked-button class="btn-outline" *ngIf="historyTotal > tenantHistory.length"
+              type="button" (click)="viewFullHistory()">
+        View all
+      </button>
+    </div>
+
+    <div class="history-body">
+      <mat-spinner *ngIf="isHistoryLoading" diameter="24"></mat-spinner>
+
+      <div class="history-empty" *ngIf="!isHistoryLoading && tenantHistory.length === 0">
+        <mat-icon>edit_note</mat-icon>
+        <p>No changes recorded for this workspace yet.</p>
+      </div>
+
+      <ul class="history-list" *ngIf="!isHistoryLoading && tenantHistory.length > 0">
+        <li *ngFor="let log of tenantHistory">
+          <span class="history-action">{{ log.action }}</span>
+          <span class="history-summary" *ngIf="historySummary(log)">{{ historySummary(log) }}</span>
+          <span class="history-meta">
+            {{ log.actor_email || 'system' }}
+            <ng-container *ngIf="log.created_at"> · {{ log.created_at | date: 'mediumDate' }}</ng-container>
+          </span>
+        </li>
+      </ul>
+    </div>
   </mat-card>
 </div>

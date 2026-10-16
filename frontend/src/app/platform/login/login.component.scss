@@ -1,11 +1,42 @@
 @use '../tokens' as *;
 
+// This page has to scroll itself, and nothing else on it can.
+//
+// `html, body` are `overflow: hidden` app-wide (src/styles.scss) so that the
+// app shell -- and only the shell -- owns a scroll region, and `/platform/login`
+// deliberately sits *outside* that shell (it is a sibling route, so signing in
+// never renders the toolbar). The document therefore cannot scroll, and no
+// ancestor of the card does either: any content taller than the window was
+// simply clipped at the bottom with no way to reach it.
+//
+// The credentials card always fit, so this only surfaced with the compulsory
+// two-factor enrolment card -- heading, 176px QR, manual key, code field and
+// two buttons -- whose submit button fell below the fold half-visible.
+//
+// The host element is the one box that can be given a definite height here, so
+// it becomes the scroll container. `display: block` is required: it is an
+// unknown custom element, and an inline box ignores height and overflow.
+// `100vh` is the fallback for browsers without dynamic viewport units, where
+// `dvh` otherwise tracks the mobile URL bar and shrinks the visible page.
+:host {
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 // Split layout: a branded panel on the left carrying the product's identity,
 // the sign-in card on the right. Below 980px the panel collapses to a compact
 // header strip so the form still gets the full width on a laptop or tablet.
+//
+// The min-height is a percentage of the scroller above rather than `100vh`, so
+// the page can never be a few pixels taller than the box it scrolls inside --
+// which would leave a permanent scrollbar with nothing to scroll. Everything
+// taller than that grows normally, and the host scrolls it.
 .platform-login {
   display: flex;
-  min-height: 100vh;
+  min-height: 100%;
   background: $page-bg;
 }
 
@@ -307,6 +338,121 @@
     margin-top: 1px;
     font-size: 16px;
     color: $teal-deep;
+  }
+}
+
+// The second stage. Swap-in only: the credentials form is already gone, so a
+// short rise keeps the transition from flashing rather than sliding the card.
+.mfa-form {
+  animation: rise-in 0.32s $ease both;
+}
+
+.mfa-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 18px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: $navy;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $text-muted;
+  }
+}
+
+.mfa-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: $teal-soft;
+  color: $teal-deep;
+
+  mat-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+  }
+}
+
+// The enrolment icon gates the sign-in rather than merely decorating a code
+// step, so it is tinted navy instead of the quieter teal the plain step uses.
+.mfa-icon.required {
+  background: $navy-soft;
+  color: $navy;
+}
+
+// The QR sits on its own white patch: a code has to scan, and any tint behind
+// it lowers the contrast the reader sees.
+.qr-holder {
+  display: grid;
+  place-items: center;
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid $border;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.secret-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  color: $text-muted;
+
+  code {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: $navy-soft;
+    color: $navy;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .copy-btn {
+    --mdc-icon-button-icon-color: #{$text-muted};
+    --mat-icon-button-state-layer-color: #{$navy};
+    --mat-icon-button-ripple-color: #{rgba($navy, 0.1)};
+
+    color: $text-muted;
+  }
+}
+
+.back-link {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: $text-muted;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.16s $ease;
+
+  &:hover:not([disabled]) {
+    color: $navy;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 }
 

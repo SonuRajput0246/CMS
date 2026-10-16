@@ -41,6 +41,11 @@ from src.database.session import db_session
 ## guards read this one constant rather than spelling a literal each.
 SUPER_ADMIN_SCOPE = "super_admin"
 
+## Minted by login when MFA is on, and accepted only by `/auth/verify-mfa`.
+## Distinct from the tenant login's `mfa_pending` scope so the two temporary
+## tokens can never be replayed against the other's verify endpoint.
+SUPER_ADMIN_MFA_PENDING_SCOPE = "super_admin_mfa_pending"
+
 
 def authenticate_super_admin():
     """Validate the bearer token and return the platform admin.

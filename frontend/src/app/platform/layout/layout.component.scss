@@ -317,6 +317,22 @@
   text-overflow: ellipsis;
 }
 
+// The security link is the ordinary, non-destructive action in the menu, so it
+// keeps the console's navy rather than the sign-out amber.
+.menu-item {
+  --mat-menu-item-label-text-color: #{$navy};
+  --mat-menu-item-icon-color: #{$navy};
+  --mat-menu-item-hover-state-layer-color: #{$navy-soft};
+  --mat-menu-item-focus-state-layer-color: #{$navy-soft};
+
+  font-weight: 600;
+  transition: background-color 0.16s $ease;
+
+  &:hover:not([disabled]) {
+    background: $navy-soft;
+  }
+}
+
 // Sign-out is the one destructive action in the menu, so it is the one tinted
 // amber rather than navy -- the icon alone is too quiet to carry that warning.
 .menu-signout {

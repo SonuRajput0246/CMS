@@ -40,6 +40,49 @@ export class PlatformAuthService {
     return this.http.get<IEntityResponse>(`${this.baseURL}/api/super-admin/auth/me`);
   }
 
+  /**
+   * Second step of sign-in. Public like `login`: it carries the short-lived
+   * `temp_token` from the first step, not a session. One endpoint finishes
+   * both shapes of that step -- proving the code for an enrolled account, or
+   * confirming the enrolment and then signing in -- because they are the same
+   * question ("does a correct code from this account's authenticator exist?")
+   * and splitting them would only let a client skip the second.
+   */
+  verifyMfa(payload: { temp_token: string; totp: string }): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/api/super-admin/auth/verify-mfa`,
+      payload
+    );
+  }
+
+  /** Begin (re)enrolment: returns the otpauth URI and secret. MFA stays off
+   * until `enableMfa` confirms a code, so an abandoned attempt simply makes
+   * the next sign-in run the compulsory setup step again. */
+  setupMfa(): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(`${this.baseURL}/api/super-admin/auth/mfa/setup`, {});
+  }
+
+  enableMfa(payload: { totp: string }): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/api/super-admin/auth/mfa/enable`,
+      payload
+    );
+  }
+
+  /**
+   * Self-service password change. No id is sent: the server reads the admin
+   * from the token, so this can only ever change the caller's own password.
+   */
+  changePassword(payload: {
+    current_password: string;
+    new_password: string;
+  }): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/api/super-admin/auth/change-password`,
+      payload
+    );
+  }
+
   logout(): Observable<IEntityResponse> {
     return this.http.post<IEntityResponse>(
       `${this.baseURL}/api/super-admin/auth/logout`,
@@ -50,6 +93,15 @@ export class PlatformAuthService {
   saveSession(data: IPlatformLoginData): void {
     sessionStorage.setItem('cms_sa_accessToken', data.access_token);
     localStorage.setItem('cms_sa_profile', JSON.stringify(data.profile));
+  }
+
+  /**
+   * Refresh just the cached profile. Used after a security change that alters
+   * a profile field (enabling MFA) so the stored copy does not drift from the
+   * server; the token is untouched.
+   */
+  saveProfile(profile: IPlatformProfile): void {
+    localStorage.setItem('cms_sa_profile', JSON.stringify(profile));
   }
 
   get profile(): IPlatformProfile | null {

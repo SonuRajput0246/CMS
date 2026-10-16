@@ -1,13 +1,15 @@
-import { Component, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, OnDestroy, inject } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { IEntityResponse } from '../../../models/ICommon.model';
-import { ITenant } from '../../models/platform.model';
+import { IAuditLog, ICurrencyOption, ITenant, ITimezoneOption } from '../../models/platform.model';
+import { PlatformAuditService } from '../../services/platform-audit.service';
 import { PlatformConfigService } from '../../services/platform-config.service';
+import { PlatformLookupService } from '../../services/platform-lookup.service';
 import { PlatformTenantService } from '../../services/platform-tenant.service';
 
 /** Mirrors the backend's SLUG_REGEX exactly -- see tenant_management_schema.py. */
@@ -21,41 +23,58 @@ const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
  * Client-side rules restate the server's rather than replace them: the same
  * regex, the same 6..20 password window. The server remains the authority; a
  * mismatch only decides whether the browser warns first or the API does.
+ *
+ * Timezone and currency are picked from lists the server supplies, not typed.
+ * They used to be free-text inputs with a small hardcoded suggestion list, so
+ * the "dropdown" could offer a currency that does not exist and always offered
+ * the same seven zones. Now the options are the real `currencies` rows and the
+ * same IANA zones `ZoneInfo` accepts on save, so what the picker shows and what
+ * the server accepts cannot disagree.
  */
 @Component({
   selector: 'app-manage-tenant',
   templateUrl: './manage-tenant.component.html',
   styleUrl: './manage-tenant.component.scss',
 })
-export class ManageTenantComponent {
+export class ManageTenantComponent implements OnDestroy {
 
   private fb = inject(FormBuilder);
   private _route = inject(ActivatedRoute);
   private _router = inject(Router);
   private _tenants = inject(PlatformTenantService);
+  private _lookups = inject(PlatformLookupService);
   private _config = inject(PlatformConfigService);
+  private _audit = inject(PlatformAuditService);
   private _snackbar = inject(CustomSnackbarService);
 
   form!: FormGroup;
   tenantId: number | null = null;
   isLoading = false;
   isSaving = false;
+  isLookupsLoading = false;
 
-  /** Common IANA zones, offered as suggestions -- free text is still allowed. */
-  readonly timezoneSuggestions = [
-    'Asia/Kolkata',
-    'Asia/Dubai',
-    'Asia/Singapore',
-    'Asia/Tokyo',
-    'Europe/London',
-    'Europe/Paris',
-    'America/New_York',
-    'America/Los_Angeles',
-    'Australia/Sydney',
-    'UTC',
-  ];
+  /** This tenant's own audit trail, newest first. Populated only when editing,
+   * since a brand-new tenant has no history to show. */
+  tenantHistory: IAuditLog[] = [];
+  isHistoryLoading = false;
+  historyTotal = 0;
 
-  readonly currencySuggestions = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD'];
+  /** Every active currency, and the subset currently shown after filtering. */
+  currencyOptions: ICurrencyOption[] = [];
+  filteredCurrencies: ICurrencyOption[] = [];
+
+  /** Every IANA zone, and the subset currently shown after filtering. */
+  timezoneOptions: ITimezoneOption[] = [];
+  filteredTimezones: ITimezoneOption[] = [];
+
+  /**
+   * Search terms for the two pickers. Held outside the form: they filter what
+   * is offered, they are not values the tenant has.
+   */
+  readonly currencyFilter = new FormControl('', { nonNullable: true });
+  readonly timezoneFilter = new FormControl('', { nonNullable: true });
+
+  private subs = new Subscription();
 
   get isEdit(): boolean {
     return this.tenantId !== null;
@@ -86,10 +105,23 @@ export class ManageTenantComponent {
     this.tenantId = idParam ? Number(idParam) : null;
 
     this.buildForm();
+    this.watchFilters();
 
     if (this.tenantId !== null) {
-      this.loadTenant(this.tenantId);
+      /**
+       * Sequencing, not aesthetics: the stored values are patched into the form
+       * only once the options exist. A select asked to display a value whose
+       * option has not rendered yet shows an empty field until the panel is
+       * reopened -- see the same note in manage-template.
+       */
+      this.loadLookups(() => this.loadTenant(this.tenantId as number));
+    } else {
+      this.loadLookups();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
   }
 
   private buildForm(): void {
@@ -124,6 +156,82 @@ export class ManageTenantComponent {
     this.form = this.fb.group(controls);
   }
 
+  /** Re-filter a picker whenever its search box changes. */
+  private watchFilters(): void {
+    this.subs.add(
+      this.currencyFilter.valueChanges.subscribe((term) => {
+        this.filteredCurrencies = this.matchCurrencies(term);
+      })
+    );
+    this.subs.add(
+      this.timezoneFilter.valueChanges.subscribe((term) => {
+        this.filteredTimezones = this.matchTimezones(term);
+      })
+    );
+  }
+
+  /**
+   * Load the reference data both pickers draw from.
+   *
+   * A failure here is not fatal to an edit -- the stored values are still shown
+   * and can be re-saved untouched -- but it leaves a new tenant unable to pick
+   * a currency or zone, so it is reported rather than swallowed. `then` runs
+   * either way, so an edit is never trapped behind a failed lookup.
+   */
+  private loadLookups(then?: () => void): void {
+    this.isLookupsLoading = true;
+
+    forkJoin({
+      currencies: this._lookups.currencies(),
+      timezones: this._lookups.timezones(),
+    })
+      .pipe(finalize(() => (this.isLookupsLoading = false)))
+      .subscribe({
+        next: ({ currencies, timezones }) => {
+          this.currencyOptions = (currencies?.data as ICurrencyOption[]) ?? [];
+          this.timezoneOptions = (timezones?.data as ITimezoneOption[]) ?? [];
+          this.filteredCurrencies = [...this.currencyOptions];
+          this.filteredTimezones = [...this.timezoneOptions];
+          then?.();
+        },
+        error: () => {
+          this._snackbar.openSnackBar(
+            'Could not load the currency and timezone lists.',
+            'error'
+          );
+          then?.();
+        },
+      });
+  }
+
+  private matchCurrencies(term: string): ICurrencyOption[] {
+    const needle = (term || '').trim().toLowerCase();
+    if (!needle) {
+      return [...this.currencyOptions];
+    }
+    return this.currencyOptions.filter(
+      (option) =>
+        option.code.toLowerCase().includes(needle) ||
+        (option.name || '').toLowerCase().includes(needle)
+    );
+  }
+
+  private matchTimezones(term: string): ITimezoneOption[] {
+    const needle = (term || '').trim().toLowerCase();
+    if (!needle) {
+      return [...this.timezoneOptions];
+    }
+    return this.timezoneOptions.filter((option) =>
+      option.name.toLowerCase().includes(needle)
+    );
+  }
+
+  /** `INR - Indian Rupee (₹)`, so the option says what the code means. */
+  currencyLabel(option: ICurrencyOption): string {
+    const symbol = option.symbol ? ` (${option.symbol})` : '';
+    return `${option.code} - ${option.name}${symbol}`;
+  }
+
   private loadTenant(id: number): void {
     this.isLoading = true;
     this._tenants.get(id)
@@ -140,6 +248,7 @@ export class ManageTenantComponent {
             timezone: tenant.timezone,
             currency: tenant.currency,
           });
+          this.loadHistory();
         },
         error: (err) => {
           this._snackbar.openSnackBar(
@@ -149,6 +258,62 @@ export class ManageTenantComponent {
           this.goBack();
         },
       });
+  }
+
+  /**
+   * The newest few audit rows for this tenant, so the edit screen shows what has
+   * already happened to it without leaving the page. Supplementary: a failure
+   * here is swallowed rather than raising a snackbar, because it must never
+   * block editing the tenant itself.
+   */
+  private loadHistory(): void {
+    if (this.tenantId === null) {
+      return;
+    }
+    this.isHistoryLoading = true;
+    this._audit.list({
+      page_size: 6,
+      page_number: 1,
+      entity_type: 'tenant',
+      entity_id: this.tenantId,
+    })
+      .pipe(finalize(() => (this.isHistoryLoading = false)))
+      .subscribe({
+        next: (resp: IEntityResponse) => {
+          this.tenantHistory = (resp?.data as IAuditLog[]) ?? [];
+          this.historyTotal = resp?.meta?.total_records ?? 0;
+        },
+        error: () => {
+          this.tenantHistory = [];
+          this.historyTotal = 0;
+        },
+      });
+  }
+
+  /** Opens the full feed, already scoped to this tenant. */
+  viewFullHistory(): void {
+    this._router.navigate(['/platform/activity'], {
+      queryParams: { entity_type: 'tenant', entity_id: this.tenantId },
+    });
+  }
+
+  /** One-line summary of a row's `details`, for the compact list. */
+  historySummary(log: IAuditLog): string {
+    if (!log.details) {
+      return '';
+    }
+    try {
+      const parsed = JSON.parse(log.details);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.changed) {
+          return Object.keys(parsed.changed).join(', ');
+        }
+        return Object.keys(parsed).join(', ');
+      }
+      return String(parsed);
+    } catch {
+      return log.details;
+    }
   }
 
   save(): void {
