@@ -6,10 +6,19 @@ import { IEntityResponse } from '../../models/ICommon.model';
 import { ITenantSummary } from '../models/platform.model';
 import { PlatformTenantService } from '../services/platform-tenant.service';
 
+type SummaryKey = keyof ITenantSummary;
+
 interface ISummaryCard {
-  key: keyof ITenantSummary;
+  key: SummaryKey;
   label: string;
   icon: string;
+  tone: string;
+}
+
+/** One band of the tenant-composition bar. `tone` names the CSS modifier. */
+interface ICompositionBand {
+  key: SummaryKey;
+  label: string;
   tone: string;
 }
 
@@ -38,6 +47,13 @@ export class PlatformDashboardComponent {
     { key: 'total_users', label: 'Users', icon: 'group', tone: 'neutral' },
   ];
 
+  /** The three lifecycle bands that make up the total, in that order. */
+  readonly composition: ICompositionBand[] = [
+    { key: 'active_tenants', label: 'Active', tone: 'active' },
+    { key: 'inactive_tenants', label: 'Inactive', tone: 'inactive' },
+    { key: 'archived_tenants', label: 'Archived', tone: 'archived' },
+  ];
+
   ngOnInit(): void {
     this.loadSummary();
   }
@@ -59,7 +75,21 @@ export class PlatformDashboardComponent {
       });
   }
 
-  value(key: keyof ITenantSummary): number {
+  value(key: SummaryKey): number {
     return this.summary ? this.summary[key] : 0;
+  }
+
+  /**
+   * A band's width as a percentage of the total, for the composition bar.
+   * Returns 0 rather than NaN when nothing has been provisioned yet, so the
+   * bar renders as an empty track instead of collapsing the layout.
+   */
+  share(key: SummaryKey): number {
+    const total = this.summary?.total_tenants ?? 0;
+
+    if (total <= 0) {
+      return 0;
+    }
+    return Math.round((this.summary![key] / total) * 100);
   }
 }

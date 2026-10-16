@@ -40,7 +40,7 @@
           <span class="menu-email">{{ userEmail }}</span>
         </span>
       </div>
-      <button mat-menu-item (click)="logout()" [disabled]="isLoggingOut">
+      <button mat-menu-item class="menu-signout" (click)="logout()" [disabled]="isLoggingOut">
         <mat-icon>logout</mat-icon>
         <span>Sign out</span>
       </button>

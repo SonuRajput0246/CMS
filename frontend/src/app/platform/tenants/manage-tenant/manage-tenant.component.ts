@@ -59,6 +59,17 @@ export class ManageTenantComponent {
     return this.tenantId !== null;
   }
 
+  /**
+   * The host this workspace will be served from, recomputed as the slug is
+   * typed. The subdomain is the tenant's real identity, so showing its
+   * consequence next to the field is the difference between "a slug" and
+   * "a URL people will use".
+   */
+  get tenantHost(): string {
+    const slug = String(this.form?.get('slug')?.value ?? '').trim().toLowerCase();
+    return `${slug || 'subdomain'}.localhost:4200`;
+  }
+
   ngOnInit(): void {
     const idParam = this._route.snapshot.paramMap.get('id');
     this.tenantId = idParam ? Number(idParam) : null;

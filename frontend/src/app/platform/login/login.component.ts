@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
@@ -29,6 +29,9 @@ export class PlatformLoginComponent {
   hidePassword = true;
   isLoading = false;
 
+  @ViewChild('emailInput') private _emailInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('passwordInput') private _passwordInput?: ElementRef<HTMLInputElement>;
+
   ngOnInit(): void {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -40,7 +43,28 @@ export class PlatformLoginComponent {
     this.hidePassword = !this.hidePassword;
   }
 
+  /**
+   * Browser autofill writes straight into the inputs and never dispatches
+   * `input`, so Angular's reactive controls never hear about it and keep their
+   * initial empty value. Validating the model alone would therefore reject a
+   * perfectly good saved-credential login as blank -- and, worse, report
+   * "Email is required" under a field the user can plainly see is filled.
+   *
+   * So the DOM is treated as the source of truth at submit time. For anything
+   * the user actually typed this is a no-op: `formControlName` keeps the input
+   * and the control in step.
+   */
+  private syncFromDom(): void {
+    this.loginForm.patchValue({
+      email: this._emailInput?.nativeElement.value ?? '',
+      password: this._passwordInput?.nativeElement.value ?? '',
+    });
+  }
+
   LoginUser(): void {
+    // Read the inputs back before trusting the model. See syncFromDom().
+    this.syncFromDom();
+
     if (this.loginForm.invalid || this.isLoading) {
       this.loginForm.markAllAsTouched();
       return;

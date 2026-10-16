@@ -28,29 +28,23 @@
 .btn-outline {
   height: 44px;
   padding: 0 18px;
-  font-weight: 600;
 
+  @include console-button;
   @include mdc-outlined-button($navy, $border-strong);
+  @include outlined-button-feedback;
 
   mat-icon {
     margin-right: 6px;
-  }
-
-  &:not([disabled]):hover {
-    --mdc-outlined-button-outline-color: #{$navy};
   }
 }
 
 .btn-primary {
   height: 44px;
   padding: 0 20px;
-  font-weight: 600;
 
+  @include console-button;
   @include mdc-filled-button($navy, #ffffff);
-
-  &:not([disabled]):hover {
-    box-shadow: $shadow-navy;
-  }
+  @include filled-button-feedback;
 }
 
 .loader-wrap {
@@ -126,6 +120,69 @@
     color: $text-muted;
     font-size: 13px;
   }
+}
+
+// Shows what the subdomain actually buys, and updates as it is typed. The
+// subdomain is the tenant's real identity, so its consequence belongs next to
+// the field rather than in a help page nobody opens.
+.url-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px dashed $border-strong;
+  border-radius: $radius;
+  background: $navy-soft;
+}
+
+.url-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+
+  mat-icon {
+    width: 17px;
+    height: 17px;
+    font-size: 17px;
+    color: $navy;
+  }
+}
+
+.url-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.url-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.url-value {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $navy;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url-note {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: $placeholder;
+  white-space: nowrap;
 }
 
 .actions {

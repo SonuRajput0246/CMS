@@ -100,6 +100,11 @@ export class TenantListComponent {
     this.loadTenants();
   }
 
+  /** First letter for the row avatar. Falls back rather than rendering blank. */
+  initial(name: string): string {
+    return (name ?? '').trim().charAt(0).toUpperCase() || '?';
+  }
+
   createTenant(): void {
     this._router.navigate(['/platform/tenants/new']);
   }

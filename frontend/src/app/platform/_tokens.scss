@@ -15,6 +15,9 @@ $navy: #003366;
 $navy-deep: #04213f;
 $navy-light: #0a4387;
 $navy-soft: #eef3fa;
+// A shade deeper, for pressed states where the outline button needs to read as
+// pushed in rather than merely hovered.
+$navy-soft-strong: #e0e9f7;
 
 $teal: #16b4a4;
 $teal-deep: #0e8f83;
@@ -44,9 +47,71 @@ $radius-xl: 20px;
 $topbar-h: 64px;
 $ease: cubic-bezier(0.4, 0, 0.2, 1);
 
+// How hard a control blurs while it is being pressed. Small enough that the
+// label stays legible as text rather than dissolving, large enough that the
+// press is felt before the colour change is noticed.
+$press-blur: 1.2px;
+
+// The streak that crosses a control on hover. The console default is white,
+// which is right on the dark topbar but wrong on a navy button: against navy
+// that streak read as the button turning white rather than as a highlight.
+// Filled buttons pass this blue instead, so the sheen is a lighter shade of
+// the button's own colour and the face never stops looking blue.
+$press-shine: rgba(111, 168, 220, 0.5);
+
 $shadow-sm: 0 1px 2px rgba(16, 32, 56, 0.06), 0 1px 3px rgba(16, 32, 56, 0.04);
 $shadow-md: 0 6px 16px -4px rgba(16, 32, 56, 0.12), 0 2px 6px -2px rgba(16, 32, 56, 0.06);
+$shadow-lg: 0 18px 36px -14px rgba(4, 33, 63, 0.28);
 $shadow-navy: 0 12px 26px -14px rgba(0, 51, 102, 0.85);
+
+// ----- gradients -----
+$grad-navy: linear-gradient(100deg, #{$navy-deep} 0%, #{$navy} 55%, #{$navy-light} 100%);
+$grad-navy-soft: linear-gradient(140deg, #{$navy} 0%, #{$navy-light} 100%);
+$grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
+
+// ----- entrance motion -----
+// Keyframes live here rather than in each component because a @keyframes block
+// is global once emitted: whichever screen routes in plays the same motion, and
+// stagger is passed per element.
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@mixin rise-in($delay: 0s) {
+  animation: rise-in 0.45s $ease both;
+  animation-delay: $delay;
+}
+
+// ----- surfaces -----
+@mixin panel {
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: $card-bg;
+  box-shadow: $shadow-sm;
+}
+
+// A hairline of colour along the top edge of a surface. Reads as a highlight
+// from the light above without needing an extra element.
+@mixin top-edge($color) {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    border-radius: $radius-lg $radius-lg 0 0;
+    background: $color;
+  }
+}
 
 // ----- page furniture, shared by every console screen -----
 @mixin page-head {
@@ -94,15 +159,23 @@ $shadow-navy: 0 12px 26px -14px rgba(0, 51, 102, 0.85);
 // theme leaves open: the declarations it makes on `html` are overridable from
 // any ancestor element, and the properties inherit down to the MDC internals.
 
-@mixin mdc-filled-button($bg, $fg) {
+// `$state-layer` is the colour Material paints over the face while the button
+// is hovered or held down (~4% and ~12%). It defaults to the label colour,
+// which is Material's own convention, but on a filled navy button that white
+// veil is what makes the face go pale under the cursor -- pass a lighter shade
+// of `$bg` instead and the press deepens the colour rather than bleaching it.
+@mixin mdc-filled-button($bg, $fg, $state-layer: $fg) {
   &.mat-mdc-unelevated-button {
     --mdc-filled-button-container-color: #{$bg};
     --mdc-filled-button-label-text-color: #{$fg};
     --mdc-filled-button-container-shape: #{$radius-sm};
-    --mdc-filled-button-disabled-container-color: #{$border-strong};
-    --mdc-filled-button-disabled-label-text-color: #ffffff;
-    --mat-filled-button-state-layer-color: #{$fg};
-    --mat-filled-button-ripple-color: #{$fg};
+    // A disabled action must not look like a faded brand button -- the indigo
+    // theme paints it blue, which reads as "primary, just faded". Neutral grey
+    // with muted text makes the unavailable state unmistakable.
+    --mdc-filled-button-disabled-container-color: #e3e8ef;
+    --mdc-filled-button-disabled-label-text-color: #9aa7b8;
+    --mat-filled-button-state-layer-color: #{$state-layer};
+    --mat-filled-button-ripple-color: #{$state-layer};
   }
 }
 
@@ -129,5 +202,172 @@ $shadow-navy: 0 12px 26px -14px rgba(0, 51, 102, 0.85);
     --mdc-outlined-text-field-input-text-color: #{$text};
     --mdc-outlined-text-field-input-text-placeholder-color: #{$placeholder};
     --mdc-outlined-text-field-caret-color: #{$navy};
+  }
+}
+
+// ----- button interaction, shared by every console control -----
+//
+// One rule for the whole console: **a hover never repaints the surface.**
+// Material already paints a state layer on hover and press, so changing the
+// background as well produced a muddy double-darkening on the filled buttons
+// and made "hover" and "active" nearly indistinguishable.
+//
+// Instead each variant expresses its states as lift + shadow + a single
+// deliberate colour step, which keeps hover, press, focus and disabled
+// readable on every button without five sets of near-identical colours.
+
+@keyframes btn-sweep {
+  0% {
+    transform: skewX(-20deg) translateX(0);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: skewX(-20deg) translateX(300%);
+    opacity: 0;
+  }
+}
+
+// A light streak crossing the control. Transform-only so it runs on the
+// compositor instead of relayouting every frame, and it rides above the label
+// because a sheen is meant to be seen passing over the text.
+@mixin sweep($shine: rgba(255, 255, 255, 0.5), $pseudo: '::after') {
+  position: relative;
+  overflow: hidden;
+
+  &#{$pseudo} {
+    content: '';
+    position: absolute;
+    top: -30%;
+    bottom: -30%;
+    left: -80%;
+    width: 45%;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 0%, $shine 50%, transparent 100%);
+    transform: skewX(-20deg);
+    opacity: 0;
+  }
+
+  // Nested rather than chained as `&:hover...#{&}::after`: Sass only allows `&`
+  // at the start of a compound selector.
+  &:hover:not([disabled]):not(.mat-mdc-button-disabled) {
+    &#{$pseudo} {
+      animation: btn-sweep 0.8s $ease;
+    }
+  }
+}
+
+// The press half of the contract, on its own. Controls that Material renders
+// with a shape of their own -- toggle segments, paginator arrows, menu items --
+// cannot take `console-button` (it would override their radius and colour), but
+// they must still feel identical when pressed, so they pull this in directly.
+//
+// Every consumer must list `filter` in its own transition: the 0.05s here is
+// only the *in*, and the recovery easing comes from wherever `filter` is
+// declared on the base state.
+//
+// `$blur` is a parameter because the right amount depends on the control's
+// size: 1.2px is a felt tap on a small icon button, but over a large filled
+// button it dissolves the label for the length of the press.
+@mixin press-sink($blur: $press-blur) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 6px rgba(4, 33, 63, 0.3);
+  filter: blur($blur);
+  // Snaps in; the base rule's slower duration eases it back out on release.
+  transition-duration: 0.05s;
+}
+
+@mixin console-button($shine: rgba(255, 255, 255, 0.5), $blur: $press-blur) {
+  position: relative;
+  border-radius: $radius-sm;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.16s $ease, box-shadow 0.16s $ease,
+    border-color 0.16s $ease, background-color 0.16s $ease, color 0.16s $ease,
+    // Blur settles back more slowly than it arrives: a symmetric tween makes
+    // the press read as a flicker instead of an impact.
+    filter 0.22s $ease;
+
+  @include sweep($shine);
+
+  &:hover:not([disabled]):not(.mat-mdc-button-disabled) {
+    transform: translateY(-1px);
+  }
+
+  // Pushed in, not shrunk. The button travels one pixel into the surface, the
+  // surface closes over it, and the whole control blurs under the finger.
+  &:active:not([disabled]):not(.mat-mdc-button-disabled) {
+    @include press-sink($blur);
+  }
+
+  // Keyboard-only. :focus-visible keeps the ring off mouse clicks, which is
+  // what stops a navy button from flashing a teal halo on every press.
+  &:focus-visible {
+    outline: 2px solid $teal;
+    outline-offset: 2px;
+  }
+
+  &:disabled,
+  &.mat-mdc-button-disabled {
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+// The filled variant's only job is the hover lift's coloured shadow. It must
+// NOT restate an active box-shadow: that would win the cascade against
+// `console-button`'s inner shadow and cancel the sink.
+@mixin filled-button-feedback {
+  &:hover:not([disabled]) {
+    box-shadow: $shadow-navy;
+  }
+}
+
+// The outline variant has no fill to deepen, so it gains a faint navy tint --
+// one step on hover, a second on press.
+@mixin outlined-button-feedback {
+  &:hover:not([disabled]) {
+    --mdc-outlined-button-outline-color: #{$navy};
+    background: $navy-soft;
+  }
+
+  &:active:not([disabled]) {
+    --mdc-outlined-button-outline-color: #{$navy};
+    background: $navy-soft-strong;
+  }
+}
+
+// Icon-sized buttons. Self-contained: these are used where the surrounding
+// rules set their own radius and colour, so they carry their own transition
+// (including `filter`, which `press-sink` relies on) rather than inheriting
+// `console-button`'s. The focus ring sits on the button's own circle rather
+// than outside it.
+//
+// `$blur` is a parameter for the same reason as in `press-sink`: 1.2px is a
+// felt tap on a 40px glyph, but over a large filled button it erases the label.
+@mixin icon-button-feedback($tint: $navy-soft, $blur: $press-blur) {
+  border-radius: 50%;
+  transition: transform 0.16s $ease, box-shadow 0.16s $ease,
+    background-color 0.16s $ease, filter 0.22s $ease;
+
+  &:hover:not([disabled]) {
+    transform: translateY(-1px);
+    background: $tint;
+  }
+
+  &:active:not([disabled]) {
+    @include press-sink($blur);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $teal;
+    outline-offset: -2px;
   }
 }

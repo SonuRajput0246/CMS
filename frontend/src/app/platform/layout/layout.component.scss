@@ -12,6 +12,7 @@
 }
 
 .topbar {
+  position: relative;
   flex: 0 0 auto;
   z-index: 5;
   display: flex;
@@ -21,10 +22,33 @@
   padding: 0 22px;
   box-sizing: border-box;
   color: #ffffff;
+  // Drifts slowly across the bar so the header is never quite static.
   background:
-    radial-gradient(120% 200% at 90% -60%, rgba($teal, 0.55) 0%, rgba($teal, 0) 58%),
-    linear-gradient(100deg, $navy-deep 0%, $navy 55%, $navy-light 100%);
-  box-shadow: 0 8px 20px -12px rgba(4, 33, 63, 0.8);
+    radial-gradient(120% 220% at 88% -70%, rgba($teal, 0.5) 0%, rgba($teal, 0) 56%),
+    linear-gradient(100deg, $navy-deep 0%, $navy 52%, $navy-light 100%);
+  background-size: 180% 100%, 180% 100%;
+  box-shadow: 0 8px 24px -12px rgba(4, 33, 63, 0.85);
+  animation: topbar-drift 24s ease-in-out infinite;
+
+  // A hairline of teal where the bar meets the page.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 2px;
+    background: linear-gradient(90deg, rgba($teal, 0.85) 0%, rgba($teal, 0) 45%);
+  }
+}
+
+@keyframes topbar-drift {
+  0%,
+  100% {
+    background-position: 0% 0, 0% 0;
+  }
+
+  50% {
+    background-position: 100% 0, 100% 0;
+  }
 }
 
 .brand {
@@ -42,7 +66,6 @@
     background: rgba(255, 255, 255, 0.08);
   }
 }
-
 .brand-badge {
   display: grid;
   place-items: center;
@@ -86,6 +109,7 @@
   gap: 6px;
 
   .nav-link {
+    position: relative;
     height: 40px;
     padding: 0 16px;
     border-radius: 999px;
@@ -98,6 +122,9 @@
     --mdc-text-button-label-text-color: #{rgba(#ffffff, 0.78)};
     --mat-text-button-state-layer-color: #ffffff;
     --mat-text-button-ripple-color: #ffffff;
+
+    transition: background-color 0.2s $ease, color 0.2s $ease,
+      transform 0.16s $ease, filter 0.22s $ease;
 
     mat-icon {
       width: 19px;
@@ -112,12 +139,38 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
+    // `::after` is already the active-section underline, so the sheen rides on
+    // `::before`.
+    @include sweep(rgba(255, 255, 255, 0.3), '::before');
+
+    &:active {
+      @include press-sink;
+    }
+
+    // White rather than teal: the ring sits on navy, where a teal outline has
+    // far less contrast against the bar than it does on a white page.
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.85);
+      outline-offset: 2px;
+    }
+
+    // The active pill gets a teal underline so the current section is obvious
+    // at a glance even in peripheral vision.
     &.active-link {
       color: #ffffff;
       background: rgba(255, 255, 255, 0.16);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 
       --mdc-text-button-label-text-color: #ffffff;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: auto 16px -1px 16px;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: $teal;
+      }
     }
   }
 }
@@ -139,11 +192,23 @@
   color: #ffffff;
   font: inherit;
   cursor: pointer;
-  transition: background-color 0.2s $ease, border-color 0.2s $ease;
+  transition: background-color 0.2s $ease, border-color 0.2s $ease,
+    transform 0.16s $ease, filter 0.22s $ease;
+
+  @include sweep(rgba(255, 255, 255, 0.28));
 
   &:hover {
     background: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.32);
+  }
+
+  &:active {
+    @include press-sink;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 2px;
   }
 }
 
@@ -195,6 +260,13 @@
   background:
     radial-gradient(70% 50% at 100% 0%, rgba($navy-light, 0.06) 0%, rgba($navy-light, 0) 60%),
     $page-bg;
+
+  // The routed screen is the only real child here, so animating direct children
+  // gives every page the same entrance without each one restating it. The
+  // outlet element itself is skipped.
+  > *:not(router-outlet) {
+    @include rise-in;
+  }
 }
 
 // The panel below is rendered in the CDK overlay, not under `:host`, so these
@@ -239,6 +311,39 @@
   font-size: 12px;
   color: $text-muted;
   text-overflow: ellipsis;
+}
+
+// Sign-out is the one destructive action in the menu, so it is the one tinted
+// amber rather than navy -- the icon alone is too quiet to carry that warning.
+.menu-signout {
+  --mat-menu-item-label-text-color: #{$amber};
+  --mat-menu-item-icon-color: #{$amber};
+  --mat-menu-item-hover-state-layer-color: #{$amber-soft};
+  --mat-menu-item-focus-state-layer-color: #{$amber-soft};
+
+  font-weight: 600;
+  transition: background-color 0.16s $ease, transform 0.16s $ease,
+    filter 0.22s $ease;
+
+  &:hover:not([disabled]) {
+    background: $amber-soft;
+  }
+
+  // The menu item is a button too, so pressing it blurs and sinks like the
+  // rest -- a menu row that merely changed colour would have felt detached.
+  &:active:not([disabled]) {
+    @include press-sink;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $teal;
+    outline-offset: -2px;
+  }
+
+  &[disabled] {
+    --mat-menu-item-label-text-color: #{$placeholder};
+    --mat-menu-item-icon-color: #{$placeholder};
+  }
 }
 
 @media (max-width: 900px) {

@@ -74,6 +74,15 @@
         </mat-form-field>
       </div>
 
+      <div class="url-preview">
+        <span class="url-icon"><mat-icon>language</mat-icon></span>
+        <span class="url-text">
+          <span class="url-label">Tenant URL</span>
+          <span class="url-value">{{ tenantHost }}</span>
+        </span>
+        <span class="url-note">Derived from the subdomain</span>
+      </div>
+
       <ng-container *ngIf="!isEdit">
         <div class="section-head">
           <span class="step">02</span>
@@ -129,7 +138,7 @@
           Cancel
         </button>
         <button mat-flat-button color="primary" class="btn-primary" type="submit"
-                [disabled]="isSaving || form.invalid">
+                [disabled]="isSaving">
           {{ isSaving ? 'Saving...' : (isEdit ? 'Save changes' : 'Create tenant') }}
         </button>
       </div>

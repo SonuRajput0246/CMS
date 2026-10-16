@@ -32,18 +32,32 @@
       <mat-button-toggle value="inactive">Inactive</mat-button-toggle>
       <mat-button-toggle value="archived">Archived</mat-button-toggle>
     </mat-button-toggle-group>
+
+    <span class="count-chip" *ngIf="!isLoading">
+      {{ totalRecords }} {{ totalRecords === 1 ? 'tenant' : 'tenants' }}
+    </span>
   </div>
 
   <div class="table-wrap">
     <table mat-table [dataSource]="tenants" class="tenant-table">
       <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let tenant">{{ tenant.name }}</td>
+        <th mat-header-cell *matHeaderCellDef>Tenant</th>
+        <td mat-cell *matCellDef="let tenant">
+          <div class="tenant-name">
+            <span class="tenant-avatar">{{ initial(tenant.name) }}</span>
+            <span class="tenant-name-text">
+              <b>{{ tenant.name }}</b>
+              <span class="tenant-id">#{{ tenant.id }}</span>
+            </span>
+          </div>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="slug">
         <th mat-header-cell *matHeaderCellDef>Subdomain</th>
-        <td mat-cell *matCellDef="let tenant"><code>{{ tenant.slug }}</code></td>
+        <td mat-cell *matCellDef="let tenant">
+          <code>{{ tenant.slug }}<span class="code-tld">.localhost</span></code>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="timezone">
