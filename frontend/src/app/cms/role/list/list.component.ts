@@ -4,9 +4,10 @@ import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-sn
 import { Router } from '@angular/router';
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { IGenricGrid, INavigationaBar, ISearchRequest } from '../../../models/ICommon.model';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 import { IRoles } from '../../../models/IAdmin.model';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 @Component({
@@ -30,6 +31,10 @@ export class ListComponent {
   pageDet: IGenricGrid = { total_docs: 0, limit: 10 } as IGenricGrid;
   displayedColumns: string[] = ['sr', 'roleCode', 'roleName', 'status', 'actions'];
   dataSource = new MatTableDataSource<IRoles>();
+
+  // Shared with every other list page, so the page-size trigger and its
+  // option list are sized identically across the CMS.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   requestData: ISearchRequest = {
     page_number: 1,

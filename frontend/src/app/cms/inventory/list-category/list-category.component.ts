@@ -1,9 +1,11 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 import { IGenricGrid, ISearchRequest } from '../../../models/ICommon.model';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 import { IInventoryCategory } from '../../../models/IAdmin.model';
 import { InventoryService } from '../../../services/inventory.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
@@ -34,6 +36,10 @@ export class ListCategoryComponent implements OnInit {
   pageDet: IGenricGrid = { total_docs: 0, limit: 10 } as IGenricGrid;
   displayedColumns: string[] = ['sr', 'name', 'description', 'status', 'actions'];
   dataSource = new MatTableDataSource<IInventoryCategory>();
+
+  // Shared with every other list page, so the page-size trigger and its
+  // option list are sized identically across the CMS.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   //// Request State
   requestData: ISearchRequest = {

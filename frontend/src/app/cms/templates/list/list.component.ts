@@ -1,7 +1,7 @@
 import { Component, inject, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 import { TemplateService } from '../../../services/template.service';
@@ -9,6 +9,7 @@ import { CommonService } from '../../../services/common.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { IEnumOption, IGenricGrid, INavigationaBar } from '../../../models/ICommon.model';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 import { ITemplate, ITemplateListRequest } from '../../../models/IAdmin.model';
 
 @Component({
@@ -41,6 +42,10 @@ export class ListTemplateComponent {
   pageDet: IGenricGrid = { total_docs: 0, limit: 10 } as IGenricGrid;
   displayedColumns: string[] = ['sr', 'code', 'name', 'channel', 'preview', 'status', 'actions'];
   dataSource = new MatTableDataSource<ITemplate>();
+
+  // Shared with every other list page, so the page-size trigger and its
+  // option list are sized identically across the CMS.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   requestData: ITemplateListRequest = {
     page_number: 1,

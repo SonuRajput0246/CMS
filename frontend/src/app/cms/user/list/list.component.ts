@@ -9,6 +9,7 @@ import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-sn
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { IUsers } from '../../../models/IAdmin.model';
 import { IGenricGrid, INavigationaBar, ISearchRequest } from '../../../models/ICommon.model';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 
 @Component({
   selector: 'app-list',
@@ -34,17 +35,9 @@ export class ListComponent implements OnInit {
   displayedColumns: string[] = ['sr', 'firstName', 'lastName', 'role', 'email', 'status', 'actions'];
   dataSource = new MatTableDataSource<IUsers>();
 
-  /**
-   * Config for the paginator's built-in page-size select: a panel class, so the
-   * stylesheet can size the option list (Material renders it in the CDK
-   * overlay, outside this component's view), and no option centring, so the
-   * panel wraps the options instead of padding itself open to line the selected
-   * value up with the trigger.
-   */
-  readonly pageSizeSelect: MatPaginatorSelectConfig = {
-    panelClass: 'compact-page-size-panel',
-    disableOptionCentering: true
-  };
+  // Shared with every other list page, so the page-size trigger and its
+  // option list are sized identically across the CMS.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   // Request Object with Defaults
   requestData: ISearchRequest = {
