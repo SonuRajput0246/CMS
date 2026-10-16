@@ -65,3 +65,19 @@ export interface IUpdateTenant {
   timezone?: string;
   currency?: string;
 }
+
+/**
+ * The deployment the console is running against, served by
+ * `GET /api/super-admin/config` and derived on the server from the
+ * `PUBLIC_BASE_URL` variable in the backend's `.env`.
+ *
+ * Nothing here is a client-side guess: `localhost` used to be hardcoded in the
+ * subdomain column, the slug suffix and the URL preview, so all three printed a
+ * development host the moment the panel was served from a real one.
+ */
+export interface IPlatformConfig {
+  /** e.g. `http://localhost:4200`, `https://console.example.com`. */
+  public_base_url: string;
+  /** e.g. `localhost:4200`, `example.com` -- what a tenant slug is prefixed with. */
+  tenant_host_suffix: string;
+}

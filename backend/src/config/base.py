@@ -50,6 +50,23 @@ class BaseConfig:
     PLATFORM_ADMIN_FIRST_NAME = os.getenv("PLATFORM_ADMIN_FIRST_NAME", "Platform")
     PLATFORM_ADMIN_LAST_NAME = os.getenv("PLATFORM_ADMIN_LAST_NAME", "Admin")
 
+    ## The public origin this deployment is reached at, and the single value
+    ## the platform console derives every tenant link from.
+    ##
+    ##   development  PUBLIC_BASE_URL=http://localhost:4200
+    ##   production   PUBLIC_BASE_URL=https://console.example.com
+    ##
+    ## It exists because the panel used to hardcode `localhost:4200` in three
+    ## places, so every subdomain it printed was wrong the moment the app was
+    ## served from a real host. This is read at startup and handed to the
+    ## browser by `GET /api/super-admin/config`; nothing on the client decides
+    ## it for itself.
+    ##
+    ## Read ONCE, at process start: editing `.env` does not change a running
+    ## server. Restart the backend, then reload the console -- the browser also
+    ## reads it once per page load, so a tab left open keeps the old value.
+    PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:4200")
+
     ## Cookies
     COOKIE_SECURE = os.getenv("COOKIE_SECURE")
     COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE")

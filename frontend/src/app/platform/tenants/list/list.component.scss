@@ -27,8 +27,11 @@
   height: 44px;
   padding: 0 18px;
 
-  @include console-button;
-  @include mdc-filled-button($navy, #ffffff);
+  // Same treatment as the login button: a blue sheen instead of white, and a
+  // navy state layer so holding it deepens the blue instead of veiling the
+  // face in white.
+  @include console-button($press-shine);
+  @include mdc-filled-button($navy, #ffffff, $navy-light);
   @include filled-button-feedback;
 
   mat-icon {
@@ -81,52 +84,116 @@
   white-space: nowrap;
 }
 
-// Segmented control: the selected pill is navy against a white track.
+// Segmented control: a soft track with a raised white pill marking the current
+// view. Material's default paints the selected segment as a solid navy slab,
+// which dropped a heavy block of colour into the middle of an otherwise light
+// filter row; a lifted pill says "this one is on" without the weight, and it
+// leaves navy for the states that actually need to carry it.
 .status-filter {
-  --mat-standard-button-toggle-height: 38px;
-  --mat-standard-button-toggle-shape: 10px;
-  --mat-standard-button-toggle-background-color: #ffffff;
-  --mat-standard-button-toggle-text-color: #{$text-muted};
-  --mat-standard-button-toggle-divider-color: #{$border};
-  --mat-standard-button-toggle-selected-state-background-color: #{$navy};
-  --mat-standard-button-toggle-selected-state-text-color: #ffffff;
-  --mat-standard-button-toggle-state-layer-color: #{$navy};
-
+  padding: 3px;
   border: 1px solid $border;
-  border-radius: 10px;
+  border-radius: 999px;
+  background: $navy-soft;
+
+  --mat-standard-button-toggle-height: 36px;
+  --mat-standard-button-toggle-shape: 999px;
+  --mat-standard-button-toggle-background-color: transparent;
+  --mat-standard-button-toggle-text-color: #{$text-muted};
+  // With the segments transparent, a leftover divider hairline reads as a
+  // rendering artefact rather than as separation.
+  --mat-standard-button-toggle-divider-color: transparent;
+  --mat-standard-button-toggle-selected-state-background-color: #ffffff;
+  --mat-standard-button-toggle-selected-state-text-color: #{$navy};
+  --mat-standard-button-toggle-state-layer-color: #{$navy};
 
   .mat-button-toggle-label-content {
     font-size: 13px;
     font-weight: 600;
   }
 
-  // Segments behave like buttons: they tint on hover, but never once
-  // selected -- the checked band is navy and stays navy, otherwise the current
-  // filter stops being obvious the moment the pointer crosses it.
   .mat-button-toggle {
-    border-radius: 9px;
-    transition: background-color 0.18s $ease, color 0.18s $ease,
-      transform 0.16s $ease, filter 0.22s $ease;
+    border-radius: 999px;
+    // Cuts everything drawn inside the segment -- Material's state-layer
+    // overlay and the ripple -- to the capsule. Both are plain rectangles
+    // otherwise, so without this the click effect outlives the shape it is
+    // supposed to belong to.
+    overflow: hidden;
+    transition: background-color 0.18s, color 0.18s, box-shadow 0.18s,
+      transform 0.16s, filter 0.22s;
+    transition-timing-function: $ease;
 
+    // Unselected segments sit flush in the track and step *deeper* under the
+    // pointer, with the label going navy. Lifting toward white was invisible:
+    // the track is already 96% white, so a 55% white wash over it moved the
+    // surface about 4% and the hovered segment could not be told from its
+    // neighbours.
+    //
+    // The selected segment is deliberately not touched here -- the checked
+    // band is what says which filter is live, and it must not change while
+    // the pointer is merely passing over it.
     &:hover:not(.mat-button-toggle-checked) {
-      background: $navy-soft;
+      background: $navy-soft-hover;
+      color: $navy;
     }
 
-    // Separate from the press below so a *checked* segment keeps its navy band
-    // while the pointer is down -- only its tint changes, never its identity.
     &:active:not(.mat-button-toggle-checked) {
-      background: $navy-soft-strong;
+      background: $navy-soft-press;
+      color: $navy;
     }
 
-    // The segments are buttons, so they sink and blur like every other button.
+    // The console's shared hover step, applied to every segment -- including
+    // the selected one, which the rules above are scoped away from. Without it
+    // the hover feedback disappeared under the cursor the moment a segment was
+    // chosen, so it appeared and vanished as the pointer crossed the row.
+    //
+    // The selected segment takes a lift, a light navy wash and a deeper shadow
+    // because white has nowhere to go except toward the track, and a pill that
+    // matches its track stops reading as a pill. The wash stays far shallower
+    // than an unselected segment's, so hovered and selected never look alike.
+    //
+    // Scoped off `:active` on purpose. While a press is held both states match,
+    // so if the hover state won the cascade it would cancel `press-sink` and
+    // the segment would lift under the finger instead of sinking into it.
+    &:hover:not(.mat-button-toggle-disabled):not(:active) {
+      transform: translateY(-1px);
+
+      &.mat-button-toggle-checked {
+        background: rgba($navy, 0.07);
+        box-shadow: $shadow-md;
+      }
+    }
+
+    // The sink and little blur every console button shares.
     &:active {
       @include press-sink;
+    }
+
+    // One step past the hover wash, so a held segment is still visibly further
+    // along than a merely hovered one.
+    &:active.mat-button-toggle-checked {
+      background: rgba($navy, 0.12);
     }
 
     &:focus-visible {
       outline: 2px solid $teal;
       outline-offset: -2px;
     }
+  }
+
+  // Raised just enough to read as a separate surface on the track. Excluded
+  // while pressed so `press-sink`'s inset shadow can land instead.
+  .mat-button-toggle-checked:not(:active) {
+    box-shadow: $shadow-sm;
+  }
+
+  // Material's fill for a checked segment *is* this overlay, held at 50%
+  // opacity and painted over the selected-state background colour -- a navy
+  // wash on top of the white pill, in a 500px-tall box whose corner radii can
+  // never follow a 38px capsule. That is a legacy fill mechanism doing
+  // nothing the tokens below are not already doing, so it is switched off.
+  // The hover state layer on the same element stays at the theme's 4%.
+  .mat-button-toggle-checked .mat-button-toggle-focus-overlay {
+    opacity: 0;
   }
 }
 
@@ -137,6 +204,19 @@
   border-radius: $radius-lg;
   background: $card-bg;
   box-shadow: $shadow-sm;
+
+  // A refetch only takes a moment and the rows are already on screen, so they
+  // are dimmed in place rather than replaced by the loading veil. Covering a
+  // populated table with a sheet of white is what made a filter click read as
+  // a full page reload.
+  &.is-refreshing {
+    .tenant-table,
+    .tenant-paginator {
+      opacity: 0.45;
+      pointer-events: none;
+      transition: opacity 0.18s $ease;
+    }
+  }
 }
 
 .tenant-table {
@@ -209,11 +289,6 @@
     }
   }
 
-  .tenant-id {
-    font-size: 11.5px;
-    color: $placeholder;
-  }
-
   code {
     padding: 3px 7px;
     border-radius: 6px;
@@ -221,7 +296,7 @@
     color: $navy;
     font-size: 12px;
     font-weight: 600;
-
+    
     // The suffix is fixed in dev, so it is de-emphasised rather than shouted.
     .code-tld {
       font-weight: 500;
@@ -241,6 +316,12 @@
     // red from a `html .mat-mdc-icon-button.mat-primary` rule. Qualifying with
     // the cell outranks it, and the colour is enough on its own because
     // mat-icon's default is `--mat-icon-color: inherit`.
+    //
+    // One `icon-button-feedback` include covers all of them: the press geometry
+    // is identical across the three actions and only the hover wash differs, so
+    // the variants below restate that single declaration instead of expanding
+    // the whole feedback block -- base, hover, active and focus ring -- three
+    // times over.
     button.mat-mdc-icon-button {
       --mdc-icon-button-icon-color: #{$text-muted};
       --mat-icon-button-state-layer-color: #{$navy};
@@ -251,14 +332,12 @@
       @include icon-button-feedback($navy-soft);
     }
 
+    // Same geometry as the base rule; only the icon colour and the state layer
+    // change, and both are already custom properties here.
     button.mat-primary {
       --mdc-icon-button-icon-color: #{$navy};
-      --mat-icon-button-state-layer-color: #{$navy};
-      --mat-icon-button-ripple-color: #{rgba($navy, 0.1)};
 
       color: $navy;
-
-      @include icon-button-feedback($navy-soft);
     }
 
     button.mat-warn {
@@ -268,7 +347,10 @@
 
       color: $amber;
 
-      @include icon-button-feedback($amber-soft);
+      // Destructive actions get their own wash rather than the navy one.
+      &:hover:not([disabled]) {
+        background: $amber-soft;
+      }
     }
   }
 }
@@ -307,6 +389,8 @@
   }
 }
 
+// The full veil is only for a load with nothing to fall back on -- the very
+// first one. A refetch keeps the rows up and uses the pill below instead.
 .table-loading {
   position: absolute;
   inset: 0;
@@ -317,6 +401,28 @@
   // Custom properties inherit straight through the component boundary, so
   // declaring the theme's indicator token here retints the circle inside
   // <mat-spinner> without reaching for ::ng-deep.
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+// In-place refetch indicator, floated over the dimmed table.
+.table-refreshing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid $border;
+  border-radius: 999px;
+  background: $card-bg;
+  box-shadow: $shadow-md;
+  color: $navy;
+  font-size: 12.5px;
+  font-weight: 600;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
   --mdc-circular-progress-active-indicator-color: #{$navy};
 }
 

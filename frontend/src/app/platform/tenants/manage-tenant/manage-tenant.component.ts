@@ -7,6 +7,7 @@ import { finalize } from 'rxjs/operators';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { IEntityResponse } from '../../../models/ICommon.model';
 import { ITenant } from '../../models/platform.model';
+import { PlatformConfigService } from '../../services/platform-config.service';
 import { PlatformTenantService } from '../../services/platform-tenant.service';
 
 /** Mirrors the backend's SLUG_REGEX exactly -- see tenant_management_schema.py. */
@@ -32,6 +33,7 @@ export class ManageTenantComponent {
   private _route = inject(ActivatedRoute);
   private _router = inject(Router);
   private _tenants = inject(PlatformTenantService);
+  private _config = inject(PlatformConfigService);
   private _snackbar = inject(CustomSnackbarService);
 
   form!: FormGroup;
@@ -64,10 +66,19 @@ export class ManageTenantComponent {
    * typed. The subdomain is the tenant's real identity, so showing its
    * consequence next to the field is the difference between "a slug" and
    * "a URL people will use".
+   *
+   * The domain comes from the deployment rather than from a literal here: the
+   * form's job is to show what the operator's own install will do with the
+   * slug, and only the server knows that.
    */
   get tenantHost(): string {
     const slug = String(this.form?.get('slug')?.value ?? '').trim().toLowerCase();
-    return `${slug || 'subdomain'}.localhost:4200`;
+    return this._config.tenantHost(slug);
+  }
+
+  /** The same domain, shown as the field's suffix. */
+  get hostSuffix(): string {
+    return this._config.tenantHostSuffix;
   }
 
   ngOnInit(): void {

@@ -41,7 +41,7 @@
         <mat-form-field appearance="outline">
           <mat-label>Subdomain</mat-label>
           <input matInput formControlName="slug" placeholder="demo">
-          <span class="suffix" matSuffix>.localhost</span>
+          <span class="suffix" matSuffix>.{{ hostSuffix }}</span>
           <mat-hint>Lowercase letters, numbers and hyphens.</mat-hint>
           <mat-error *ngIf="form.get('slug')?.hasError('required')">Subdomain is required</mat-error>
           <mat-error

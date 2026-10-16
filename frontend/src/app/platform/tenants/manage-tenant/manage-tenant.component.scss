@@ -42,8 +42,11 @@
   height: 44px;
   padding: 0 20px;
 
-  @include console-button;
-  @include mdc-filled-button($navy, #ffffff);
+  // Same treatment as the login button: a blue sheen instead of white, and a
+  // navy state layer so holding it deepens the blue instead of veiling the
+  // face in white.
+  @include console-button($press-shine);
+  @include mdc-filled-button($navy, #ffffff, $navy-light);
   @include filled-button-feedback;
 }
 

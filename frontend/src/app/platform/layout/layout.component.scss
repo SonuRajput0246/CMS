@@ -120,8 +120,12 @@
 
     // The label is painted from the token, not from `color`, so both are set.
     --mdc-text-button-label-text-color: #{rgba(#ffffff, 0.78)};
-    --mat-text-button-state-layer-color: #ffffff;
-    --mat-text-button-ripple-color: #ffffff;
+    // Both of Material's white veils are switched off. These pills sit on the
+    // navy bar, where a white state layer (12% on press) plus a white ripple
+    // plus the white sheen stacked into a pale flash that read as the whole
+    // button turning white under the cursor. The blur is the press feedback.
+    --mat-text-button-state-layer-color: transparent;
+    --mat-text-button-ripple-color: transparent;
 
     transition: background-color 0.2s $ease, color 0.2s $ease,
       transform 0.16s $ease, filter 0.22s $ease;
@@ -139,10 +143,10 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    // `::after` is already the active-section underline, so the sheen rides on
-    // `::before`.
-    @include sweep(rgba(255, 255, 255, 0.3), '::before');
-
+    // No sheen here. A highlight has to be lighter than the surface it crosses,
+    // and on this navy bar the only lighter option is white -- the exact flash
+    // that made the pill look like it vanished. The press is the shared sink
+    // and little blur, and that is all it needs.
     &:active {
       @include press-sink;
     }
@@ -154,12 +158,12 @@
       outline-offset: 2px;
     }
 
-    // The active pill gets a teal underline so the current section is obvious
-    // at a glance even in peripheral vision.
+    // The active pill is marked by the teal underline alone. It used to carry a
+    // 16% white fill and a white hairline ring as well, which on the navy bar
+    // made the section you had just clicked the lightest thing on screen.
     &.active-link {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.1);
 
       --mdc-text-button-label-text-color: #ffffff;
 
@@ -195,8 +199,8 @@
   transition: background-color 0.2s $ease, border-color 0.2s $ease,
     transform 0.16s $ease, filter 0.22s $ease;
 
-  @include sweep(rgba(255, 255, 255, 0.28));
-
+  // Same reasoning as the nav pills: no sheen, because on the navy bar a sheen
+  // can only be white. Press is the shared sink and little blur.
   &:hover {
     background: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.32);

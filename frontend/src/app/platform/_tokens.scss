@@ -15,9 +15,12 @@ $navy: #003366;
 $navy-deep: #04213f;
 $navy-light: #0a4387;
 $navy-soft: #eef3fa;
-// A shade deeper, for pressed states where the outline button needs to read as
-// pushed in rather than merely hovered.
-$navy-soft-strong: #e0e9f7;
+// Two steps *deeper* than the track above. The status filter needs them because
+// an unselected segment has to move away from the track to read as hovered --
+// the selected pill beside it is already the lightest surface in the control,
+// so a lighter hover step would have nowhere to go.
+$navy-soft-hover: #d3e0f3;
+$navy-soft-press: #bed0ea;
 
 $teal: #16b4a4;
 $teal-deep: #0e8f83;
@@ -47,10 +50,12 @@ $radius-xl: 20px;
 $topbar-h: 64px;
 $ease: cubic-bezier(0.4, 0, 0.2, 1);
 
-// How hard a control blurs while it is being pressed. Small enough that the
-// label stays legible as text rather than dissolving, large enough that the
-// press is felt before the colour change is noticed.
-$press-blur: 1.2px;
+// How hard a control blurs while it is being pressed. Deliberately small: the
+// press should read as a faint softening of the control, never as the label
+// dissolving. Anything at a full pixel or more blurs a 14px glyph into a
+// smudge for the length of the click, which on a filled button looks like the
+// whole face going pale.
+$press-blur: 0.5px;
 
 // The streak that crosses a control on hover. The console default is white,
 // which is right on the dark topbar but wrong on a navy button: against navy
@@ -164,6 +169,21 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
 // which is Material's own convention, but on a filled navy button that white
 // veil is what makes the face go pale under the cursor -- pass a lighter shade
 // of `$bg` instead and the press deepens the colour rather than bleaching it.
+// The two tokens below are NOT interchangeable, and treating them alike is what
+// floods a button solid on press:
+//
+//   * `state-layer-color` is painted *opaque* and dialled down by the separate
+//     `*-state-layer-opacity` tokens (4% hover, 12% press), so it takes a
+//     solid colour.
+//   * `ripple-color` is applied to `.mat-ripple-element` at full opacity --
+//     Angular Material sets only `transform`, and there is no `opacity` rule
+//     for a button's ripple the way there is for checkbox, radio and tab. So
+//     the alpha has to be baked in here. Material's own values are
+//     `rgba(63, 81, 181, .1)`, never a solid.
+//
+// Handing the ripple a solid colour therefore paints the expanding circle at
+// 100%, and since the ripple grows to cover the whole control, the face reads
+// as a different colour outright for as long as the press is held.
 @mixin mdc-filled-button($bg, $fg, $state-layer: $fg) {
   &.mat-mdc-unelevated-button {
     --mdc-filled-button-container-color: #{$bg};
@@ -175,7 +195,7 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
     --mdc-filled-button-disabled-container-color: #e3e8ef;
     --mdc-filled-button-disabled-label-text-color: #9aa7b8;
     --mat-filled-button-state-layer-color: #{$state-layer};
-    --mat-filled-button-ripple-color: #{$state-layer};
+    --mat-filled-button-ripple-color: #{rgba($state-layer, 0.1)};
   }
 }
 
@@ -185,7 +205,9 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
     --mdc-outlined-button-outline-color: #{$outline};
     --mdc-outlined-button-container-shape: #{$radius-sm};
     --mat-outlined-button-state-layer-color: #{$fg};
-    --mat-outlined-button-ripple-color: #{$fg};
+    // Alpha in the token -- see the note above. Solid navy here turned the
+    // Refresh button completely blue under the finger.
+    --mat-outlined-button-ripple-color: #{rgba($fg, 0.1)};
   }
 }
 
@@ -270,9 +292,9 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
 // only the *in*, and the recovery easing comes from wherever `filter` is
 // declared on the base state.
 //
-// `$blur` is a parameter because the right amount depends on the control's
-// size: 1.2px is a felt tap on a small icon button, but over a large filled
-// button it dissolves the label for the length of the press.
+// `$blur` is a parameter so a caller can tune it, but the default is already
+// the "little blur" the whole console shares -- only reach for the argument
+// when a control genuinely needs to differ.
 @mixin press-sink($blur: $press-blur) {
   transform: translateY(1px);
   box-shadow: inset 0 2px 6px rgba(4, 33, 63, 0.3);
@@ -288,11 +310,16 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
   letter-spacing: 0.01em;
   cursor: pointer;
   overflow: hidden;
-  transition: transform 0.16s $ease, box-shadow 0.16s $ease,
-    border-color 0.16s $ease, background-color 0.16s $ease, color 0.16s $ease,
+  // Durations only -- the curve is declared once below. Repeating
+  // `$ease` after each property cost ~130 bytes of CSS in every component that
+  // includes this mixin, and a single `transition-timing-function` ends up
+  // applying to exactly the same list.
+  transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s,
+    background-color 0.16s, color 0.16s,
     // Blur settles back more slowly than it arrives: a symmetric tween makes
     // the press read as a flicker instead of an impact.
-    filter 0.22s $ease;
+    filter 0.22s;
+  transition-timing-function: $ease;
 
   @include sweep($shine);
 
@@ -330,8 +357,15 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
   }
 }
 
-// The outline variant has no fill to deepen, so it gains a faint navy tint --
-// one step on hover, a second on press.
+// The outline variant has no fill to deepen, so it gains a faint navy tint on
+// hover -- one deliberate colour step, exactly as the contract above allows.
+//
+// Press deliberately does NOT repaint the face a second time. Material is
+// already taking the state layer from 4% to 12%, and stacking a stronger tint
+// under that is the "muddy double-darkening" the contract warns about: the two
+// additions landed on a clearly blue face rather than a pressed one. The press
+// reads instead through `press-sink` and the state-layer step. The outline is
+// restated here for touch, where `:hover` may never have applied.
 @mixin outlined-button-feedback {
   &:hover:not([disabled]) {
     --mdc-outlined-button-outline-color: #{$navy};
@@ -340,7 +374,6 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
 
   &:active:not([disabled]) {
     --mdc-outlined-button-outline-color: #{$navy};
-    background: $navy-soft-strong;
   }
 }
 
@@ -350,12 +383,13 @@ $grad-teal: linear-gradient(140deg, #{$teal} 0%, #{$teal-deep} 100%);
 // `console-button`'s. The focus ring sits on the button's own circle rather
 // than outside it.
 //
-// `$blur` is a parameter for the same reason as in `press-sink`: 1.2px is a
-// felt tap on a 40px glyph, but over a large filled button it erases the label.
+// `$blur` is a parameter for the same reason as in `press-sink`, but the shared
+// default is the right amount even here -- a sub-pixel blur still lands.
 @mixin icon-button-feedback($tint: $navy-soft, $blur: $press-blur) {
   border-radius: 50%;
-  transition: transform 0.16s $ease, box-shadow 0.16s $ease,
-    background-color 0.16s $ease, filter 0.22s $ease;
+  transition: transform 0.16s, box-shadow 0.16s, background-color 0.16s,
+    filter 0.22s;
+  transition-timing-function: $ease;
 
   &:hover:not([disabled]) {
     transform: translateY(-1px);

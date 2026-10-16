@@ -64,6 +64,16 @@ class SuperAdminRoute:
         result, status_code = self.tenant_service.dashboard_summary()
         return jsonify(result), status_code
 
+    ## ---------------------------------------------------------------- config
+    @requires_super_admin
+    def platform_config(self):
+        ## Public origin + tenant domain, straight from `PUBLIC_BASE_URL`. It is
+        ## behind the token even though the value is not secret: every other
+        ## view on this blueprint is, and opening one unauthenticated rule here
+        ## would buy nothing -- the panel only renders once signed in anyway.
+        result, status_code = self.tenant_service.platform_config()
+        return jsonify(result), status_code
+
     ## -------------------------------------------------------------- tenants
     @requires_super_admin
     def list_tenants(self):
@@ -134,6 +144,10 @@ super_admin_bp.add_url_rule("/auth/logout", view_func=super_admin_route.logout, 
 
 super_admin_bp.add_url_rule(
     "/dashboard/summary", view_func=super_admin_route.dashboard_summary, methods=["GET"]
+)
+
+super_admin_bp.add_url_rule(
+    "/config", view_func=super_admin_route.platform_config, methods=["GET"]
 )
 
 ## Two rules on /tenants, distinguished by method: read vs register.

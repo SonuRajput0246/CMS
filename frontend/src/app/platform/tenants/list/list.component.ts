@@ -7,6 +7,7 @@ import { ConfirmationService } from '../../../services/confirmation.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { IEntityResponse } from '../../../models/ICommon.model';
 import { ITenant } from '../../models/platform.model';
+import { PlatformConfigService } from '../../services/platform-config.service';
 import { PlatformTenantService } from '../../services/platform-tenant.service';
 
 /**
@@ -28,6 +29,7 @@ import { PlatformTenantService } from '../../services/platform-tenant.service';
 export class TenantListComponent {
 
   private _tenants = inject(PlatformTenantService);
+  private _config = inject(PlatformConfigService);
   private _router = inject(Router);
   private _snackbar = inject(CustomSnackbarService);
   private _confirm = inject(ConfirmationService);
@@ -51,8 +53,26 @@ export class TenantListComponent {
 
   isLoading = false;
 
+  /**
+   * A refetch while rows are already on screen. Those rows are kept (dimmed)
+   * and the spinner floats over them, instead of the whole card being covered
+   * by the full-loading veil -- which made a filter click look like a reload.
+   */
+  get isRefreshing(): boolean {
+    return this.isLoading && this.tenants.length > 0;
+  }
+
   /** The tenant a lifecycle call is in flight for, so only its row is locked. */
   busyTenantId: number | null = null;
+
+  /**
+   * What every slug in the Subdomain column is suffixed with, e.g.
+   * `localhost:4200`. Comes from the deployment (`PUBLIC_BASE_URL` on the
+   * server), never from a literal in this file.
+   */
+  get hostSuffix(): string {
+    return this._config.tenantHostSuffix;
+  }
 
   ngOnInit(): void {
     this.loadTenants();

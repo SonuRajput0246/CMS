@@ -26,9 +26,11 @@ explicitly and compensated: if provisioning fails, the tenant is archived and
 an error is returned, so a half-created cafe is never left reachable at its
 subdomain.
 """
+import ipaddress
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from flask import has_request_context, request
@@ -39,6 +41,7 @@ from src.api.models.tenant_model import Tenant
 from src.api.models.user_model import User
 from src.api.tenancy.resolution import is_reserved_slug
 from src.api.utils.responses import service_response
+from src.config import get_config
 from src.database.seeders.tenant_defaults_seeder import provision_tenant
 
 
@@ -68,6 +71,47 @@ def _valid_timezone(name: str) -> bool:
 
 def _iso(value):
     return value.isoformat() if value else None
+
+
+def _tenant_domain(public_base_url: str) -> str:
+    """The host every tenant's subdomain hangs off.
+
+    `PUBLIC_BASE_URL` names the deployment; this names the *domain beneath it*,
+    by dropping the deployment's own first label. It is the exact inverse of
+    what `resolution.py` does when it reads a `Host` header -- there, label zero
+    becomes the slug:
+
+        http://localhost:4200         -> localhost:4200
+        https://example.com           -> example.com
+        https://console.example.com   -> example.com
+
+    So the rule mirrors that resolver rather than inventing a second one:
+
+      * a host with three or more labels has the deployment's own label in
+        front, which `resolution.py` reads as the tenant slug and which is
+        therefore exactly what must be dropped here;
+      * one or two labels is the bare domain (`example.com`) or development
+        (`localhost`), where the tenant URL really is `demo.localhost:4200` or
+        `demo.example.com`, so the whole host is kept.
+
+    One variable to configure instead of two: a second one would be a second
+    chance for the console to print a host no tenant is actually served on.
+    """
+    parsed = urlsplit(public_base_url)
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        return ""
+
+    ## An IP literal has no labels to spare -- `5.6.7.8` minus its first label
+    ## would be `6.7.8`, a host nobody could reach.
+    try:
+        ipaddress.ip_address(hostname)
+        domain = hostname
+    except ValueError:
+        labels = hostname.split(".")
+        domain = hostname if len(labels) <= 2 else ".".join(labels[1:])
+
+    return f"{domain}:{parsed.port}" if parsed.port else domain
 
 
 class TenantManagementService:
@@ -103,6 +147,30 @@ class TenantManagementService:
                 "inactive_tenants": inactive,
                 "archived_tenants": archived,
                 "total_users": total_users,
+            },
+            200,
+        )
+
+    def platform_config(self):
+        """The deployment the console is running against.
+
+        Read on demand from `PUBLIC_BASE_URL` instead of being baked into the
+        client bundle, so one build serves every environment and the panel can
+        never print a development host in production.
+
+        The origin and the tenant domain beneath it travel together: the
+        browser only needs the second, but returning both means it never has to
+        re-derive a host rule the server already owns -- and disagrees with
+        nobody when they match, which in every sane deployment they do.
+        """
+        public_base_url = (get_config().PUBLIC_BASE_URL or "").rstrip("/")
+
+        return service_response(
+            True,
+            "Configuration fetched successfully.",
+            {
+                "public_base_url": public_base_url,
+                "tenant_host_suffix": _tenant_domain(public_base_url),
             },
             200,
         )
