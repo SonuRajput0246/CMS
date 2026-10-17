@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { PageEvent } from '@angular/material/paginator';
+import { MatPaginatorSelectConfig, PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 import { IEntityResponse } from '../../../models/ICommon.model';
 import { ITenant } from '../../models/platform.model';
 import { PlatformConfigService } from '../../services/platform-config.service';
@@ -43,6 +44,10 @@ export class TenantListComponent {
     'status',
     'actions',
   ];
+
+  // Shared with every other list page, so the page-size trigger and its
+  // option list are sized identically across the CMS and the platform console.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   tenants: ITenant[] = [];
   totalRecords = 0;

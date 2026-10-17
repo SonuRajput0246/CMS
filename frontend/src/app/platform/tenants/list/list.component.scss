@@ -448,27 +448,30 @@
   }
 }
 
-.tenant-paginator {
-  --mat-paginator-container-background-color: #{$card-bg};
-  --mat-paginator-container-text-color: #{$text-muted};
-  --mat-paginator-enabled-icon-color: #{$navy};
-  --mat-paginator-disabled-icon-color: #{$border-strong};
-
-  border-top: 1px solid $border;
-  font-size: 12.5px;
-}
-
-// The arrows are rendered by MatPaginator inside its own template, and that
-// component opts out of style encapsulation entirely
-// (ViewEncapsulation.None), so no scoped selector of ours can reach them --
-// `::ng-deep` is the only way in. It is anchored under `:host` plus the
-// paginator class, so it cannot reach anything outside this table.
+// ------------------------------------------------------------
+//  Pagination
 //
-// One selector rather than four: the paginator's template contains exactly one
-// kind of button (the first/previous/next/last arrows, all `mat-icon-button`),
-// so naming the class beats listing four near-identical rules.
-:host ::ng-deep .tenant-paginator button.mat-icon-button {
-  @include icon-button-feedback($navy-soft);
+//  The bar itself -- the 50x26 page-size chip, the one-line layout
+//  and the compact option list -- is the shared `.table-footer`
+//  treatment in styles.scss, the same one the CMS list pages and the
+//  activity feed sit on. Nothing is restated here: overriding the
+//  --mat-paginator-* tokens is what this page used to do, and it is
+//  exactly what made the bar read differently from every other list
+//  page (a white container painting over the footer's tint,
+//  stock-sized arrows). Only the footer's own surface is
+//  component-local, since it is this card's bottom edge.
+//
+//  The press feedback this page used to add to the arrows is gone
+//  with them: it hung off `button.mat-icon-button`, which never
+//  matches -- MatIconButton's host classes are `mat-mdc-icon-button
+//  mat-mdc-button-base`, not `mat-icon-button` -- so the rule was
+//  dead. The shared bar in styles.scss sizes those arrows correctly
+//  via `button[mat-icon-button]`.
+// ------------------------------------------------------------
+.table-footer {
+  border-top: 1px solid $border;
+  background: #fbfcfe;
+  padding: 2px 14px 2px 0;
 }
 
 @media (max-width: 900px) {

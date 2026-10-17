@@ -119,12 +119,19 @@
       <p>No administrators match this view.</p>
     </div>
 
-    <mat-paginator class="admin-paginator"
-      [length]="totalRecords"
-      [pageSize]="pageSize"
-      [pageIndex]="pageIndex"
-      [pageSizeOptions]="[10, 25, 50]"
-      (page)="onPageChange($event)">
-    </mat-paginator>
+    <!-- .table-footer is the hook the shared paginator bar and the page-size
+         dropdown are styled against (see styles.scss), the same one every CMS
+         list page sits on. -->
+    <footer class="table-footer">
+      <mat-paginator class="admin-paginator"
+        [pageIndex]="pageIndex"
+        [length]="totalRecords"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 25, 50]"
+        [selectConfig]="pageSizeSelect"
+        (page)="onPageChange($event)"
+        showFirstLastButtons>
+      </mat-paginator>
+    </footer>
   </div>
 </div>
