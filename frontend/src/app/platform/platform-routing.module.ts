@@ -7,6 +7,7 @@ import { PlatformLayoutComponent } from './layout/layout.component';
 import { PlatformDashboardComponent } from './dashboard/dashboard.component';
 import { PlatformActivityComponent } from './activity/activity.component';
 import { AdminListComponent } from './admins/list/list.component';
+import { ManageAdminComponent } from './admins/manage-admin/manage-admin.component';
 import { PlatformSecurityComponent } from './security/security.component';
 import { TenantListComponent } from './tenants/list/list.component';
 import { ManageTenantComponent } from './tenants/manage-tenant/manage-tenant.component';
@@ -59,6 +60,15 @@ const routes: Routes = [
       {
         path: 'admins',
         component: AdminListComponent,
+      },
+      {
+        // `new` is declared before `:id/edit` so it is never read as an id.
+        path: 'admins/new',
+        component: ManageAdminComponent,
+      },
+      {
+        path: 'admins/:id/edit',
+        component: ManageAdminComponent,
       },
       {
         path: 'security',

@@ -41,16 +41,29 @@
              placeholder="e.g. 3">
     </mat-form-field>
 
+    <!-- The date filters are picker-backed: a plain text input carrying
+         [matDatepicker] instead of the native type="date", whose OS-drawn
+         picker was the only thing that used to appear and matched nothing else
+         on the page. readonly keeps the value a real Moment (or null), so the
+         toolbar cannot send a half-typed date to the API. -->
     <mat-form-field class="date-field" appearance="outline" floatLabel="always"
                     subscriptSizing="dynamic">
       <mat-label>From</mat-label>
-      <input matInput type="date" [(ngModel)]="dateFrom">
+      <input matInput placeholder="DD/MM/YYYY" readonly
+             [matDatepicker]="fromPicker" [max]="dateFromMax"
+             [(ngModel)]="dateFrom">
+      <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+      <mat-datepicker #fromPicker panelClass="activity-datepicker-panel"></mat-datepicker>
     </mat-form-field>
 
     <mat-form-field class="date-field" appearance="outline" floatLabel="always"
                     subscriptSizing="dynamic">
       <mat-label>To</mat-label>
-      <input matInput type="date" [(ngModel)]="dateTo">
+      <input matInput placeholder="DD/MM/YYYY" readonly
+             [matDatepicker]="toPicker" [min]="dateToMin"
+             [(ngModel)]="dateTo">
+      <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+      <mat-datepicker #toPicker panelClass="activity-datepicker-panel"></mat-datepicker>
     </mat-form-field>
 
     <button mat-flat-button color="primary" class="btn-primary" (click)="applyFilters()" [disabled]="isLoading">

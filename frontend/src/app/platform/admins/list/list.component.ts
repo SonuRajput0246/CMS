@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
@@ -9,7 +10,6 @@ import { IEntityResponse } from '../../../models/ICommon.model';
 import { ISuperAdmin } from '../../models/platform.model';
 import { PlatformAdminService } from '../../services/platform-admin.service';
 import { PlatformAuthService } from '../../services/platform-auth.service';
-import { AdminFormDialogComponent } from '../admin-form-dialog/admin-form-dialog.component';
 import { ResetPasswordDialogComponent } from '../reset-password-dialog/reset-password-dialog.component';
 
 /**
@@ -19,6 +19,10 @@ import { ResetPasswordDialogComponent } from '../reset-password-dialog/reset-pas
  * operator cannot deactivate or reset their own account -- the server refuses
  * it, and this screen disables those verbs on the signed-in admin's row so the
  * refusal is never the first the operator hears of it.
+ *
+ * Create and edit are pages of their own (`admins/new`, `admins/:id/edit`), so
+ * this screen only navigates to them; the list is rebuilt when the operator
+ * comes back, which is how a change becomes visible here.
  */
 @Component({
   selector: 'app-admin-list',
@@ -29,6 +33,7 @@ export class AdminListComponent {
 
   private _admins = inject(PlatformAdminService);
   private _auth = inject(PlatformAuthService);
+  private _router = inject(Router);
   private _dialog = inject(MatDialog);
   private _confirm = inject(ConfirmationService);
   private _snackbar = inject(CustomSnackbarService);
@@ -107,29 +112,11 @@ export class AdminListComponent {
   }
 
   createAdmin(): void {
-    this._dialog.open(AdminFormDialogComponent, {
-      data: null,
-      autoFocus: 'first-tabbable',
-    })
-      .afterClosed()
-      .subscribe((changed: boolean) => {
-        if (changed) {
-          this.loadAdmins();
-        }
-      });
+    this._router.navigate(['/platform/admins/new']);
   }
 
   editAdmin(admin: ISuperAdmin): void {
-    this._dialog.open(AdminFormDialogComponent, {
-      data: admin,
-      autoFocus: 'first-tabbable',
-    })
-      .afterClosed()
-      .subscribe((changed: boolean) => {
-        if (changed) {
-          this.loadAdmins();
-        }
-      });
+    this._router.navigate(['/platform/admins', admin.id, 'edit']);
   }
 
   resetPassword(admin: ISuperAdmin): void {

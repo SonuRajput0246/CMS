@@ -47,6 +47,28 @@
 
   @include rise-in(60ms);
 
+  // Toolbar type. A Material form field defaults to 16px, which is wider than
+  // these fields are tall: "DD/MM/YYYY" ran past the end of the box and lost
+  // its last Y under the calendar toggle. 13px is the size the table body
+  // already uses, so the filter bar and the rows read as one page.
+  //
+  // ::ng-deep is needed past this point -- the placeholder and the input
+  // element live inside Material's own field template.
+  ::ng-deep {
+    .mat-mdc-input-element,
+    .mat-mdc-select-value-text,
+    .mat-mdc-form-field-placeholder {
+      font-size: 13px;
+    }
+
+    input::placeholder {
+      // The UA halves a placeholder's opacity on top of the colour token the
+      // field already sets, which washes $placeholder out to near-invisible.
+      opacity: 1;
+      font-size: 15px;
+    }
+  }
+
   .filter-field {
     width: 210px;
     max-width: 100%;
@@ -69,11 +91,27 @@
     @include mdc-outlined-field;
   }
 
+  .date-field ::ng-deep .mat-mdc-input-element {
+    font-size: 15px;
+  }
+
+  .id-field ::ng-deep .mat-mdc-input-element {
+    font-size: 15px;
+  }
+
   .date-field {
-    width: 168px;
+    // Wide enough for "DD/MM/YYYY" plus the calendar toggle beside it, with
+    // room to spare so the text never touches the button.
+    width: 170px;
     max-width: 100%;
 
     @include mdc-outlined-field;
+
+    // MatDatepickerToggle paints its glyph from these two tokens rather than a
+    // colour of its own: navy at rest, teal while the calendar is open, which
+    // is the same accent the selected option uses in the filter dropdowns.
+    --mat-datepicker-toggle-icon-color: #{$navy};
+    --mat-datepicker-toggle-active-state-icon-color: #{$teal};
   }
 }
 
@@ -140,17 +178,89 @@
 }
 
 // Trigger half of the same dropdown: a navy arrow and a semibold value, so the
-// chosen verb or entity reads at a glance beside the free-text inputs. Both
-// live inside <mat-select>'s own view, hence ::ng-deep.
+// chosen verb or entity reads at a glance beside the free-text inputs. The size
+// comes from the toolbar-wide type rule in .filters; only the weight and colour
+// are set here. Both live inside <mat-select>'s own view, hence ::ng-deep.
 ::ng-deep .filters .filter-field {
   .mat-mdc-select-value-text {
     color: $text;
-    font-size: 13px;
     font-weight: 600;
   }
 
   .mat-mdc-select-arrow {
     color: $navy;
+  }
+}
+
+// ------------------------------------------------------------
+//  From / To calendar panel
+//
+//  Built in the CDK overlay like the select panel above, so it is
+//  addressed the same way. Note the host class: in Material 17 the
+//  overlay content is `.mat-datepicker-content` -- the older
+//  `.mat-datepicker-panel` / `.mat-datepicker-panel-container` names
+//  are gone, and a selector naming them would silently match nothing.
+//
+//  Colour comes entirely from the `--mat-datepicker-calendar-*`
+//  tokens, which the prebuilt indigo-pink theme sets on `html` from
+//  `#3f51b5`. Overriding the tokens is therefore the whole job: the
+//  calendar picks up navy and teal without any of its internal class
+//  names being touched, and a future Material bump cannot break it.
+// ------------------------------------------------------------
+::ng-deep .cdk-overlay-container div.activity-datepicker-panel.mat-datepicker-content {
+  --mat-datepicker-calendar-container-background-color: #{$card-bg};
+  --mat-datepicker-calendar-container-text-color: #{$text};
+  --mat-datepicker-calendar-container-shape: #{$radius};
+  --mat-datepicker-calendar-container-elevation-shadow: #{$shadow-lg};
+
+  --mat-datepicker-calendar-header-text-color: #{$navy};
+  --mat-datepicker-calendar-header-divider-color: #{$border};
+
+  --mat-datepicker-calendar-period-button-text-color: #{$navy};
+  --mat-datepicker-calendar-period-button-icon-color: #{$navy};
+  --mat-datepicker-calendar-navigation-button-icon-color: #{$navy};
+
+  --mat-datepicker-calendar-date-text-color: #{$text};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{$navy-soft};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{$navy-soft};
+  --mat-datepicker-calendar-date-selected-state-background-color: #{$teal};
+  --mat-datepicker-calendar-date-selected-state-text-color: #ffffff;
+  --mat-datepicker-calendar-date-today-outline-color: #{$navy};
+  // A teal fill needs a light ring, not white, or the date disappears into it.
+  --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$card-bg};
+  --mat-datepicker-calendar-date-disabled-state-text-color: #{$placeholder};
+  --mat-datepicker-calendar-body-label-text-color: #{$text-muted};
+
+  // No token covers the panel's edge, so the card's own hairline is added here
+  // to match the filter bar and the table card around it.
+  border: 1px solid #{$border-strong};
+  overflow: hidden;
+}
+
+::ng-deep .activity-datepicker-panel {
+  .mat-calendar-header {
+    padding: 14px 12px 8px;
+  }
+
+  // Weekday initials, to the same uppercase micro-label treatment as the
+  // table header above the calendar.
+  .mat-calendar-table-header th {
+    color: $text-muted;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mat-calendar-body-cell-content {
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  // A date greyed out by the other filter's clamp reads as unavailable, so
+  // strike it rather than leaving it merely faint.
+  .mat-calendar-body-disabled > .mat-calendar-body-cell-content {
+    text-decoration: line-through;
   }
 }
 

@@ -582,10 +582,10 @@ div.swal2-container.swal-container-css {
   .mat-mdc-paginator-page-size {
     align-items: center; // stock `baseline` reads as a half-dropped row
     flex-wrap: nowrap;
-    margin-right: 2px;
+    margin-right: 8px;
 
     .mat-mdc-paginator-page-size-label {
-      margin: 0 3px 0 0;
+      margin: 0 6px 0 0;
     }
 
     .mat-mdc-paginator-page-size-select {
@@ -594,7 +594,7 @@ div.swal2-container.swal-container-css {
   }
 
   .mat-mdc-paginator-range-label {
-    margin: 0 4px 0 8px;
+    margin: 0 8px 0 8px;
   }
 
   // The four arrows are 48px icon buttons sitting flush against each other, so

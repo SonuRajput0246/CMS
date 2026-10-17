@@ -9,7 +9,7 @@ import { PlatformLayoutComponent } from './layout/layout.component';
 import { PlatformDashboardComponent } from './dashboard/dashboard.component';
 import { PlatformActivityComponent } from './activity/activity.component';
 import { AdminListComponent } from './admins/list/list.component';
-import { AdminFormDialogComponent } from './admins/admin-form-dialog/admin-form-dialog.component';
+import { ManageAdminComponent } from './admins/manage-admin/manage-admin.component';
 import { ResetPasswordDialogComponent } from './admins/reset-password-dialog/reset-password-dialog.component';
 import { PlatformSecurityComponent } from './security/security.component';
 import { TenantListComponent } from './tenants/list/list.component';
@@ -31,7 +31,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
     PlatformDashboardComponent,
     PlatformActivityComponent,
     AdminListComponent,
-    AdminFormDialogComponent,
+    ManageAdminComponent,
     ResetPasswordDialogComponent,
     PlatformSecurityComponent,
     TenantListComponent,

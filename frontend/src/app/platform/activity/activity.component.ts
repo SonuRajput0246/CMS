@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginatorSelectConfig, PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
+import { Moment } from 'moment';
 
 import { CustomSnackbarService } from '../../shared/custom-snackbar/custom-snackbar.service';
 import { PAGE_SIZE_SELECT_CONFIG } from '../../shared/paginator-config';
@@ -74,8 +75,11 @@ export class PlatformActivityComponent {
   /** A specific row id, used to show one tenant's or one admin's history. Kept
    * as text so an in-progress entry never throws; only a clean integer is sent. */
   entityIdFilter = '';
-  dateFrom = '';
-  dateTo = '';
+  /** Picker-backed since the calendar replaced the native date input, so these
+   * hold a Moment rather than the `YYYY-MM-DD` text they used to. Null when
+   * unset, and normalised for the API in `load`. */
+  dateFrom: Moment | null = null;
+  dateTo: Moment | null = null;
 
   isLoading = false;
 
@@ -84,8 +88,9 @@ export class PlatformActivityComponent {
   }
 
   ngOnInit(): void {
-    // Filters can arrive from the query string -- the tenant edit screen links
-    // here pre-scoped to its own tenant -- so honour whatever was provided.
+    // Filters can arrive from the query string -- the tenant and administrator
+    // edit screens link here pre-scoped to their own row -- so honour whatever
+    // was provided.
     const params = this._route.snapshot.queryParamMap;
     this.entityFilter = params.get('entity_type') ?? '';
     this.actionFilter = params.get('action') ?? '';
@@ -103,10 +108,10 @@ export class PlatformActivityComponent {
       action: this.actionFilter || undefined,
       entity_type: this.entityFilter || undefined,
       entity_id: entityId && /^\d+$/.test(entityId) ? Number(entityId) : undefined,
-      date_from: this.dateFrom ? `${this.dateFrom}T00:00:00` : undefined,
-      // Inclusive of the chosen day: the bare date would parse as midnight and
+      date_from: this.dayBoundary(this.dateFrom, false),
+      // Inclusive of the chosen day: a bare date would parse as midnight and
       // silently drop everything that happened during it.
-      date_to: this.dateTo ? `${this.dateTo}T23:59:59` : undefined,
+      date_to: this.dayBoundary(this.dateTo, true),
     })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
@@ -131,10 +136,32 @@ export class PlatformActivityComponent {
     this.actionFilter = '';
     this.entityFilter = '';
     this.entityIdFilter = '';
-    this.dateFrom = '';
-    this.dateTo = '';
+    this.dateFrom = null;
+    this.dateTo = null;
     this.pageIndex = 0;
     this.load();
+  }
+
+  /** The two calendars clamp each other, so a range can never be built with its
+   * ends swapped: whichever end is already chosen greys out the other. */
+  get dateFromMax(): Moment | null {
+    return this.dateTo;
+  }
+
+  get dateToMin(): Moment | null {
+    return this.dateFrom;
+  }
+
+  /** The API takes a plain `YYYY-MM-DDTHH:mm:ss` local stamp, but the picker
+   * hands back a Moment -- interpolating one into the string this used to build
+   * produced `Wed Oct 08 2025 00:00:00 GMT+0530 (India Standard Time)+05:30`,
+   * which the backend could not parse. A picker that somehow holds an invalid
+   * date is treated as unset rather than sent as `Invalid date`. */
+  private dayBoundary(value: Moment | null, endOfDay: boolean): string | undefined {
+    if (!value?.isValid()) {
+      return undefined;
+    }
+    return `${value.format('YYYY-MM-DD')}T${endOfDay ? '23:59:59' : '00:00:00'}`;
   }
 
   onPageChange(event: PageEvent): void {
