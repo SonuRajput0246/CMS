@@ -1,42 +1,50 @@
 @use '../tokens' as *;
 
-// This page has to scroll itself, and nothing else on it can.
+// This page never scrolls itself; only the card's body does.
 //
 // `html, body` are `overflow: hidden` app-wide (src/styles.scss) so that the
-// app shell -- and only the shell -- owns a scroll region, and `/platform/login`
-// deliberately sits *outside* that shell (it is a sibling route, so signing in
-// never renders the toolbar). The document therefore cannot scroll, and no
-// ancestor of the card does either: any content taller than the window was
-// simply clipped at the bottom with no way to reach it.
+// app shell -- and only the shell -- owns the document's scroll region, and
+// `/platform/login` deliberately sits *outside* that shell (it is a sibling
+// route, so signing in never renders the toolbar).
 //
-// The credentials card always fit, so this only surfaced with the compulsory
-// two-factor enrolment card -- heading, 176px QR, manual key, code field and
-// two buttons -- whose submit button fell below the fold half-visible.
+// The host used to be the scroll container instead: any content taller than
+// the window was clipped with no way to reach it, and it first surfaced with
+// the compulsory two-factor enrolment card -- heading, 176px QR, manual key,
+// code field and two buttons -- whose submit button fell below the fold. That
+// worked, but scrolling that card also dragged the branded panel on the left
+// up with it, which reads as a bug in a split layout that is meant to be
+// side-by-side.
 //
-// The host element is the one box that can be given a definite height here, so
-// it becomes the scroll container. `display: block` is required: it is an
-// unknown custom element, and an inline box ignores height and overflow.
-// `100vh` is the fallback for browsers without dynamic viewport units, where
-// `dvh` otherwise tracks the mobile URL bar and shrinks the visible page.
+// So the page is pinned to the viewport (`overflow: hidden` here is the outer
+// bound) and the scroll lives inside the card: `.login-card` is capped at the
+// form panel's height, `.card-head` and `.foot` stay put, and only
+// `.card-body` -- the stage forms -- overflows and scrolls. The left panel
+// can therefore never move.
+//
+// `display: block` is required: the host is an unknown custom element, and an
+// inline box ignores height and overflow. `100vh` is the fallback for browsers
+// without dynamic viewport units, where `dvh` otherwise tracks the mobile URL
+// bar and shrinks the visible page.
 :host {
   display: block;
   height: 100vh;
   height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 // Split layout: a branded panel on the left carrying the product's identity,
 // the sign-in card on the right. Below 980px the panel collapses to a compact
 // header strip so the form still gets the full width on a laptop or tablet.
 //
-// The min-height is a percentage of the scroller above rather than `100vh`, so
-// the page can never be a few pixels taller than the box it scrolls inside --
-// which would leave a permanent scrollbar with nothing to scroll. Everything
-// taller than that grows normally, and the host scrolls it.
+// The height is a percentage of the host above rather than `100vh`, so the
+// page is exactly as tall as the box it lives in: with nothing allowed to
+// overflow the viewport, a taller-than-the-window layout would simply be
+// clipped with no way to reach the rest of it. Whatever *does* grow taller
+// than this -- the compulsory enrolment card, above all -- overflows inside its
+// own column and scrolls there (see `.card-body` below).
 .platform-login {
   display: flex;
-  min-height: 100%;
+  height: 100%;
   background: $page-bg;
 }
 
@@ -208,21 +216,38 @@
   -webkit-mask-image: radial-gradient(70% 70% at 30% 40%, #000 0%, transparent 75%);
 }
 
+// The card is centred with `margin: auto` rather than `align-items` /
+// `justify-content`. Auto margins take the free space first and collapse to
+// zero when the item is taller than the box, so a long card starts at the top
+// padding where every last pixel of it can be reached -- a centred flex item
+// would hang equally off both edges and hide the top from the scroll region.
+//
+// `overflow-y` is only a safety net: on its own the card never overflows this
+// panel (it is capped at the panel's height), but if a browser ever failed to
+// resolve that cap the card stays reachable instead of being clipped.
 .form-panel {
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 1 1 46%;
   padding: 48px 32px;
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
   background:
     radial-gradient(70% 50% at 100% 0%, rgba($navy-light, 0.06) 0%, rgba($navy-light, 0) 60%),
     $page-bg;
 }
 
+// A column so the head and foot can be pinned while only the middle scrolls.
+// `max-height` is what makes the card a scroll container at all: without it
+// the card grows to its content and, since the page no longer scrolls, the
+// bottom of a long enrolment card would be unreachable.
 .login-card {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 410px;
+  max-height: 100%;
+  margin: auto;
   padding: 34px 32px 26px;
   box-sizing: border-box;
   border: 1px solid $border;
@@ -245,6 +270,7 @@
 }
 
 .card-head {
+  flex: 0 0 auto;
   margin-bottom: 24px;
 
   .eyebrow {
@@ -264,6 +290,45 @@
     margin: 6px 0 0;
     font-size: 13.5px;
     color: $text-muted;
+  }
+}
+
+// The card's one scroll region, and the answer to the long enrolment card:
+// the head and foot are pinned (`flex: 0 0 auto`), so only the stage forms
+// ever move, and only inside the card the user is already looking at.
+//
+// `min-height: 0` is what lets the flex item shrink below its content and hand
+// the overflow to this element's own scrollbar. Flex items default to
+// `min-height: auto`, which would keep the body at full content height and
+// push the card straight through its `max-height` cap instead.
+.card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  // The page's one visible scrollbar, in the slim style the console's other
+  // scroll regions use (see manage-user's `.form-scroll`). It appears only
+  // while a stage is taller than the card; the credentials and code stages
+  // never reach it.
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  form {
+    margin-top: 10px;
   }
 }
 
@@ -323,6 +388,7 @@
 .foot {
   display: flex;
   align-items: flex-start;
+  flex: 0 0 auto;
   gap: 8px;
   margin-top: 22px;
   padding-top: 18px;
