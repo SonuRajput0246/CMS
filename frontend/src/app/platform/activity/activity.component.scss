@@ -54,6 +54,14 @@
     @include mdc-outlined-field;
   }
 
+  // Wider than its sibling: the verb labels ("Reset administrator password")
+  // are the longest strings in the toolbar, and the panel is sized to the
+  // trigger, so a narrow trigger would ellipsise them in the option list.
+  .action-field {
+    width: 250px;
+    max-width: 100%;
+  }
+
   .id-field {
     width: 120px;
     max-width: 100%;
@@ -66,6 +74,83 @@
     max-width: 100%;
 
     @include mdc-outlined-field;
+  }
+}
+
+// ------------------------------------------------------------
+//  Action / Entity dropdown panel
+//
+//  The option list is built in the CDK overlay, i.e. outside this
+//  component's view, so it cannot be reached by a plain descendant
+//  selector. It is addressed through `.cdk-overlay-container` plus the
+//  panelClass the template hands to <mat-select>. Leading ::ng-deep
+//  leaves the rule unscoped, which is what lets a component stylesheet
+//  reach an overlay that lives under <body>.
+//
+//  Same navy/teal option list as the CMS selects: hover tints navy, the
+//  selected row carries a teal wash and an inset left rule instead of a
+//  check box, so single-select still reads at a glance.
+// ------------------------------------------------------------
+::ng-deep .cdk-overlay-container div.activity-select-panel.mat-mdc-select-panel {
+  --mat-select-panel-background-color: #{$card-bg};
+
+  background-color: #{$card-bg};
+  border: 1px solid #{$border-strong};
+  border-radius: $radius;
+  padding: 6px;
+  box-shadow: $shadow-lg;
+  overflow-y: auto;
+}
+
+::ng-deep .activity-select-panel .mat-mdc-option {
+  min-height: 36px;
+  padding: 0 12px;
+  margin: 1px 0;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: $text;
+
+  // real mouse hover -- the only "selected-looking" highlight
+  &:hover:not(.mat-mdc-option-disabled) {
+    background: $navy-soft;
+    color: $navy;
+  }
+
+  // keyboard "active" option: stay invisible so it never looks pre-hovered
+  &.mat-mdc-option-active:not(:hover) {
+    background: transparent;
+    color: $text;
+  }
+
+  // selected option: teal accent plus a left rule, no check box
+  &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
+    background: $teal-soft;
+    color: $teal;
+    box-shadow: inset 3px 0 0 $teal;
+
+    .mdc-list-item__primary-text {
+      font-weight: 700;
+    }
+  }
+
+  .mat-pseudo-checkbox {
+    display: none;
+  }
+}
+
+// Trigger half of the same dropdown: a navy arrow and a semibold value, so the
+// chosen verb or entity reads at a glance beside the free-text inputs. Both
+// live inside <mat-select>'s own view, hence ::ng-deep.
+::ng-deep .filters .filter-field {
+  .mat-mdc-select-value-text {
+    color: $text;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mat-mdc-select-arrow {
+    color: $navy;
   }
 }
 
@@ -290,6 +375,7 @@
 @media (max-width: 900px) {
   .filters {
     .filter-field,
+    .action-field,
     .id-field,
     .date-field {
       width: 100%;

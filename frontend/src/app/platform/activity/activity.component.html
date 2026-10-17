@@ -12,9 +12,10 @@
   </header>
 
   <div class="filters">
-    <mat-form-field class="filter-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field class="filter-field action-field" appearance="outline" floatLabel="always"
+                    subscriptSizing="dynamic">
       <mat-label>Action</mat-label>
-      <mat-select [(ngModel)]="actionFilter">
+      <mat-select [(ngModel)]="actionFilter" panelClass="activity-select-panel">
         <mat-option value="">All actions</mat-option>
         <mat-option *ngFor="let option of actionOptions" [value]="option.value">
           {{ option.label }}
@@ -22,9 +23,10 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field class="filter-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field class="filter-field" appearance="outline" floatLabel="always"
+                    subscriptSizing="dynamic">
       <mat-label>Entity</mat-label>
-      <mat-select [(ngModel)]="entityFilter">
+      <mat-select [(ngModel)]="entityFilter" panelClass="activity-select-panel">
         <mat-option value="">All entities</mat-option>
         <mat-option *ngFor="let option of entityOptions" [value]="option.value">
           {{ option.label }}
@@ -32,18 +34,21 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field class="id-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field class="id-field" appearance="outline" floatLabel="always"
+                    subscriptSizing="dynamic">
       <mat-label>Entity ID</mat-label>
       <input matInput type="text" inputmode="numeric" [(ngModel)]="entityIdFilter"
              placeholder="e.g. 3">
     </mat-form-field>
 
-    <mat-form-field class="date-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field class="date-field" appearance="outline" floatLabel="always"
+                    subscriptSizing="dynamic">
       <mat-label>From</mat-label>
       <input matInput type="date" [(ngModel)]="dateFrom">
     </mat-form-field>
 
-    <mat-form-field class="date-field" appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field class="date-field" appearance="outline" floatLabel="always"
+                    subscriptSizing="dynamic">
       <mat-label>To</mat-label>
       <input matInput type="date" [(ngModel)]="dateTo">
     </mat-form-field>
