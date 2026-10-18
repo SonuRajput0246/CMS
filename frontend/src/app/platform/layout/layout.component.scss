@@ -319,7 +319,13 @@
 
 // The security link is the ordinary, non-destructive action in the menu, so it
 // keeps the console's navy rather than the sign-out amber.
-.menu-item {
+//
+// Deliberately NOT `menu-item`: that class is used across the tenant app and
+// carries a global `.menu-item .mat-mdc-menu-item-text { text-align: center }`
+// rule (see styles.scss). Reusing it here centred this label while its icon
+// stayed left, which read as a large gap. `menu-security` keeps the platform
+// menu clear of that global.
+.menu-security {
   --mat-menu-item-label-text-color: #{$navy};
   --mat-menu-item-icon-color: #{$navy};
   --mat-menu-item-hover-state-layer-color: #{$navy-soft};
