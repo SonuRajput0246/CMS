@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginatorSelectConfig, PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
-import { Moment } from 'moment';
+import moment, { Moment } from 'moment';
 
 import { CustomSnackbarService } from '../../shared/custom-snackbar/custom-snackbar.service';
 import { PAGE_SIZE_SELECT_CONFIG } from '../../shared/paginator-config';
@@ -101,8 +101,11 @@ export class PlatformActivityComponent {
 
   load(): void {
     const entityId = this.entityIdFilter.trim();
-    this.isLoading = true;
-    this._audit.list({
+    // Build the request before flipping the spinner on. `finalize` only
+    // attaches to an observable that was actually created, so a synchronous
+    // throw while assembling the query (see `dayBoundary`) would otherwise
+    // skip it and leave the spinner running forever.
+    const query = {
       page_size: this.pageSize,
       page_number: this.pageIndex + 1,
       action: this.actionFilter || undefined,
@@ -112,7 +115,9 @@ export class PlatformActivityComponent {
       // Inclusive of the chosen day: a bare date would parse as midnight and
       // silently drop everything that happened during it.
       date_to: this.dayBoundary(this.dateTo, true),
-    })
+    };
+    this.isLoading = true;
+    this._audit.list(query)
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (resp: IEntityResponse) => {
@@ -152,16 +157,21 @@ export class PlatformActivityComponent {
     return this.dateFrom;
   }
 
-  /** The API takes a plain `YYYY-MM-DDTHH:mm:ss` local stamp, but the picker
-   * hands back a Moment -- interpolating one into the string this used to build
-   * produced `Wed Oct 08 2025 00:00:00 GMT+0530 (India Standard Time)+05:30`,
-   * which the backend could not parse. A picker that somehow holds an invalid
-   * date is treated as unset rather than sent as `Invalid date`. */
-  private dayBoundary(value: Moment | null, endOfDay: boolean): string | undefined {
-    if (!value?.isValid()) {
+  /** The API takes a plain `YYYY-MM-DDTHH:mm:ss` local stamp. The picker's
+   * value is a Moment under the app's date adapter, but this must not assume
+   * it: a plain `Date` used to reach `value.isValid()` here, throw, and escape
+   * `load()` before `finalize` could attach -- which left the spinner running
+   * forever. `moment()` normalises a Moment, a Date or an ISO string alike; an
+   * unparseable value is treated as unset rather than sent as `Invalid date`. */
+  private dayBoundary(value: Moment | Date | null, endOfDay: boolean): string | undefined {
+    if (!value) {
       return undefined;
     }
-    return `${value.format('YYYY-MM-DD')}T${endOfDay ? '23:59:59' : '00:00:00'}`;
+    const day = moment(value);
+    if (!day.isValid()) {
+      return undefined;
+    }
+    return `${day.format('YYYY-MM-DD')}T${endOfDay ? '23:59:59' : '00:00:00'}`;
   }
 
   onPageChange(event: PageEvent): void {

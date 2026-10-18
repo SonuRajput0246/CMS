@@ -118,69 +118,17 @@
 // ------------------------------------------------------------
 //  Action / Entity dropdown panel
 //
-//  The option list is built in the CDK overlay, i.e. outside this
-//  component's view, so it cannot be reached by a plain descendant
-//  selector. It is addressed through `.cdk-overlay-container` plus the
-//  panelClass the template hands to <mat-select>. Leading ::ng-deep
-//  leaves the rule unscoped, which is what lets a component stylesheet
-//  reach an overlay that lives under <body>.
+//  The option list itself -- white card, navy hover, teal selected row
+//  with its inset left rule and no check box -- is the shared
+//  `.console-select-panel` block in styles.scss. It was local to this
+//  file until the tenant form needed the identical list, and a second
+//  copy here would have meant two places to edit for one visual.
+//  Both selects bind that panelClass in the template.
 //
-//  Same navy/teal option list as the CMS selects: hover tints navy, the
-//  selected row carries a teal wash and an inset left rule instead of a
-//  check box, so single-select still reads at a glance.
+//  Only the trigger half is component-local: the navy arrow and the
+//  semibold chosen value, both of which live inside <mat-select>'s own
+//  view and so need ::ng-deep.
 // ------------------------------------------------------------
-::ng-deep .cdk-overlay-container div.activity-select-panel.mat-mdc-select-panel {
-  --mat-select-panel-background-color: #{$card-bg};
-
-  background-color: #{$card-bg};
-  border: 1px solid #{$border-strong};
-  border-radius: $radius;
-  padding: 6px;
-  box-shadow: $shadow-lg;
-  overflow-y: auto;
-}
-
-::ng-deep .activity-select-panel .mat-mdc-option {
-  min-height: 36px;
-  padding: 0 12px;
-  margin: 1px 0;
-  border-radius: 9px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: $text;
-
-  // real mouse hover -- the only "selected-looking" highlight
-  &:hover:not(.mat-mdc-option-disabled) {
-    background: $navy-soft;
-    color: $navy;
-  }
-
-  // keyboard "active" option: stay invisible so it never looks pre-hovered
-  &.mat-mdc-option-active:not(:hover) {
-    background: transparent;
-    color: $text;
-  }
-
-  // selected option: teal accent plus a left rule, no check box
-  &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
-    background: $teal-soft;
-    color: $teal;
-    box-shadow: inset 3px 0 0 $teal;
-
-    .mdc-list-item__primary-text {
-      font-weight: 700;
-    }
-  }
-
-  .mat-pseudo-checkbox {
-    display: none;
-  }
-}
-
-// Trigger half of the same dropdown: a navy arrow and a semibold value, so the
-// chosen verb or entity reads at a glance beside the free-text inputs. The size
-// comes from the toolbar-wide type rule in .filters; only the weight and colour
-// are set here. Both live inside <mat-select>'s own view, hence ::ng-deep.
 ::ng-deep .filters .filter-field {
   .mat-mdc-select-value-text {
     color: $text;
@@ -195,29 +143,51 @@
 // ------------------------------------------------------------
 //  From / To calendar panel
 //
-//  Built in the CDK overlay like the select panel above, so it is
-//  addressed the same way. Note the host class: in Material 17 the
-//  overlay content is `.mat-datepicker-content` -- the older
-//  `.mat-datepicker-panel` / `.mat-datepicker-panel-container` names
-//  are gone, and a selector naming them would silently match nothing.
+//  Colour comes entirely from the `--mat-datepicker-calendar-*` tokens,
+//  which the prebuilt indigo-pink theme sets on `html` from `#3f51b5`.
+//  Overriding the tokens is therefore the whole job: the calendar picks
+//  up navy and teal without any of its internal class names being touched,
+//  and a future Material bump cannot break it.
 //
-//  Colour comes entirely from the `--mat-datepicker-calendar-*`
-//  tokens, which the prebuilt indigo-pink theme sets on `html` from
-//  `#3f51b5`. Overriding the tokens is therefore the whole job: the
-//  calendar picks up navy and teal without any of its internal class
-//  names being touched, and a future Material bump cannot break it.
+//  WHERE THE HOOK CLASS ACTUALLY LANDS: Material puts [panelClass] on
+//  <mat-calendar> itself -- MatDatepickerContent's template reads
+//  `[ngClass]="datepicker.panelClass"` on that element -- so it is on
+//  neither the overlay pane nor the .mat-datepicker-content wrapper. The
+//  real DOM is:
+//
+//    <mat-datepicker-content class="mat-datepicker-content">   <- container tokens
+//      <div class="mat-datepicker-content-container">
+//        <mat-calendar class="mat-calendar activity-datepicker-panel">
+//
+//  `.activity-datepicker-panel` and `.mat-calendar` are therefore the SAME
+//  element, which is why the box and every token read inside it are styled
+//  off the hook class directly, and why only the four
+//  `--mat-datepicker-calendar-container-*` tokens need the :has() rule at
+//  the bottom: no descendant selector can reach the wrapper above.
 // ------------------------------------------------------------
-::ng-deep .cdk-overlay-container div.activity-datepicker-panel.mat-datepicker-content {
-  --mat-datepicker-calendar-container-background-color: #{$card-bg};
-  --mat-datepicker-calendar-container-text-color: #{$text};
-  --mat-datepicker-calendar-container-shape: #{$radius};
-  --mat-datepicker-calendar-container-elevation-shadow: #{$shadow-lg};
+
+// Box size, plus every token the calendar reads for itself.
+//
+// The element name is load-bearing twice over. Material's hook lands on
+// <mat-calendar>, which is a custom element and not a <div>, so a `div.` prefix
+// here would match nothing at all. And it carries `.cdk-overlay-container`
+// because Material's own `.mat-datepicker-content .mat-calendar
+// { width: 296px; height: 354px }` counts two classes -- matching the tag gives
+// this rule (0,2,1) and settles the tie that injection order would otherwise
+// decide. 264px still clears the 224px min-width the day grid carries, and the
+// grid cells are percentage based, so every cell scales with the box.
+::ng-deep .cdk-overlay-container mat-calendar.activity-datepicker-panel {
+  width: 264px;
+  height: 316px;
 
   --mat-datepicker-calendar-header-text-color: #{$navy};
   --mat-datepicker-calendar-header-divider-color: #{$border};
 
   --mat-datepicker-calendar-period-button-text-color: #{$navy};
   --mat-datepicker-calendar-period-button-icon-color: #{$navy};
+  // "October 2026" is sized from a token, not from .mat-calendar-header, so it
+  // would keep Material's default in the shrunken box and crowd the arrows.
+  --mat-datepicker-calendar-period-button-text-size: 13px;
   --mat-datepicker-calendar-navigation-button-icon-color: #{$navy};
 
   --mat-datepicker-calendar-date-text-color: #{$text};
@@ -231,29 +201,22 @@
   --mat-datepicker-calendar-date-disabled-state-text-color: #{$placeholder};
   --mat-datepicker-calendar-body-label-text-color: #{$text-muted};
 
-  // No token covers the panel's edge, so the card's own hairline is added here
-  // to match the filter bar and the table card around it.
-  border: 1px solid #{$border-strong};
-  overflow: hidden;
-}
-
-::ng-deep .activity-datepicker-panel {
   .mat-calendar-header {
-    padding: 14px 12px 8px;
+    padding: 11px 10px 6px;
   }
 
   // Weekday initials, to the same uppercase micro-label treatment as the
   // table header above the calendar.
   .mat-calendar-table-header th {
     color: $text-muted;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   .mat-calendar-body-cell-content {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -262,6 +225,23 @@
   .mat-calendar-body-disabled > .mat-calendar-body-cell-content {
     text-decoration: line-through;
   }
+}
+
+// The wrapper's own surface. It sits ABOVE the element Material gave the hook
+// class, so :has() is the only way to scope it back to this one calendar --
+// without it these four values would have to go on .mat-datepicker-content
+// globally and leak into any datepicker added later.
+::ng-deep .cdk-overlay-container .mat-datepicker-content:has(.activity-datepicker-panel) {
+  --mat-datepicker-calendar-container-background-color: #{$card-bg};
+  --mat-datepicker-calendar-container-text-color: #{$text};
+  --mat-datepicker-calendar-container-shape: #{$radius};
+  --mat-datepicker-calendar-container-elevation-shadow: #{$shadow-lg};
+
+  // No token covers the panel's edge, so the card's own hairline is added here
+  // to match the filter bar and the table card around it. overflow clips the
+  // calendar's square corners down to that radius.
+  border: 1px solid #{$border-strong};
+  overflow: hidden;
 }
 
 .btn-primary {

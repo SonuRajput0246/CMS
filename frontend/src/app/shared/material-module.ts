@@ -38,7 +38,7 @@
  import { MatTooltipModule } from '@angular/material/tooltip';
  import { MatStepperModule } from '@angular/material/stepper';
  import { MatBadgeModule } from '@angular/material/badge';
- import { MatNativeDateModule, MatRippleModule } from '@angular/material/core';
+ import { MatRippleModule } from '@angular/material/core';
  import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
  
  import { CdkTableModule } from '@angular/cdk/table';
@@ -88,7 +88,12 @@
          MatTabsModule,
          MatToolbarModule,
          MatTooltipModule,
-         MatNativeDateModule,
+         //// MatNativeDateModule is intentionally NOT exported here. It provides
+         //// only the native `DateAdapter`, which shadows the app's Moment
+         //// adapter (provided in AppModule) wherever this module is imported --
+         //// and inside a lazily-loaded module it always won, so picker values
+         //// arrived as a plain `Date`. `MatDatepickerModule` above already
+         //// carries the picker's directives; the native adapter is unused.
          CdkTableModule,
          A11yModule,
          BidiModule,

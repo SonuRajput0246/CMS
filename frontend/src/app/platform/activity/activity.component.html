@@ -15,7 +15,7 @@
     <mat-form-field class="filter-field action-field" appearance="outline" floatLabel="always"
                     subscriptSizing="dynamic">
       <mat-label>Action</mat-label>
-      <mat-select [(ngModel)]="actionFilter" panelClass="activity-select-panel">
+      <mat-select [(ngModel)]="actionFilter" panelClass="console-select-panel">
         <mat-option value="">All actions</mat-option>
         <mat-option *ngFor="let option of actionOptions" [value]="option.value">
           {{ option.label }}
@@ -26,7 +26,7 @@
     <mat-form-field class="filter-field" appearance="outline" floatLabel="always"
                     subscriptSizing="dynamic">
       <mat-label>Entity</mat-label>
-      <mat-select [(ngModel)]="entityFilter" panelClass="activity-select-panel">
+      <mat-select [(ngModel)]="entityFilter" panelClass="console-select-panel">
         <mat-option value="">All entities</mat-option>
         <mat-option *ngFor="let option of entityOptions" [value]="option.value">
           {{ option.label }}

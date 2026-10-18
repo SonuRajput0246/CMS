@@ -52,7 +52,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Timezone</mat-label>
-          <mat-select formControlName="timezone">
+          <mat-select formControlName="timezone" panelClass="console-select-panel">
             <mat-option>
               <ngx-mat-select-search
                 [formControl]="timezoneFilter"
@@ -72,7 +72,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Currency</mat-label>
-          <mat-select formControlName="currency">
+          <mat-select formControlName="currency" panelClass="console-select-panel">
             <mat-option>
               <ngx-mat-select-search
                 [formControl]="currencyFilter"

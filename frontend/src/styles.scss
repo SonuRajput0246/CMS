@@ -644,6 +644,128 @@ div.swal2-container.swal-container-css {
 }
 
 
+//------------ Select option list (navy/teal) ----------//
+// The app's one dropdown option list. Opt into it with
+// `panelClass="console-select-panel"` on any <mat-select>.
+//
+// It lives here rather than in a component stylesheet for two reasons.
+// MatSelect renders its panel in the CDK overlay under <body>, outside the
+// component that opened it. A component rule *can* reach it -- written
+// `::ng-deep .cdk-overlay-container ...`, which compiles unscoped -- but that
+// is precisely the problem: every component that copies the block silently
+// restyles every other page's dropdown, and the copies drift apart. It also
+// already had six near-identical variants scattered across cms/*, each pinned
+// to one panelClass. One copy, globally, is the fix.
+//
+// Colours are literals to match this file, which has no token partial of its
+// own. They are the same values as platform/_tokens.scss ($navy #003366,
+// $teal #16b4a4, and so on).
+.cdk-overlay-container div.console-select-panel.mat-mdc-select-panel {
+  --mat-select-panel-background-color: #ffffff;
+
+  background-color: #ffffff;
+  border: 1px solid #cdd8e6;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 18px 36px -14px rgba(4, 33, 63, 0.28);
+  overflow-y: auto;
+
+  // MatSelect sizes the panel to the trigger via an inline width, so this is
+  // only a floor. It exists so a narrow field cannot ellipsise a long option
+  // label ("America/Argentina/Buenos_Aires") in the list.
+  min-width: 240px;
+}
+
+.console-select-panel .mat-mdc-option {
+  min-height: 36px;
+  padding: 0 12px;
+  margin: 1px 0;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1c2b3a;
+
+  // real mouse hover -- the only "selected-looking" highlight
+  &:hover:not(.mat-mdc-option-disabled) {
+    background: #eef3fa;
+    color: #003366;
+  }
+
+  // keyboard "active" option: stay invisible so it never looks pre-hovered
+  &.mat-mdc-option-active:not(:hover) {
+    background: transparent;
+    color: #1c2b3a;
+  }
+
+  // selected option: teal accent plus a left rule, no check box
+  &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
+    background: #e2f6f3;
+    color: #16b4a4;
+    box-shadow: inset 3px 0 0 #16b4a4;
+
+    .mdc-list-item__primary-text {
+      font-weight: 700;
+    }
+  }
+
+  .mat-pseudo-checkbox {
+    display: none;
+  }
+}
+
+// ngx-mat-select-search parks a form field inside the FIRST mat-option, so it
+// inherits the option row's height, padding and hover above and reads as a
+// selectable entry. :has() is what separates the two -- nothing else on the
+// element distinguishes the search row from a real option.
+.console-select-panel mat-option:has(ngx-mat-select-search) {
+  min-height: 0;
+  padding: 0 0 6px;
+  margin: 0 0 4px;
+  background: transparent;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0 0 9px 9px;
+
+  &:hover {
+    background: transparent;
+  }
+
+  // The search box itself, trimmed to the row height of the options around it.
+  .mat-mdc-form-field {
+    --mat-form-field-container-height: 34px;
+    --mat-form-field-container-vertical-padding: 6px;
+    font-size: 12.5px;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background: #f8fafd;
+    border-radius: 9px !important;
+  }
+
+  .mdc-notched-outline__leading {
+    border-radius: 9px 0 0 9px !important;
+  }
+
+  .mdc-notched-outline__trailing {
+    border-radius: 0 9px 9px 0 !important;
+  }
+
+  .mdc-notched-outline > * {
+    border-color: #d5e0ee !important;
+  }
+
+  .mat-mdc-input-element,
+  .mat-mdc-floating-label {
+    font-size: 12.5px !important;
+  }
+
+  .mat-mdc-form-field-icon-prefix,
+  .mat-mdc-form-field-icon-suffix {
+    color: #003366;
+    padding: 0 8px !important;
+  }
+}
+
+
 
 
 
