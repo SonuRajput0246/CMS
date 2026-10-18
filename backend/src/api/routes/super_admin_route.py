@@ -74,7 +74,7 @@ class SuperAdminRoute:
     def logout(self):
         ## Reaches past the request token to the row that authorises it, so a
         ## copied bearer token dies with this session.
-        result, status_code = self.auth_service.logout(g.current_super_admin.id)
+        result, status_code = self.auth_service.logout(g.current_super_admin)
         return jsonify(result), status_code
 
     def verify_mfa_login(self):
@@ -237,6 +237,18 @@ class SuperAdminRoute:
         )
         return jsonify(result), status_code
 
+    @requires_super_admin
+    def reset_admin_mfa(self, admin_id):
+        ## The second half of recovery: an administrator who lost their
+        ## authenticator cannot sign in at all while MFA is compulsory, and a
+        ## password reset alone leaves them still asked for a code they cannot
+        ## produce. No body -- there is nothing to supply that the caller would
+        ## not also be able to forge.
+        result, status_code = self.admin_service.reset_admin_mfa(
+            admin_id, g.current_super_admin
+        )
+        return jsonify(result), status_code
+
     ## ---------------------------------------------------------------- audit
     @requires_super_admin
     def list_audit_logs(self):
@@ -326,6 +338,11 @@ super_admin_bp.add_url_rule(
 super_admin_bp.add_url_rule(
     "/admins/<int:admin_id>/reset-password",
     view_func=super_admin_route.reset_admin_password,
+    methods=["POST"],
+)
+super_admin_bp.add_url_rule(
+    "/admins/<int:admin_id>/reset-mfa",
+    view_func=super_admin_route.reset_admin_mfa,
     methods=["POST"],
 )
 

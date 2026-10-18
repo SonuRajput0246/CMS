@@ -164,6 +164,8 @@ export interface ISuperAdmin {
   is_active: boolean;
   is_deleted: boolean;
   mfa_enabled: boolean;
+  /** Set while the account is in a brute-force lockout; null otherwise. */
+  locked_until?: string | null;
   last_password_update_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;

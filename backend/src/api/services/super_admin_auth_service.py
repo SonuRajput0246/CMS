@@ -16,6 +16,7 @@ from src.api.extensions import bcrypt
 from src.api.models.super_admin_token_model import SuperAdminToken
 from src.api.models.super_admin_user_model import SuperAdminUser
 from src.api.middlewares.super_admin_auth import SUPER_ADMIN_MFA_PENDING_SCOPE, SUPER_ADMIN_SCOPE
+from src.api.services.audit_service import AuditService
 from src.api.utils.mfa import generate_secret, get_uri, verify_otp
 from src.api.utils.responses import service_response
 
@@ -23,6 +24,10 @@ from src.api.utils.responses import service_response
 class SuperAdminAuthService:
     def __init__(self, db):
         self.db = db
+        ## Sign-in, sign-out, password and MFA changes all write here, so the
+        ## activity feed covers the security events -- not just the tenant and
+        ## operator management ones the other services already recorded.
+        self.audit = AuditService(db)
 
     def login(self, data: dict):
         """Verify credentials and issue a platform token.
@@ -30,6 +35,11 @@ class SuperAdminAuthService:
         The email lookup is deliberately unfiltered and the failure message
         generic: there is one account class here, so there is nothing to learn
         from "no such account" versus "wrong password".
+
+        Repeated wrong passwords lock the account for a cooling-off window --
+        see `_register_failed_attempt`. The lockout is checked *before* the
+        password comparison and reports the same event regardless of whether
+        the password was right, so a locked account leaks nothing by timing.
         """
         email = data["email"].strip().lower()
         admin = (
@@ -38,15 +48,38 @@ class SuperAdminAuthService:
             .first()
         )
 
+        if admin is not None and self._is_locked(admin):
+            self.audit.write(
+                admin, "LOGIN_FAILED_SUPER_ADMIN", "super_admin", admin.id,
+                {"email": email, "reason": "locked"},
+            )
+            return service_response(
+                False,
+                "Too many failed attempts. This account is temporarily locked. "
+                "Try again later or ask another administrator to reset it.",
+                None,
+                429,
+            )
+
         if not admin or not bcrypt.check_password_hash(
             admin.password.encode("utf-8"), data["password"].encode("utf-8")
         ):
+            self._register_failed_attempt(admin, email)
             return service_response(False, "Invalid email or password.", None, 401)
 
         if not admin.is_active:
+            ## Credentials were right, so this is not a failed attempt to count.
+            self.audit.write(
+                admin, "LOGIN_FAILED_SUPER_ADMIN", "super_admin", admin.id,
+                {"email": email, "reason": "deactivated"},
+            )
             return service_response(
                 False, "This account is deactivated. Contact another administrator.", None, 403
             )
+
+        ## A correct password clears the counter, so a few fumbles earlier in
+        ## the day do not leave the account one typo away from a lockout.
+        self._clear_failed_attempts(admin)
 
         ## MFA is compulsory for platform administrators, so no account reaches
         ## a session without a second factor. A short-lived pending token stands
@@ -109,12 +142,68 @@ class SuperAdminAuthService:
         ))
         self.db.commit()
 
+        self.audit.write(
+            admin, "LOGIN_SUPER_ADMIN", "super_admin", admin.id, {"email": admin.email},
+        )
+
         return service_response(
             True,
             "Login successful.",
             {"access_token": access_token, "profile": self.serialize(admin)},
             200,
         )
+
+    ## ------------------------------------------------------ brute-force guard
+    @staticmethod
+    def _is_locked(admin: SuperAdminUser) -> bool:
+        """True while the account's lockout window is still open.
+
+        The column is timezone-aware, but a row read back without an offset is
+        treated as UTC rather than compared as if it were local time -- the
+        same rule `AuditService` applies to its date filters.
+        """
+        locked_until = admin.locked_until
+        if locked_until is None:
+            return False
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+        return locked_until > datetime.now(timezone.utc)
+
+    def _register_failed_attempt(self, admin, email: str) -> None:
+        """Record a wrong password and lock the account at the ceiling.
+
+        The count is only advanced when the address matched a real account: an
+        unknown email has nothing to lock, and persisting a row per bogus
+        address would hand an attacker an unbounded write. The attempt is still
+        audited either way -- a burst against one address is exactly the signal
+        the trail exists to show.
+        """
+        self.audit.write(
+            admin, "LOGIN_FAILED_SUPER_ADMIN", "super_admin",
+            admin.id if admin else None,
+            {"email": email, "reason": "invalid_credentials"},
+            actor_email=email,
+        )
+
+        if admin is None:
+            return
+
+        admin.failed_login_attempts = (admin.failed_login_attempts or 0) + 1
+        max_attempts = current_app.config.get("SUPER_ADMIN_MAX_LOGIN_ATTEMPTS", 5)
+        if admin.failed_login_attempts >= max_attempts:
+            lock_minutes = current_app.config.get("SUPER_ADMIN_LOCKOUT_MINUTES", 15)
+            admin.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lock_minutes)
+            ## Reset the counter so the window that follows the lockout starts
+            ## clean instead of locking again on the very first wrong password.
+            admin.failed_login_attempts = 0
+        self.db.commit()
+
+    def _clear_failed_attempts(self, admin: SuperAdminUser) -> None:
+        """Forget accumulated failures after a correct password."""
+        if admin.failed_login_attempts or admin.locked_until:
+            admin.failed_login_attempts = 0
+            admin.locked_until = None
+            self.db.commit()
 
     def _mint_mfa_token(self, admin: SuperAdminUser) -> str:
         """A short-lived pending token, valid only to complete MFA. Its scope
@@ -157,14 +246,18 @@ class SuperAdminAuthService:
             True, "Profile fetched successfully.", self.serialize(admin), 200
         )
 
-    def logout(self, admin_id: int):
+    def logout(self, admin):
         ## Revokes on the server. Clearing the frontend copy alone would leave
         ## a copied token usable until it expires -- see super_admin_tokens.
         self.db.query(SuperAdminToken).filter(
-            SuperAdminToken.super_admin_id == admin_id,
+            SuperAdminToken.super_admin_id == admin.id,
             SuperAdminToken.is_revoked == False,
         ).update({"is_revoked": True})
         self.db.commit()
+
+        self.audit.write(
+            admin, "LOGOUT_SUPER_ADMIN", "super_admin", admin.id, {"email": admin.email},
+        )
         return service_response(True, "Logged out successfully.", None, 200)
 
     ## ------------------------------------------------------------------- MFA
@@ -209,6 +302,10 @@ class SuperAdminAuthService:
             )
 
         if not verify_otp(admin.mfa_secret, data["totp"]):
+            self.audit.write(
+                admin, "LOGIN_FAILED_SUPER_ADMIN", "super_admin", admin.id,
+                {"email": admin.email, "reason": "invalid_mfa_code"},
+            )
             return service_response(False, "Invalid verification code.", None, 401)
 
         ## First sign-in of an account that had not enrolled: the code above is
@@ -249,6 +346,10 @@ class SuperAdminAuthService:
 
         admin.mfa_enabled = True
         self.db.commit()
+
+        self.audit.write(
+            admin, "ENABLE_SUPER_ADMIN_MFA", "super_admin", admin.id, {"email": admin.email},
+        )
         return service_response(True, "Two-factor authentication is now on.", None, 200)
 
     ## -------------------------------------------------------- change password
@@ -265,6 +366,11 @@ class SuperAdminAuthService:
         admin.password = bcrypt.generate_password_hash(data["new_password"], 12).decode("utf-8")
         admin.last_password_update_at = datetime.now(timezone.utc)
         self.db.commit()
+
+        self.audit.write(
+            admin, "CHANGE_SUPER_ADMIN_PASSWORD", "super_admin", admin.id,
+            {"email": admin.email},
+        )
         return service_response(True, "Password updated successfully.", None, 200)
 
     @staticmethod
@@ -277,6 +383,11 @@ class SuperAdminAuthService:
             "email": admin.email,
             "is_active": admin.is_active,
             "mfa_enabled": admin.mfa_enabled,
+            ## While set in the future the account is in a brute-force lockout;
+            ## the console reads it to show the operator why a sign-in failed.
+            "locked_until": (
+                admin.locked_until.isoformat() if admin.locked_until else None
+            ),
             "last_password_update_at": (
                 admin.last_password_update_at.isoformat()
                 if admin.last_password_update_at

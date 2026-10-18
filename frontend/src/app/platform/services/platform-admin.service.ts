@@ -71,4 +71,16 @@ export class PlatformAdminService {
       new_password: newPassword,
     });
   }
+
+  /**
+   * Clear another administrator's authenticator (recovery).
+   *
+   * MFA is compulsory, so this is the only way back in for an operator who
+   * lost their device -- a password reset alone leaves them still asked for a
+   * code they cannot produce. The target's sessions are revoked server-side,
+   * and they enrol again at their next sign-in.
+   */
+  resetMfa(id: number): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(`${this.baseURL}/admins/${id}/reset-mfa`, {});
+  }
 }

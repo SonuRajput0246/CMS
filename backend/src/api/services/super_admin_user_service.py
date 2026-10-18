@@ -237,6 +237,57 @@ class SuperAdminUserService:
 
         return service_response(True, "Password reset successfully.", None, 200)
 
+    def reset_admin_mfa(self, admin_id: int, actor):
+        """Clear another operator's authenticator (recovery by another admin).
+
+        MFA is compulsory, so an administrator who loses their device cannot
+        sign in at all -- and `reset_admin_password` alone does not help,
+        because the account still demands a code from the lost app. This is the
+        other half of recovery: it drops the secret and the enrolled flag, so
+        the next sign-in walks through compulsory enrolment again (see
+        `SuperAdminAuthService.login`). The target's live sessions are revoked,
+        so a recovery cannot leave a session running on the strength of the
+        factor that was just removed.
+        """
+        admin = (
+            self.db.query(SuperAdminUser)
+            .filter(SuperAdminUser.id == admin_id, SuperAdminUser.is_deleted == False)
+            .first()
+        )
+        if not admin:
+            return service_response(False, "Administrator not found.", None, 404)
+
+        if getattr(actor, "id", None) == admin.id:
+            return service_response(
+                False,
+                "Use the Security page to reconfigure your own two-factor authentication.",
+                None,
+                400,
+            )
+
+        if not admin.mfa_enabled and not admin.mfa_secret:
+            return service_response(
+                True, "Two-factor authentication was not set up.", self._serialize(admin), 200
+            )
+
+        admin.mfa_secret = None
+        admin.mfa_enabled = False
+        self._revoke_tokens(admin.id)
+        self.db.commit()
+        self.db.refresh(admin)
+
+        self.audit.write(
+            actor, "RESET_SUPER_ADMIN_MFA", "super_admin", admin.id,
+            {"email": admin.email},
+        )
+
+        return service_response(
+            True,
+            "Two-factor authentication reset. The administrator must enrol again at next sign-in.",
+            self._serialize(admin),
+            200,
+        )
+
     ## -------------------------------------------------------------- helpers
     def _revoke_tokens(self, admin_id: int) -> None:
         self.db.query(SuperAdminToken).filter(
@@ -257,6 +308,7 @@ class SuperAdminUserService:
             "is_active": admin.is_active,
             "is_deleted": admin.is_deleted,
             "mfa_enabled": admin.mfa_enabled,
+            "locked_until": _iso(admin.locked_until),
             "last_password_update_at": _iso(admin.last_password_update_at),
             "created_at": _iso(admin.created_at),
             "updated_at": _iso(admin.updated_at),

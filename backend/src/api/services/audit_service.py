@@ -93,15 +93,21 @@ class AuditService:
         }, 200
 
     ## --------------------------------------------------------------- write
-    def write(self, actor, action: str, entity_type: str, entity_id, details: dict) -> None:
+    def write(self, actor, action: str, entity_type: str, entity_id, details: dict,
+              actor_email: str | None = None) -> None:
         """Record one platform action. Never fails the operation -- see the
         module docstring. `details` is stored as JSON text, matching how the
         tenant service writes it, so one row shape covers every writer.
+
+        `actor_email` overrides the address taken from `actor`. It exists for
+        the one write that has no actor row to read: a sign-in attempt against
+        an address that matches no account. There the email *is* the only thing
+        the caller claimed, so it is recorded verbatim rather than dropped.
         """
         try:
             self.db.add(AuditLog(
                 super_admin_id=getattr(actor, "id", None),
-                actor_email=getattr(actor, "email", None),
+                actor_email=actor_email or getattr(actor, "email", None),
                 action=action,
                 entity_type=entity_type,
                 entity_id=entity_id,

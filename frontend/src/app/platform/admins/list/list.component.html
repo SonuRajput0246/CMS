@@ -67,6 +67,9 @@
           <span class="status-chip" [class.active]="admin.is_active" [class.inactive]="!admin.is_active">
             <span class="dot"></span>{{ admin.is_active ? 'Active' : 'Inactive' }}
           </span>
+          <span class="lock-chip" *ngIf="isLocked(admin)" matTooltip="Locked after repeated failed sign-ins">
+            <mat-icon>lock</mat-icon>Locked
+          </span>
         </td>
       </ng-container>
 
@@ -89,6 +92,13 @@
                   [disabled]="isSelf(admin)"
                   (click)="resetPassword(admin)">
             <mat-icon>key</mat-icon>
+          </button>
+
+          <button mat-icon-button class="row-action"
+                  [matTooltip]="isSelf(admin) ? 'Manage your own two-factor under Security' : 'Reset two-factor authentication'"
+                  [disabled]="isSelf(admin) || busyAdminId === admin.id"
+                  (click)="resetMfa(admin)">
+            <mat-icon>phonelink_erase</mat-icon>
           </button>
 
           <button mat-icon-button class="row-action"

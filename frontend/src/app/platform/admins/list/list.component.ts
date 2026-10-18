@@ -116,6 +116,11 @@ export class AdminListComponent {
     return this.currentAdminId === admin.id;
   }
 
+  /** True while a brute-force lockout is still in force. */
+  isLocked(admin: ISuperAdmin): boolean {
+    return !!admin.locked_until && new Date(admin.locked_until).getTime() > Date.now();
+  }
+
   createAdmin(): void {
     this._router.navigate(['/platform/admins/new']);
   }
@@ -134,6 +139,25 @@ export class AdminListComponent {
         if (changed) {
           this.loadAdmins();
         }
+      });
+  }
+
+  async resetMfa(admin: ISuperAdmin): Promise<void> {
+    const result = await this._confirm.confirm(
+      'Reset two-factor authentication?',
+      `${admin.email} will be signed out and must scan a new authenticator app at their next sign-in.`,
+      'Yes, reset'
+    );
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    this.busyAdminId = admin.id;
+    this._admins.resetMfa(admin.id)
+      .pipe(finalize(() => (this.busyAdminId = null)))
+      .subscribe({
+        next: (resp) => this.afterMutation(resp),
+        error: (err) => this.reportFailure(err),
       });
   }
 

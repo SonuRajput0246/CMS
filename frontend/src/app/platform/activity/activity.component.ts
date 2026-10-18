@@ -30,6 +30,15 @@ const ACTION_OPTIONS: IActionOption[] = [
   { value: 'ACTIVATE_SUPER_ADMIN', label: 'Activated administrator', tone: 'success' },
   { value: 'DEACTIVATE_SUPER_ADMIN', label: 'Deactivated administrator', tone: 'warn' },
   { value: 'RESET_SUPER_ADMIN_PASSWORD', label: 'Reset administrator password', tone: 'amber' },
+  { value: 'RESET_SUPER_ADMIN_MFA', label: 'Reset administrator two-factor', tone: 'amber' },
+  // Security events on the operators themselves. Written by
+  // `SuperAdminAuthService`, so the trail covers sign-in and credentials, not
+  // only the tenant/operator management actions.
+  { value: 'LOGIN_SUPER_ADMIN', label: 'Signed in', tone: 'success' },
+  { value: 'LOGIN_FAILED_SUPER_ADMIN', label: 'Failed sign-in', tone: 'warn' },
+  { value: 'LOGOUT_SUPER_ADMIN', label: 'Signed out', tone: 'neutral' },
+  { value: 'CHANGE_SUPER_ADMIN_PASSWORD', label: 'Changed own password', tone: 'amber' },
+  { value: 'ENABLE_SUPER_ADMIN_MFA', label: 'Enabled two-factor', tone: 'success' },
 ];
 
 const ENTITY_OPTIONS = [

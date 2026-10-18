@@ -41,6 +41,14 @@ class BaseConfig:
     ## logged out mid-work, but short enough that a stolen token goes stale.
     SUPER_ADMIN_TOKEN_EXPIRES_MIN = int(os.getenv("SUPER_ADMIN_TOKEN_EXPIRES_MIN", 60))
 
+    ## Brute-force guard on the platform sign-in. After this many consecutive
+    ## wrong passwords the account is locked for `SUPER_ADMIN_LOCKOUT_MINUTES`;
+    ## a correct password clears the counter. The platform login is the most
+    ## valuable one on the system -- it has no tenant scope -- so it is the one
+    ## that most needs a ceiling on guesses.
+    SUPER_ADMIN_MAX_LOGIN_ATTEMPTS = int(os.getenv("SUPER_ADMIN_MAX_LOGIN_ATTEMPTS", 5))
+    SUPER_ADMIN_LOCKOUT_MINUTES = int(os.getenv("SUPER_ADMIN_LOCKOUT_MINUTES", 15))
+
     ## Bootstrap credentials for the FIRST platform admin, seeded by
     ## src/database/seeders/platform_admin_seeder.py. Overridable per
     ## environment; the defaults exist so a fresh database can be signed into

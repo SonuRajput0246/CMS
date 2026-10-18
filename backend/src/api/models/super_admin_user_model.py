@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, String
+from sqlalchemy import Boolean, DateTime, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base_model import BaseModel
@@ -21,8 +21,8 @@ class SuperAdminUser(BaseModel):
     token scope of `super_admin`; the tenant middleware rejects it and this one
     rejects tenant tokens, so the two populations cannot cross.
 
-    MFA fields are carried for parity with `User`; the login path does not yet
-    enforce them.
+    MFA is compulsory here (the login path refuses a password-only session),
+    unlike the tenant `User`, where it is opt-in.
     """
     __tablename__ = "super_admin_users"
 
@@ -37,6 +37,20 @@ class SuperAdminUser(BaseModel):
     )
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_secret: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    ## Brute-force guard on sign-in. A wrong password increments
+    ## `failed_login_attempts`; reaching `SUPER_ADMIN_MAX_LOGIN_ATTEMPTS`
+    ## stamps `locked_until` and the counter resets, so each lockout buys a
+    ## fresh window rather than counting once and staying locked. A successful
+    ## sign-in clears both. Kept on the account row because a platform admin is
+    ## a single known principal, not a stream of anonymous callers, and the
+    ## lockout must survive a process restart.
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     __table_args__ = (
         ## Platform admins are few and looked up only by email at sign-in.
