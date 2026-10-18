@@ -40,7 +40,10 @@
       <mat-icon class="account-caret">expand_more</mat-icon>
     </button>
 
-    <mat-menu #accountMenu="matMenu" xPosition="before">
+    <!-- The panel lives in the CDK overlay. MatMenu exposes its panel-class
+         input under the name `class`, not `panelClass` (its resolved inputs are
+         `class => panelClass`), so `class=` is what reaches .mat-mdc-menu-panel. -->
+    <mat-menu #accountMenu="matMenu" xPosition="before" class="platform-account-menu">
       <div class="menu-header">
         <span class="menu-avatar">{{ initials }}</span>
         <span class="menu-id">

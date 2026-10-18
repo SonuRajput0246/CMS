@@ -372,6 +372,21 @@
   }
 }
 
+// The panel lives in the CDK overlay, outside this component's view, so it is
+// reached with ::ng-deep. Material renders the panel `overflow: auto`; the
+// sign-out row sinks 1px on press (`press-sink`), and against the panel's flush
+// bottom edge that 1px of overflow made it flash a scrollbar on click. This is
+// a short, fixed account menu with nothing to scroll, so clip the overflow.
+//
+// `.mat-mdc-menu-panel` is in the selector deliberately: Material's own
+// `.mat-mdc-menu-panel { overflow: auto }` is injected *after* this component's
+// styles (it arrives when MatMenu first renders), so a bare
+// `.platform-account-menu` would tie on specificity and lose on source order.
+// Two classes outrank it outright, whatever the order.
+::ng-deep .mat-mdc-menu-panel.platform-account-menu {
+  overflow: hidden;
+}
+
 @media (max-width: 900px) {
   .brand-eyebrow {
     display: none;
