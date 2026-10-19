@@ -2,8 +2,9 @@
 
 A tenant is not usable until it has these rows. Without roles a user cannot be
 assigned one; without prefixes `DocumentSequenceService` cannot build an order
-number; without templates the OTP flows have no body; and without a first admin
-nobody can sign in to create the rest.
+number; without templates the OTP flows have no body; and without an invitation
+nobody can sign in to create the rest -- the first administrator's account is
+born when they accept it (src/api/services/tenant_invitation_service.py).
 
 This is the "copy-on-create" half of the tenancy design. It is deliberately
 separate from the demo domain data (inventory, floor plan, customers, orders)
@@ -18,10 +19,10 @@ Prerequisite, and the reason `run_base_seeders` seeds globals first: `seed_roles
 resolves permissions against the live `modules` table, which is global. With an
 empty module tree every role is created with no permissions and nothing fails.
 """
-from src.api.extensions import bcrypt
 from src.api.models.role_model import Role
-from src.api.models.user_model import User
+from src.api.models.tenant_model import Tenant
 from src.api.tenancy.context import tenant_scope
+from src.api.services.tenant_invitation_service import create_invitation
 from src.database.seeders.prefixes_seeder import seed_prefixes
 from src.database.seeders.role_seeder import seed_roles
 from src.database.seeders.super_admin_seeder import seed_super_admin
@@ -63,68 +64,85 @@ def seed_tenant_defaults(default_currency: str = "INR"):
     seed_super_admin()
 
 
-def provision_tenant(tenant_id: int, timezone_name: str | None, currency: str | None, admin: dict):
-    """Make a freshly created tenant usable: baseline defaults + its first admin.
+def provision_tenant(tenant_id: int, timezone_name: str | None, currency: str | None, admin: dict) -> dict:
+    """Make a freshly created tenant provisionable: baseline defaults + its
+    first administrator's invitation.
 
     This is what platform tenant creation calls, immediately after committing
     the `tenants` row. `tenant_id` decides every row's `tenant_id` (via the
     `tenant_scope` below), the zone decides how its dates are read, and the
     currency is copied into its settings.
 
+    `admin` is name + email ONLY -- there is no password to seed, because the
+    administrator chooses it on the accept page. What comes back is the
+    issued invitation's plain values, including the one-time raw token:
+
+        {"invitation_id", "token", "expires_at", "email"}
+
+    The caller emails the link and then forgets the token; only its SHA-256
+    hash is in the database. Returning it is the sole reason the raw token
+    exists outside the emailed URL at all.
+
     Kept here rather than in the management service for the same reason
     `bootstrap_tenant` is: a service should not have to know the copy-on-create
     definition, and that definition must not exist in two places.
 
-    Raises on any failure. The caller compensates (by archiving the tenant) --
-    see src/api/services/tenant_management_service.py.
+    Raises on any failure -- including the invitation insert. The caller
+    compensates (by archiving the tenant) -- see
+    src/api/services/tenant_management_service.py -- because a tenant whose
+    invitation could not be issued is exactly as unreachable as one with no
+    roles: nobody can sign in to it.
     """
     with tenant_scope(tenant_id, timezone_name):
         seed_tenant_baseline(currency or "INR")
-        _create_initial_admin(tenant_id, admin)
 
-
-def _create_initial_admin(tenant_id: int, admin: dict) -> None:
-    """Create the tenant's first administrator, in this tenant's scope.
-
-    The role is resolved by CODE rather than id: ids differ per tenant, and a
-    literal `1` would mean Super Admin on one deployment and Dashboard on
-    another. `seed_roles` has just run inside `provision_tenant`, so ADMIN
-    exists; if it does not, that is a seeding failure and raising here is what
-    lets `provision_tenant` roll the whole tenant back instead of leaving a
-    cafe nobody can sign into.
-
-    The password is hashed at rest and never echoed back. This account is
-    `is_email_verified=True` because it is created by the platform operator
-    from known details -- self-registration starts unverified because nobody
-    vouches for that address yet.
-    """
-    role = (
-        db_session.query(Role)
-        .filter_by(role_code="ADMIN", is_deleted=False)
-        .first()
-    )
-    if role is None:
-        raise RuntimeError(
-            "The ADMIN role was not seeded for the new tenant; cannot create "
-            "its first administrator."
+        tenant = (
+            db_session.query(Tenant)
+            .filter(Tenant.id == tenant_id, Tenant.is_deleted == False)
+            .first()
         )
+        if tenant is None:
+            ## The caller committed this row moments ago; if it is not (or is
+            ## already soft-deleted), provisioning is running against
+            ## something other than a live tenant and must not seed into it.
+            raise RuntimeError(
+                f"Tenant {tenant_id} not found (or archived) during provisioning."
+            )
 
-    hashed = bcrypt.generate_password_hash(admin["password"], 12).decode("utf-8")
-    db_session.add(User(
-        first_name=admin["first_name"],
-        last_name=admin["last_name"],
-        email=admin["email"],
-        password=hashed,
-        role_id=role.id,
-        is_email_verified=True,
-        is_active=True,
-        ## Explicit: this runs after several seeders have called
-        ## db_session.remove(), so relying on the context still being bound
-        ## would be a guess. The scope above guarantees it either way.
-        tenant_id=tenant_id,
-    ))
-    db_session.commit()
-    print(f"  Created first admin: {admin['email']} ({role.role_name})")
+        ## Roles must exist before the invitation can ever be accepted: the
+        ## accept path resolves the ADMIN role by code and refuses without it.
+        ## Checking HERE is what makes a missing role fail the whole create
+        ## (and get compensated by archiving) rather than surfacing later as
+        ## an account nobody can finish.
+        role = (
+            db_session.query(Role)
+            .filter_by(role_code="ADMIN", is_deleted=False)
+            .first()
+        )
+        if role is None:
+            raise RuntimeError(
+                "The ADMIN role was not seeded for the new tenant; cannot "
+                "issue its first administrator's invitation."
+            )
+
+        issued = create_invitation(
+            db_session,
+            tenant,
+            {
+                "first_name": admin["first_name"],
+                "last_name": admin["last_name"],
+                "email": admin["email"],
+            },
+            ## No acting user here: the platform operator's identity is
+            ## recorded by the CREATE_TENANT audit entry, and this value
+            ## belongs to whoever triggered the provisioning call.
+            invited_by=None,
+        )
+        print(
+            f"  Issued admin invitation: {issued['email']} "
+            f"(expires {issued['expires_at']})"
+        )
+        return issued
 
 
 def bootstrap_tenant(tenant):

@@ -193,6 +193,16 @@ class SuperAdminRoute:
         )
         return jsonify(result), status_code
 
+    @requires_super_admin
+    def resend_admin_invitation(self, tenant_id):
+        ## No body: the recipient's details come from the invitation already
+        ## on record (there is no admin account yet to ask), so the only
+        ## thing this call can add is the operator's decision to re-send.
+        result, status_code = self.tenant_service.resend_admin_invitation(
+            tenant_id, g.current_super_admin
+        )
+        return jsonify(result), status_code
+
     ## --------------------------------------------------------------- admins
     @requires_super_admin
     def list_admins(self):
@@ -323,6 +333,14 @@ super_admin_bp.add_url_rule(
 )
 super_admin_bp.add_url_rule(
     "/tenants/<int:tenant_id>/restore", view_func=super_admin_route.restore_tenant, methods=["POST"]
+)
+## Re-issue + re-email the first administrator's invitation. POST, because it
+## changes state (the previous link dies); it lives under its tenant like the
+## other tenant sub-rules.
+super_admin_bp.add_url_rule(
+    "/tenants/<int:tenant_id>/admin-invitation/resend",
+    view_func=super_admin_route.resend_admin_invitation,
+    methods=["POST"],
 )
 
 ## Platform operators. `admins` is read vs register by method, like `/tenants`.

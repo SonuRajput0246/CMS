@@ -52,3 +52,27 @@ export interface ISignUp {
   email?: string;
   password?: string;
 }
+
+/**
+ * What `POST /api/v1/auth/invitation/preview` tells the accepting
+ * administrator before they commit a password: who they are, which workspace
+ * this is, and whether the link still works (`pending`). Any other status
+ * turns the page into an explanation instead of a form.
+ */
+export interface IInvitationPreview {
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  first_name: string;
+  last_name: string;
+  email: string;
+  hotel_name: string;
+  hotel_slug: string;
+  expires_at: string | null;
+}
+
+/** Payload of `POST /api/v1/auth/invitation/accept` -- the token is single-use. */
+export interface IInvitationAccept {
+  token: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}

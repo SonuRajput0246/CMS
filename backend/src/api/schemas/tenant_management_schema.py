@@ -84,16 +84,18 @@ def _currency_field(required: bool):
 
 
 class CreateTenantSchema(BaseSchema):
-    """Register a hotel and its first administrator in one call.
+    """Register a hotel and its first administrator's invitation in one call.
 
     The administrator's fields are named with an `admin_` prefix rather than
     being nested, because the screen that gathers them is one form: keeping
     them flat means the payload the browser sends has no invented shape.
 
-    `admin_password` is required and only ever stored hashed. The alternative
-    -- an invite link the operator sets it through -- is not part of the
-    current product, so the platform admin hands the credentials over out of
-    band. Documented as a future refinement rather than half-built here.
+    There is deliberately NO `admin_password` field. The platform records
+    only a name and an email address; the backend issues a single-use
+    invitation (src/api/services/tenant_invitation_service.py) and the
+    administrator chooses their own password on the accept page, so no
+    credential ever exists in the create payload, the audit trail, or the
+    operator's memory.
     """
     name = fields.String(
         required=True, allow_none=False,
@@ -120,14 +122,8 @@ class CreateTenantSchema(BaseSchema):
         error_messages={"required": "Admin email is required", "null": "Admin email cannot be null",
                         "invalid": "Invalid admin email address"},
     )
-    admin_password = fields.String(
-        required=True, allow_none=False,
-        validate=validate.Length(
-            min=6, max=20,
-            error="Admin password must be between 6 and 20 characters long",
-        ),
-        error_messages={"required": "Admin password is required", "null": "Admin password cannot be null"},
-    )
+    ## No password here -- see the class docstring. The account's credential
+    ## is chosen by its owner on the invitation accept page.
 
 
 class UpdateTenantSchema(BaseSchema):

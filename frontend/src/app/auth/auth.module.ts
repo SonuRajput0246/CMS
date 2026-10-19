@@ -8,6 +8,7 @@ import { OtpVerificationComponent } from './otp-verification/otp-verification.co
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { SignUpComponent } from './sign-up/sign-up.component';
+import { AcceptInvitationComponent } from './accept-invitation/accept-invitation.component';
 import { ReactiveFormsModule } from '@angular/forms';
 
 
@@ -18,7 +19,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     OtpVerificationComponent,
     ForgotPasswordComponent,
     ResetPasswordComponent,
-    SignUpComponent
+    SignUpComponent,
+    AcceptInvitationComponent
   ],
   imports: [
     CommonModule,

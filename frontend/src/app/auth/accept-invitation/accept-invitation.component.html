@@ -1,0 +1,138 @@
+<div class="accept-invitation-page">
+
+    <div class="accept-invitation-card">
+
+        <!-- ================= Checking state ================= -->
+        <div class="checking-state" *ngIf="pageState === 'loading'">
+            <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+            <p>Checking your invitation...</p>
+        </div>
+
+        <!-- ================= Blocked: the link cannot be used ================= -->
+        <ng-container *ngIf="pageState === 'blocked'">
+            <header class="ai-header">
+                <span class="head-icon"><mat-icon>mail_lock</mat-icon></span>
+                <div class="head-text">
+                    <h3>{{ blockedTitle }}</h3>
+                    <p>{{ blockedMessage }}</p>
+                </div>
+            </header>
+
+            <div class="action-bar">
+                <div class="action-right">
+                    <button mat-flat-button type="button" class="btn-submit" routerLink="/auth/login">
+                        <span class="btn-content">
+                            <mat-icon>login</mat-icon>
+                            Go to sign in
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </ng-container>
+
+        <!-- ================= Ready: a pending invitation ================= -->
+        <ng-container *ngIf="pageState === 'ready'">
+            <header class="ai-header">
+                <span class="head-icon"><mat-icon>mark_email_read</mat-icon></span>
+                <div class="head-text">
+                    <h3>Set up your administrator account</h3>
+                    <p>You've been invited to administer <strong>{{ preview?.hotel_name }}</strong>.</p>
+                </div>
+            </header>
+
+            <form class="ai-form" [formGroup]="form" (ngSubmit)="accept()" autocomplete="off">
+
+                <div class="card-body">
+
+                    <!-- Who this account will belong to, named from the
+                         invitation rather than typed: a mismatch here would
+                         mean the wrong link, and seeing it early says so. -->
+                    <div class="security-note">
+                        <mat-icon>person</mat-icon>
+                        <span>
+                            This account will be created for
+                            <strong>{{ preview?.first_name }} {{ preview?.last_name }}</strong>
+                            ({{ preview?.email }}).
+                        </span>
+                    </div>
+
+                    <mat-form-field appearance="outline" floatLabel="always">
+                        <mat-label>Password</mat-label>
+                        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="new_password"
+                            placeholder="Choose a password" autocomplete="new-password">
+                        <mat-icon matIconPrefix class="field-icon">lock</mat-icon>
+                        <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword"
+                            aria-label="Toggle password visibility">
+                            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                        </button>
+                        <mat-hint>Between 6 and 20 characters.</mat-hint>
+                        <mat-error *ngIf="form.get('new_password')?.hasError('required')">
+                            Password is required
+                        </mat-error>
+                        <mat-error *ngIf="form.get('new_password')?.hasError('minlength')">
+                            At least 6 characters
+                        </mat-error>
+                        <mat-error *ngIf="form.get('new_password')?.hasError('maxlength')">
+                            At most 20 characters
+                        </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" floatLabel="always">
+                        <mat-label>Confirm Password</mat-label>
+                        <input matInput [type]="hideConfirm ? 'password' : 'text'" formControlName="confirmed_password"
+                            placeholder="Re-enter password" autocomplete="new-password">
+                        <mat-icon matIconPrefix class="field-icon">lock</mat-icon>
+                        <button mat-icon-button matSuffix type="button" (click)="hideConfirm = !hideConfirm"
+                            aria-label="Toggle password visibility">
+                            <mat-icon>{{ hideConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
+                        </button>
+                        <mat-error *ngIf="form.get('confirmed_password')?.hasError('required')">
+                            Confirm password is required
+                        </mat-error>
+                        <mat-error *ngIf="form.get('confirmed_password')?.hasError('passwordMismatch')">
+                            Passwords do not match
+                        </mat-error>
+                    </mat-form-field>
+
+                    <!-- Accept-time failures that leave the link usable (bad
+                         length, deactivated workspace...) stay here rather
+                         than replacing the form. -->
+                    <div class="server-error" *ngIf="acceptError">
+                        <mat-icon>error_outline</mat-icon>
+                        <span>{{ acceptError }}</span>
+                    </div>
+
+                </div>
+
+                <div class="action-bar">
+                    <div class="action-left">
+                        <mat-icon>verified_user</mat-icon>
+                        <span>You can sign in right after this</span>
+                    </div>
+
+                    <div class="action-right">
+                        <button mat-stroked-button type="button" class="btn-cancel" routerLink="/auth/login">
+                            <mat-icon>arrow_back</mat-icon>
+                            Cancel
+                        </button>
+
+                        <button mat-flat-button type="submit" class="btn-submit" [disabled]="isSubmitting">
+                            <span class="btn-content" *ngIf="!isSubmitting">
+                                <mat-icon>how_to_reg</mat-icon>
+                                Create account
+                            </span>
+                            <span class="btn-content" *ngIf="isSubmitting">
+                                Please Wait
+                                <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                                </mat-progress-spinner>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </ng-container>
+
+    </div>
+
+</div>

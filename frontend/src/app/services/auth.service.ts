@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AppConfig } from '../core/config/config';
-import { IAuthRequest } from '../models/IAuth.model';
+import { IAuthRequest, IInvitationAccept } from '../models/IAuth.model';
 import { catchError, Observable, of } from 'rxjs';
 import { IEntityResponse } from '../models/ICommon.model';
 
@@ -83,6 +83,25 @@ export class AuthService {
   disableMfa(user_id: number): Observable<IEntityResponse> {
     return this.http.get<IEntityResponse>(`${this.baseURL}/api/v1/auth/disable-mfa/${user_id}`);
   }
-  
 
+  /**
+   * Look up an invitation before showing the password form. Public: the raw
+   * token in the query string is the only credential, and no tenant slug is
+   * needed (the link already names the workspace it came from).
+   */
+  previewInvitation(token: string): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/api/v1/auth/invitation/preview`,
+      { token }
+    );
+  }
+
+  /** Set the password and activate the account in one single-use step. */
+  acceptInvitation(payload: IInvitationAccept): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/api/v1/auth/invitation/accept`,
+      payload,
+      { withCredentials: true }
+    );
+  }
 }

@@ -26,11 +26,9 @@ explicitly and compensated: if provisioning fails, the tenant is archived and
 an error is returned, so a half-created cafe is never left reachable at its
 subdomain.
 """
-import ipaddress
 import json
 import logging
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from flask import has_request_context, request
@@ -39,8 +37,10 @@ from sqlalchemy import func, or_
 from src.api.models.audit_log_model import AuditLog
 from src.api.models.tenant_model import Tenant
 from src.api.models.user_model import User
+from src.api.services.tenant_invitation_service import TenantInvitationService
 from src.api.tenancy.resolution import is_reserved_slug
 from src.api.utils.responses import service_response
+from src.api.utils.tenant_urls import tenant_domain as _tenant_domain
 from src.config import get_config
 from src.database.seeders.tenant_defaults_seeder import provision_tenant
 
@@ -73,50 +73,13 @@ def _iso(value):
     return value.isoformat() if value else None
 
 
-def _tenant_domain(public_base_url: str) -> str:
-    """The host every tenant's subdomain hangs off.
-
-    `PUBLIC_BASE_URL` names the deployment; this names the *domain beneath it*,
-    by dropping the deployment's own first label. It is the exact inverse of
-    what `resolution.py` does when it reads a `Host` header -- there, label zero
-    becomes the slug:
-
-        http://localhost:4200         -> localhost:4200
-        https://example.com           -> example.com
-        https://console.example.com   -> example.com
-
-    So the rule mirrors that resolver rather than inventing a second one:
-
-      * a host with three or more labels has the deployment's own label in
-        front, which `resolution.py` reads as the tenant slug and which is
-        therefore exactly what must be dropped here;
-      * one or two labels is the bare domain (`example.com`) or development
-        (`localhost`), where the tenant URL really is `demo.localhost:4200` or
-        `demo.example.com`, so the whole host is kept.
-
-    One variable to configure instead of two: a second one would be a second
-    chance for the console to print a host no tenant is actually served on.
-    """
-    parsed = urlsplit(public_base_url)
-    hostname = (parsed.hostname or "").lower()
-    if not hostname:
-        return ""
-
-    ## An IP literal has no labels to spare -- `5.6.7.8` minus its first label
-    ## would be `6.7.8`, a host nobody could reach.
-    try:
-        ipaddress.ip_address(hostname)
-        domain = hostname
-    except ValueError:
-        labels = hostname.split(".")
-        domain = hostname if len(labels) <= 2 else ".".join(labels[1:])
-
-    return f"{domain}:{parsed.port}" if parsed.port else domain
-
-
 class TenantManagementService:
     def __init__(self, db):
         self.db = db
+        ## Beside, not inside, this service: issuing and delivering an
+        ## invitation is its own lifecycle (issue -> email -> accept), and
+        ## create/resend are two entry points onto it.
+        self.invitation_service = TenantInvitationService(db)
 
     ## ------------------------------------------------------------------ read
 
@@ -250,8 +213,17 @@ class TenantManagementService:
             .scalar()
             or 0
         )
+        payload = self._serialize(tenant, user_count)
+        ## The first administrator's invitation rides along so the edit
+        ## screen can offer "Resend invitation" exactly when there is a live
+        ## record to resend, and stay silent when there is not. None (never
+        ## issued) rather than an error: this is a display concern, not a
+        ## precondition for reading a tenant.
+        payload["admin_invitation"] = self.invitation_service.latest_for_tenant(
+            tenant.id
+        )
         return service_response(
-            True, "Tenant fetched successfully.", self._serialize(tenant, user_count), 200
+            True, "Tenant fetched successfully.", payload, 200
         )
 
     ## ----------------------------------------------------------------- write
@@ -301,9 +273,9 @@ class TenantManagementService:
 
         ## Provisioning runs as its own committed step -- see the module
         ## docstring for why. On failure the tenant is archived so it cannot be
-        ## reached at a subdomain that has no roles, prefixes or admin.
+        ## reached at a subdomain that has no roles, prefixes or invitation.
         try:
-            provision_tenant(
+            invitation = provision_tenant(
                 tenant_id=tenant_id,
                 timezone_name=timezone_name,
                 currency=currency,
@@ -311,7 +283,6 @@ class TenantManagementService:
                     "first_name": data["admin_first_name"],
                     "last_name": data["admin_last_name"],
                     "email": data["admin_email"].strip().lower(),
-                    "password": data["admin_password"],
                 },
             )
         except Exception:
@@ -325,16 +296,62 @@ class TenantManagementService:
                 500,
             )
 
+        ## Delivery is deliberately OUTSIDE the provisioning try: the tenant
+        ## and its invitation row are committed, and a mail server refusing
+        ## a message must not archive a perfectly good cafe. Failure lands
+        ## in `email_sent` below, and the operator has Resend invitation.
+        created = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        email_sent = False
+        if invitation is not None:
+            try:
+                email_sent = self.invitation_service.send_invitation(
+                    tenant=created,
+                    invitation_id=invitation["invitation_id"],
+                    raw_token=invitation["token"],
+                )
+            except Exception:
+                logging.exception(
+                    "Tenant %s created but the admin invitation email failed", slug
+                )
+
         self._audit(
             actor,
             "CREATE_TENANT",
             "tenant",
             tenant_id,
-            {"slug": slug, "name": data["name"], "timezone": timezone_name, "currency": currency},
+            {
+                "slug": slug,
+                "name": data["name"],
+                "timezone": timezone_name,
+                "currency": currency,
+                "admin_email": invitation["email"] if invitation else None,
+                ## Part of the record: whether the admin can act on the
+                ## create RIGHT NOW depends on this flag, not on the row.
+                "invitation_email_sent": email_sent,
+            },
         )
 
-        created = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
-        return service_response(True, "Tenant created successfully.", self._serialize(created), 201)
+        payload = self._serialize(created)
+        payload["admin_invitation"] = {
+            "email": invitation["email"] if invitation else None,
+            "expires_at": _iso(invitation["expires_at"]) if invitation else None,
+            "email_sent": email_sent,
+        }
+
+        if email_sent:
+            message = (
+                f"Tenant created. The administrator invitation was emailed to "
+                f"{invitation['email']}."
+            )
+        elif invitation:
+            message = (
+                f"Tenant created, but the invitation email could not be sent "
+                f"to {invitation['email']}. Use 'Resend invitation' to try again."
+            )
+        else:  ## pragma: no cover -- invitation is None only if provisioning
+            ## returned nothing, which the try above would already have caught.
+            message = "Tenant created without an administrator invitation."
+        return service_response(True, message, payload, 201)
 
     def update_tenant(self, tenant_id: int, data: dict, actor):
         tenant = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
@@ -512,6 +529,24 @@ class TenantManagementService:
             self._serialize(tenant),
             200,
         )
+
+    def resend_admin_invitation(self, tenant_id: int, actor):
+        """Re-issue and re-email the tenant's first-administrator invitation.
+
+        Kept here as a thin door onto `TenantInvitationService.resend`: the
+        tenant-existence rules are this service's (identical to edit: find
+        the row, refuse an archived one), and everything about invitations
+        lives in the invitation service.
+        """
+        tenant = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if not tenant:
+            return service_response(False, "Tenant not found.", None, 404)
+        if tenant.is_deleted:
+            return service_response(
+                False, "Restore this tenant before resending its invitation.", None, 400
+            )
+
+        return self.invitation_service.resend(tenant, actor)
 
     ## --------------------------------------------------------------- helpers
 

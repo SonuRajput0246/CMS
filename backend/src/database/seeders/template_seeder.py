@@ -7,9 +7,12 @@ styling, so switching to this store changes nothing an end user sees. The outer
 <!DOCTYPE html>/600px-table boilerplate those files repeated is now the single
 static templates/emails/layout.html.
 
-Three codes, email channel only = three rows.
+Four codes, email channel only = four rows: the three OTP flows plus
+TENANT_ADMIN_INVITATION, which is the link a new tenant's first
+administrator clicks to set their password (issued by
+src/api/services/tenant_invitation_service.py).
 
-The three OTP flows are EMAIL-ONLY by design. An OTP is a possession factor
+The OTP flows are EMAIL-ONLY by design. An OTP is a possession factor
 delivered to an address the user already controls, so an in-app counterpart
 would only ever be reachable by someone already signed in -- who does not need
 the code in the first place.
@@ -31,6 +34,7 @@ from sqlalchemy import select
 
 from src.api.models.template_model import Template
 from src.api.utils.template_codes import (
+    INVITATION_VARIABLES,
     OTP_VARIABLES,
     TemplateCode,
     default_sort_order,
@@ -45,6 +49,18 @@ SAMPLE_CONTEXT = {
     "user_name": "John Doe",
     "otp": "123456",
     "expiry_minutes": 10,
+}
+
+## Row-specific preview values for the invitation template. It declares a
+## different variable set, so it cannot share SAMPLE_CONTEXT: the CRUD API
+## rejects a sample_context whose keys are not all declared on the row, and
+## `invite_url` must look like a real link for the preview to be useful.
+## The path matches `tenant_accept_url()` -- the link the send path emits.
+INVITATION_SAMPLE_CONTEXT = {
+    "user_name": "Jane Doe",
+    "hotel_name": "Sunrise Cafe",
+    "invite_url": "http://sunrise.localhost:4200/auth/accept-invitation?token=example-token",
+    "expiry_hours": 72,
 }
 
 ## The inline-styled OTP block, copied as-is from the original templates.
@@ -69,6 +85,30 @@ def _email_message(heading):
         "<p>Your One-Time Password (OTP) is:</p>"
         f"{EMAIL_OTP_BLOCK}"
         f"{EMAIL_BODY_TAIL}"
+    )
+
+
+## Invitation copy. The button AND a plain-text copy of the link, because a
+## mail client that strips buttons must not strand the only path to the
+## account. Uses its own variables (INVITATION_VARIABLES), not the OTP set.
+def _invitation_message():
+    return (
+        '<h2 style="color:#333;">Set up the administrator account for {{ hotel_name }}</h2>'
+        "<p>Hello {{ user_name }},</p>"
+        "<p>A workspace for <b>{{ hotel_name }}</b> has been created and you "
+        "have been invited to be its administrator. Choose your password to "
+        "activate the account:</p>"
+        '<p style="text-align: center;">'
+        '<a href="{{ invite_url }}" '
+        'style="display:inline-block; padding:12px 24px; background-color:#2c3e50; '
+        'color:#ffffff; text-decoration:none; border-radius:4px;">'
+        "Accept invitation</a></p>"
+        "<p>If the button does not work, copy this link into your browser:</p>"
+        '<p style="word-break:break-all; color:#555;">{{ invite_url }}</p>'
+        "<p>This invitation is valid for <b>{{ expiry_hours }} hours</b>.</p>"
+        "<p>If you were not expecting this email, you can safely ignore it.</p>"
+        "<br>"
+        "<p>Regards,<br><b>CMS</b></p>"
     )
 
 
@@ -114,6 +154,22 @@ templates_data = [
         "title_template": None,
         "message_template": _email_message("Reset Your Password"),
     },
+
+    ## ---------------- TENANT ADMIN INVITATION ----------------
+    {
+        "code": TemplateCode.TENANT_ADMIN_INVITATION.value,
+        "channel": "email",
+        "name": "Tenant Administrator Invitation",
+        "description": (
+            "Sent to the first administrator when the platform creates a new "
+            "tenant. Contains the single-use link that sets their password."
+        ),
+        "subject_template": "Set up your administrator account",
+        "title_template": None,
+        "message_template": _invitation_message(),
+        "variables": list(INVITATION_VARIABLES),
+        "sample_context": dict(INVITATION_SAMPLE_CONTEXT),
+    },
 ]
 
 
@@ -144,8 +200,10 @@ def seed_templates():
                 subject_template=td["subject_template"],
                 title_template=td["title_template"],
                 message_template=td["message_template"],
-                variables=list(OTP_VARIABLES),
-                sample_context=dict(SAMPLE_CONTEXT),
+                ## Per-row where the row declares its own set (the invitation
+                ## template does); the OTP rows keep the shared defaults.
+                variables=list(td.get("variables", OTP_VARIABLES)),
+                sample_context=dict(td.get("sample_context", SAMPLE_CONTEXT)),
                 is_active=True,
                 is_system=True,
                 version=1,

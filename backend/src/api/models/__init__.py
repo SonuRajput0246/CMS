@@ -46,6 +46,11 @@ list.
 ### foreign key to it and the FK needs the target in the registry.
 from .tenant_model import Tenant
 
+## Invitation of a new tenant's first administrator. Imported beside Tenant
+## because it is created in the same provisioning step (a provisioned tenant
+## with no outstanding invitation is not usable by anyone).
+from .tenant_invitation_model import TenantAdminInvitation
+
 ### Shared infrastructure: identity, access, inventory, reference data
 from .role_model import Role
 from .user_model import User

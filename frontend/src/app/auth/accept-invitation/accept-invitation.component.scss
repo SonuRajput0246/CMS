@@ -1,0 +1,435 @@
+// ============================================================
+//  ACCEPT INVITATION — styled CMS form
+//  Brand: navy #003366 / teal #16b4a4
+//  The far end of the invitation email, so it deliberately shares
+//  reset-password's shell: gradient header band, rounded card,
+//  refined outlined fields and pill action bar. Same palette
+//  block as the rest of the auth flow (self-contained colors,
+//  no shared tokens).
+// ============================================================
+
+$navy: #003366;
+$navy-light: #0a4387;
+$navy-soft: #eef3fa;
+$teal: #16b4a4;
+$teal-soft: #e2f6f3;
+$page-bg: #f2f6fc;
+$card-bg: #ffffff;
+$text: #1c2b3a;
+$text-muted: #64748b;
+$border: #e2e8f0;
+$danger: #dc2626;
+$radius-lg: 18px;
+
+// ------------------------------------------------------------
+//  Page wrapper
+// ------------------------------------------------------------
+.accept-invitation-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  background:
+    radial-gradient(1200px 400px at 85% -10%, rgba(22, 180, 164, 0.10), transparent 60%),
+    radial-gradient(900px 380px at -10% -10%, rgba(10, 67, 135, 0.08), transparent 55%),
+    $page-bg;
+}
+
+.accept-invitation-card {
+  width: 100%;
+  max-width: 520px;
+  background: $card-bg;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
+  overflow: hidden;
+}
+
+// ------------------------------------------------------------
+//  Checking state (preview in flight)
+// ------------------------------------------------------------
+.checking-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 24px;
+
+  p {
+    margin: 0;
+    font-size: 13.5px;
+    color: $text-muted;
+  }
+
+  // Retint the spinner to the brand without touching Material.
+  --mdc-circular-progress-active-indicator-color: #{$navy};
+}
+
+// ------------------------------------------------------------
+//  Header band
+// ------------------------------------------------------------
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, $navy, $navy-light);
+
+  .head-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+
+    mat-icon {
+      color: #fff;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .head-text {
+    min-width: 0;
+
+    h3 {
+      margin: 0;
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.2px;
+    }
+
+    p {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    strong {
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+}
+
+// ------------------------------------------------------------
+//  Body & security note
+// ------------------------------------------------------------
+.card-body {
+  padding: 22px 24px 4px;
+}
+
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: $navy-soft;
+  border: 1px solid #dbe4f0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: $text-muted;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    color: $navy;
+  }
+
+  strong {
+    font-weight: 600;
+    color: $navy;
+    word-break: break-all;
+  }
+}
+
+// Material leaves adjacent form fields flush against each other.
+.card-body > mat-form-field + mat-form-field {
+  margin-top: 10px;
+}
+
+// Inline accept-time error: reads as an exception, not as a field error.
+.server-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 13px;
+  margin: 4px 0 14px;
+  border-radius: 10px;
+  background: #fdecec;
+  border: 1px solid #f5c8c8;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #991b1b;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    color: $danger;
+  }
+}
+
+// ------------------------------------------------------------
+//  Material outlined field refinement
+// ------------------------------------------------------------
+::ng-deep .accept-invitation-card .mat-mdc-form-field {
+  width: 100%;
+  --mat-form-field-container-height: 48px;
+  --mat-form-field-container-vertical-padding: 12px;
+  font-size: 13px;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-text-field-wrapper {
+  background: #f8fafd;
+  border-radius: 12px !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-form-field-flex {
+  align-items: center;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+}
+::ng-deep .accept-invitation-card .mat-mdc-text-field-wrapper.mdc-text-field--invalid {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+}
+
+::ng-deep .accept-invitation-card .mdc-notched-outline__leading {
+  border-radius: 12px 0 0 12px !important;
+}
+::ng-deep .accept-invitation-card .mdc-notched-outline__trailing {
+  border-radius: 0 12px 12px 0 !important;
+}
+::ng-deep .accept-invitation-card .mdc-notched-outline__notch {
+  border-right: none !important;
+}
+
+::ng-deep .accept-invitation-card .mdc-notched-outline > * {
+  border-color: #dbe4f0 !important;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid) .mdc-notched-outline > * {
+  border-color: $navy !important;
+  border-width: 1.5px !important;
+}
+::ng-deep .accept-invitation-card .mat-mdc-text-field-wrapper.mdc-text-field--invalid .mdc-notched-outline > * {
+  border-color: $danger !important;
+}
+
+::ng-deep .accept-invitation-card .mdc-floating-label {
+  color: #7d8ea3;
+  font-size: 14px;
+}
+::ng-deep .accept-invitation-card .mdc-floating-label--float-above {
+  color: $navy !important;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+::ng-deep .accept-invitation-card .mat-mdc-text-field--invalid .mdc-floating-label--float-above {
+  color: $danger !important;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-input-element {
+  font-size: 14px !important;
+  color: $text !important;
+  font-weight: 500;
+  caret-color: $navy;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-input-element::placeholder {
+  color: #a6b4c6;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+// Password field icons
+::ng-deep .accept-invitation-card .field-icon {
+  color: $navy;
+  padding: 0 4px 0 12px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-form-field-icon-suffix .mat-mdc-icon-button {
+  color: $navy;
+
+  &:hover {
+    background: $navy-soft;
+  }
+}
+
+::ng-deep .accept-invitation-card .mdc-line-ripple::before,
+::ng-deep .accept-invitation-card .mdc-line-ripple::after {
+  display: none;
+}
+
+::ng-deep .accept-invitation-card .mat-mdc-form-field-error {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+// ------------------------------------------------------------
+//  Action bar
+// ------------------------------------------------------------
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 15px 24px;
+  background: #fbfcfe;
+  border-top: 1px solid $border;
+}
+
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: $text-muted;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: $teal;
+  }
+}
+
+.action-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.btn-cancel {
+  border-radius: 999px !important;
+  padding: 0 22px !important;
+  min-height: 42px;
+  color: $text-muted !important;
+  border-color: #d3dce8 !important;
+  background: #ffffff !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
+
+  &:hover {
+    border-color: $navy !important;
+    color: $navy !important;
+    background: $navy-soft;
+  }
+}
+
+.btn-submit {
+  border-radius: 999px !important;
+  padding: 0 26px !important;
+  min-height: 42px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, $teal, #0f9d8c) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(22, 180, 164, 0.32);
+  transition: all 0.2s ease;
+
+  .btn-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(22, 180, 164, 0.45);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+  }
+}
+
+::ng-deep .btn-submit .btn-spinner circle {
+  stroke: #ffffff;
+}
+
+::ng-deep .btn-submit .btn-spinner {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+// ------------------------------------------------------------
+//  Responsive
+// ------------------------------------------------------------
+@media (max-width: 560px) {
+  .accept-invitation-page {
+    padding: 16px 12px;
+    align-items: flex-start;
+  }
+
+  .ai-header {
+    padding: 16px;
+  }
+
+  .card-body {
+    padding: 18px 16px 4px;
+  }
+
+  .action-bar {
+    padding: 13px 16px;
+    flex-direction: column;
+    align-items: stretch;
+
+    .action-left {
+      display: none;
+    }
+
+    .action-right {
+      width: 100%;
+      margin-left: 0;
+
+      button {
+        flex: 1;
+      }
+    }
+  }
+}

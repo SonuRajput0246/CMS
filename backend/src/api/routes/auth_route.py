@@ -5,7 +5,9 @@ from flask import Blueprint, request, jsonify, make_response, current_app
 from src.api.middlewares.authorization import SELF_SERVICE, requires_module
 from src.api.schemas.auth_schema import RegisterUserSchema, VerifyEmailSchema, LoginSchema, SendOtpOnEmailSchema, \
     ActivateAccountSchema, ResetPasswordSchema
+from src.api.schemas.invitation_schema import AcceptInvitationSchema, InvitationTokenSchema
 from src.api.services.auth_service import AuthService
+from src.api.services.tenant_invitation_service import TenantInvitationService
 from src.api.utils.jwt_helper import get_user_id_from_jwt
 from src.database.session import db_session
 
@@ -13,8 +15,13 @@ auth_bp = Blueprint('auth', __name__)
 
 
 class AuthRoute:
-    def __init__(self, auth_service):
+    def __init__(self, auth_service, invitation_service):
         self.auth_service = auth_service
+        ## The invitation pair (preview/accept) hangs off the same blueprint
+        ## but a different service: it has no session to authenticate, no OTP
+        ## to verify -- its single factor is the emailed token -- so it must
+        ## not be routed through AuthService at all.
+        self.invitation_service = invitation_service
 
     def _error_response(self, result):
         payload = {k: v for k, v in result.items() if k != "code"}
@@ -65,6 +72,28 @@ class AuthRoute:
             self.auth_service.db.rollback()
             logging.error(f"Verify Email Error: {str(e)}", exc_info=True)
             return jsonify({"status": False, "message": "An internal server error occurred. Please try again later."}), 500
+
+    ## ---------------------------------------------------------- invitation
+    ## Public, like login: the caller holds the emailed token and no session
+    ## yet -- there is deliberately no `authenticate` or `requires_module`
+    ## here, because the whole point is that no account exists to auth with.
+    def preview_invitation(self):
+        ## Answers "whose invitation is this, and is it still usable?" so the
+        ## accept page can greet the administrator by name BEFORE asking them
+        ## to invent a password -- and can say "expired" instead of letting
+        ## them fill a form that would fail at the end.
+        validated_data = InvitationTokenSchema().load(request.get_json() or {})
+        result, status_code = self.invitation_service.preview(validated_data["token"])
+        return jsonify(result), status_code
+
+    def accept_invitation(self):
+        ## Verification, password and account creation happen in one call on
+        ## the service side -- this layer only shapes the payload.
+        validated_data = AcceptInvitationSchema().load(request.get_json() or {})
+        result, status_code = self.invitation_service.accept(
+            validated_data["token"], validated_data["password"]
+        )
+        return jsonify(result), status_code
 
 
     def initiate_setup_mfa(self, user_id):
@@ -221,7 +250,11 @@ class AuthRoute:
 
 ## Instantiate service & Pass instance into route class
 auth_service_instance = AuthService(db=db_session)
-auth_route = AuthRoute(auth_service=auth_service_instance)
+tenant_invitation_service = TenantInvitationService(db=db_session)
+auth_route = AuthRoute(
+    auth_service=auth_service_instance,
+    invitation_service=tenant_invitation_service,
+)
 
 ## Map multiple routes to the same instance
 auth_bp.add_url_rule('/register', view_func=auth_route.register, methods=['POST'])
@@ -232,6 +265,11 @@ auth_bp.add_url_rule('/send-otp', view_func=auth_route.send_otp_on_email, method
 auth_bp.add_url_rule('/activate-account', view_func=auth_route.activate_account, methods=['POST'])
 auth_bp.add_url_rule('/get-fresh-token', view_func=auth_route.get_fresh_tokens, methods=['POST'])
 auth_bp.add_url_rule('/reset-password', view_func=auth_route.reset_password, methods=['POST'])
+
+## Invitation accept flow for a new tenant's administrator. Both public --
+## see the marker comment above `preview_invitation`.
+auth_bp.add_url_rule('/invitation/preview', view_func=auth_route.preview_invitation, methods=['POST'])
+auth_bp.add_url_rule('/invitation/accept', view_func=auth_route.accept_invitation, methods=['POST'])
 auth_bp.add_url_rule('/logout', view_func=requires_module(SELF_SERVICE)(auth_route.logout), methods=['POST'])
 
 auth_bp.add_url_rule('/setup-mfa/<int:user_id>', view_func=requires_module(SELF_SERVICE)(auth_route.initiate_setup_mfa), methods=['GET'])

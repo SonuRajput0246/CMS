@@ -200,6 +200,84 @@
 // Per-tenant audit trail. The verb is left verbatim -- an operator reading
 // UPDATE_TENANT learns more than a softened paraphrase, and it is the exact
 // token they would search for on the Activity page this links to.
+.invitation-card {
+  margin-top: 18px;
+  padding: 20px;
+
+  @include rise-in(140ms);
+}
+
+.invitation-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.invitation-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  mat-icon {
+    margin-top: 2px;
+    color: $navy;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 15.5px;
+    font-weight: 700;
+    color: $navy;
+  }
+
+  p {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: $text-muted;
+  }
+}
+
+// A pill word, never a bare colour: the status must read the same to
+// everyone, with the tint only reinforcing it.
+.invitation-status {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: $amber-soft;
+  color: $amber;
+
+  &[data-status='expired'],
+  &[data-status='revoked'] {
+    background: $neutral-soft;
+    color: $neutral;
+  }
+}
+
+.invitation-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid $border;
+}
+
+.invitation-note {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: $text-muted;
+}
+
+.invitation-body .btn-outline {
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 14px;
+}
+
 .history-card {
   margin-top: 18px;
   padding: 20px;

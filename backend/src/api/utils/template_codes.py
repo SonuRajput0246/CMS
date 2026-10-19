@@ -23,6 +23,9 @@ class TemplateCode(str, Enum):
     EMAIL_VERIFICATION_OTP = "EMAIL_VERIFICATION_OTP"
     ACCOUNT_ACTIVATION_OTP = "ACCOUNT_ACTIVATION_OTP"
     PASSWORD_RESET_OTP = "PASSWORD_RESET_OTP"
+    ## Not an OTP: the link-based invitation that provisions a new tenant's
+    ## first administrator (see src/api/services/tenant_invitation_service.py).
+    TENANT_ADMIN_INVITATION = "TENANT_ADMIN_INVITATION"
 
 
 class TemplateVariable(str, Enum):
@@ -37,6 +40,14 @@ class TemplateVariable(str, Enum):
     OTP = "otp"
     EXPIRY_MINUTES = "expiry_minutes"
 
+    ## Invitation-only placeholders. `invite_url` is the whole point of that
+    ## email -- a template rendering without it sends a click that goes
+    ## nowhere, which is why the send path falls back to built-in copy when
+    ## this template is unusable rather than sending the rendered shell.
+    HOTEL_NAME = "hotel_name"
+    INVITE_URL = "invite_url"
+    EXPIRY_HOURS = "expiry_hours"
+
 
 ## The three OTP flows carry the same context, so every seeded template uses
 ## this exact variable set. Kept here to avoid repeating the list six times.
@@ -44,6 +55,16 @@ OTP_VARIABLES = [
     TemplateVariable.USER_NAME.value,
     TemplateVariable.OTP.value,
     TemplateVariable.EXPIRY_MINUTES.value,
+]
+
+## What the invitation template may reference. A distinct list, not a subset
+## of the OTP one: the invitation carries a URL and a hotel name, and carries
+## no OTP at all.
+INVITATION_VARIABLES = [
+    TemplateVariable.USER_NAME.value,
+    TemplateVariable.HOTEL_NAME.value,
+    TemplateVariable.INVITE_URL.value,
+    TemplateVariable.EXPIRY_HOURS.value,
 ]
 
 # ## Each code is seeded for both channels, giving 6 rows in total.

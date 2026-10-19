@@ -5,6 +5,7 @@ import { OtpVerificationComponent } from './otp-verification/otp-verification.co
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { SignUpComponent } from './sign-up/sign-up.component';
+import { AcceptInvitationComponent } from './accept-invitation/accept-invitation.component';
 
 const routes: Routes = [
   {
@@ -31,6 +32,14 @@ const routes: Routes = [
   {
     path: 'sign-up',
     component: SignUpComponent
+  },
+  /* Reached only by clicking the emailed link -- no auth guard, by design:
+   * the single-use token in the query string IS the credential, and this
+   * page is what turns it into an account. Path must match
+   * `tenant_urls.tenant_accept_url()` on the server. */
+  {
+    path: 'accept-invitation',
+    component: AcceptInvitationComponent
   }
 ];
 

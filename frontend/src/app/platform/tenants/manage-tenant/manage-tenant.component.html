@@ -108,7 +108,7 @@
           <span class="step">02</span>
           <div>
             <h2>First administrator</h2>
-            <p class="section-hint">These credentials are handed to the workspace owner out of band.</p>
+            <p class="section-hint">An invitation link is emailed here -- they choose their own password by accepting it.</p>
           </div>
         </div>
 
@@ -134,21 +134,7 @@
             <input matInput type="email" formControlName="admin_email">
             <mat-error *ngIf="form.get('admin_email')?.hasError('required')">Email is required</mat-error>
             <mat-error *ngIf="form.get('admin_email')?.hasError('email')">Enter a valid email</mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Password</mat-label>
-            <input matInput type="password" formControlName="admin_password">
-            <mat-hint>Between 6 and 20 characters.</mat-hint>
-            <mat-error *ngIf="form.get('admin_password')?.hasError('required')">
-              Password is required
-            </mat-error>
-            <mat-error *ngIf="form.get('admin_password')?.hasError('minlength')">
-              At least 6 characters
-            </mat-error>
-            <mat-error *ngIf="form.get('admin_password')?.hasError('maxlength')">
-              At most 20 characters
-            </mat-error>
+            <mat-hint>The single-use invitation link arrives here.</mat-hint>
           </mat-form-field>
         </div>
       </ng-container>
@@ -163,6 +149,53 @@
         </button>
       </div>
     </form>
+  </mat-card>
+
+  <!-- First administrator's invitation: shown only while it is still
+       unaccepted, because that is exactly when a resend is possible. An
+       accepted (or never-issued) invitation renders nothing -- offering the
+       button there would only earn a 400 from the server. -->
+  <mat-card class="invitation-card" *ngIf="isEdit && !isLoading && hasLiveInvitation">
+    <div class="invitation-head">
+      <div class="invitation-title">
+        <mat-icon>mail_outline</mat-icon>
+        <div>
+          <h2>Administrator invitation</h2>
+          <p>
+            Sent to <strong>{{ invitation?.email }}</strong>
+            <ng-container *ngIf="invitation?.created_at"> · {{ invitation?.created_at | date: 'mediumDate' }}</ng-container>
+          </p>
+        </div>
+      </div>
+
+      <span class="invitation-status" [attr.data-status]="invitation?.status">
+        {{ invitationStatusLabel }}
+      </span>
+    </div>
+
+    <div class="invitation-body">
+      <p class="invitation-note">
+        <ng-container [ngSwitch]="invitation?.status">
+          <span *ngSwitchCase="'pending'">
+            The link expires {{ invitation?.expires_at ? (invitation?.expires_at | date: 'medium') : 'after 72 hours' }}.
+            Resending invalidates the old link and issues a fresh one.
+          </span>
+          <span *ngSwitchCase="'expired'">
+            The link expired {{ invitation?.expires_at ? (invitation?.expires_at | date: 'medium') : '' }}.
+            Resend to issue a fresh one.
+          </span>
+          <span *ngSwitchDefault>
+            This link was superseded by a later invitation. Resend to issue a fresh one.
+          </span>
+        </ng-container>
+      </p>
+
+      <button mat-stroked-button class="btn-outline" type="button"
+              [disabled]="isResending" (click)="resendInvitation()">
+        <mat-icon>send</mat-icon>
+        {{ isResending ? 'Sending...' : 'Resend invitation' }}
+      </button>
+    </div>
   </mat-card>
 
   <!-- Per-tenant history: the trail this workspace has already written. Only an

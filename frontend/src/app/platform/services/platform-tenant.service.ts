@@ -76,4 +76,19 @@ export class PlatformTenantService {
   restore(id: number): Observable<IEntityResponse> {
     return this.http.post<IEntityResponse>(`${this.baseURL}/tenants/${id}/restore`, {});
   }
+
+  /**
+   * Re-issue and re-send the first administrator's invitation link.
+   *
+   * The backend decides whether that is possible: it supersedes any older
+   * unaccepted link, refuses (400) when there is no record or the account is
+   * already accepted, and answers `email_sent: false` in `data` when SMTP
+   * failed -- the message text says so either way.
+   */
+  resendInvitation(id: number): Observable<IEntityResponse> {
+    return this.http.post<IEntityResponse>(
+      `${this.baseURL}/tenants/${id}/admin-invitation/resend`,
+      {}
+    );
+  }
 }
