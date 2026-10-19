@@ -472,6 +472,45 @@ div.swal2-container.swal-container-css {
   }
 }
 
+//---------- Console dialog (Material MatDialog) ----------//
+//  The same card treatment as the SweetAlert2 confirmation above -- white
+//  surface, hairline border, 14px radius, navy-tinted shadow, dimmed and
+//  softly blurred backdrop -- so the console's two overlays read as one family.
+//
+//  The dialog frame is built by the CDK overlay, outside every component's
+//  view, so it cannot be reached from the dialog component's stylesheet. The
+//  caller tags it instead (`panelClass` / `backdropClass` in platform/admins/
+//  list) and the rules live here. `panelClass` lands on the overlay *pane*, not
+//  on the Material container, which is why the selector starts at the pane.
+//
+//  SELECTIVITY. Material ships the surface rules as
+//  `.mat-mdc-dialog-container .mdc-dialog__surface` (0,2,0), injected at
+//  runtime after this stylesheet, so the pane + container pair is repeated in
+//  the selector (0,3,0 for the tokens, 0,4,0 for the surface) and the border
+//  and shadow win on specificity rather than on source order.
+//
+//  The dialog's contents are styled by reset-password-dialog.component.scss.
+
+$console-dialog-border: #e2e8f0;
+
+.cdk-overlay-pane.console-dialog .mat-mdc-dialog-container {
+  // Stock is a white surface too, but with a 4px radius and a three-layer
+  // black elevation shadow rather than the console's navy one.
+  --mdc-dialog-container-color: #ffffff;
+  --mdc-dialog-container-shape: 14px;
+
+  .mat-mdc-dialog-surface {
+    border: 1px solid $console-dialog-border;
+    box-shadow: 0 14px 40px rgba(0, 51, 102, 0.22);
+  }
+}
+
+.cdk-overlay-backdrop.console-dialog-backdrop {
+  background: rgba(3, 20, 44, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
 
 
 

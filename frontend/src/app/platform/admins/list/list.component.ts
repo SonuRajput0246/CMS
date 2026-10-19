@@ -133,6 +133,10 @@ export class AdminListComponent {
     this._dialog.open(ResetPasswordDialogComponent, {
       data: admin,
       autoFocus: 'first-tabbable',
+      // Both classes are styled in src/styles.scss: the dialog frame is
+      // created by the CDK overlay, outside every component's view.
+      panelClass: 'console-dialog',
+      backdropClass: 'console-dialog-backdrop',
     })
       .afterClosed()
       .subscribe((changed: boolean) => {
