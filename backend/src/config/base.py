@@ -58,6 +58,20 @@ class BaseConfig:
     PLATFORM_ADMIN_FIRST_NAME = os.getenv("PLATFORM_ADMIN_FIRST_NAME", "Platform")
     PLATFORM_ADMIN_LAST_NAME = os.getenv("PLATFORM_ADMIN_LAST_NAME", "Admin")
 
+    ## Bootstrap credentials for the OWNER account seeded into every DEMO
+    ## tenant by src/database/seeders/demo_tenant_owner_seeder.py. Same rules
+    ## as the platform admin above: overridable per environment, the defaults
+    ## exist so a fresh database can be signed into at all, and MUST be
+    ## changed before anything is exposed.
+    ##
+    ## Demo tenants only. A tenant created from the platform console gets its
+    ## administrator from the invitation flow, which sets the password on the
+    ## accept page -- no seeder writes a user account into it.
+    DEMO_TENANT_OWNER_EMAIL = os.getenv("DEMO_TENANT_OWNER_EMAIL", "owner@demo.local")
+    DEMO_TENANT_OWNER_PASSWORD = os.getenv("DEMO_TENANT_OWNER_PASSWORD", "Owner@123")
+    DEMO_TENANT_OWNER_FIRST_NAME = os.getenv("DEMO_TENANT_OWNER_FIRST_NAME", "Demo")
+    DEMO_TENANT_OWNER_LAST_NAME = os.getenv("DEMO_TENANT_OWNER_LAST_NAME", "Owner")
+
     ## The public origin this deployment is reached at, and the single value
     ## the platform console derives every tenant link from.
     ##

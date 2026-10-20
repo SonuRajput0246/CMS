@@ -1,9 +1,9 @@
 """Remove duplicate seeded-owner rows left behind by the seeding bug.
 
-The bug: the owner seeder (now src/database/seeders/tenant_owner_seeder.py,
-then super_admin_seeder) filtered on the literal string "ADMIN_EMAIL"
-instead of the ADMIN_EMAIL variable, so its existence check never matched and
-it inserted one duplicate owner user per run.
+The bug: the demo-owner seeder of the day (super_admin_seeder, briefly
+tenant_owner_seeder, now demo_tenant_owner_seeder) filtered on the literal
+string "ADMIN_EMAIL" instead of the ADMIN_EMAIL variable, so its existence
+check never matched and it inserted one duplicate owner user per run.
 
 Safe by construction -- it only ever deletes rows that are exact duplicates of
 a row it is keeping, and it refuses to run unless the email matches what the
@@ -19,7 +19,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Must match src/database/seeders/tenant_owner_seeder.py
+# The email the old demo-owner seeder hardcoded; this script exists to clean
+# up after it and targets that address, not the configured DEMO_TENANT_OWNER_EMAIL.
 OWNER_EMAIL = "sonurajput8454@gmail.com"
 
 APPLY = "--apply" in sys.argv

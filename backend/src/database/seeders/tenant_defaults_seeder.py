@@ -25,7 +25,7 @@ from src.api.tenancy.context import tenant_scope
 from src.api.services.tenant_invitation_service import create_invitation
 from src.database.seeders.prefixes_seeder import seed_prefixes
 from src.database.seeders.role_seeder import seed_roles
-from src.database.seeders.tenant_owner_seeder import seed_tenant_owner
+from src.database.seeders.demo_tenant_owner_seeder import seed_demo_tenant_owner
 from src.database.seeders.system_setting_seeder import seed_system_settings
 from src.database.seeders.template_seeder import seed_templates
 from src.database.session import db_session
@@ -37,7 +37,7 @@ def seed_tenant_baseline(default_currency: str = "INR"):
     Split out from `seed_tenant_defaults` because the two callers need the
     first half and disagree about the admin:
 
-      * the demo seeders still want the hardcoded `seed_tenant_owner`, so
+      * the demo seed path wants the configured `seed_demo_tenant_owner`, so
         `seed_tenant_defaults` adds it and behaves exactly as before;
       * a tenant created from the platform console supplies its own
         administrator (`provision_tenant` below), and must NOT get the seeder's
@@ -61,7 +61,7 @@ def seed_tenant_defaults(default_currency: str = "INR"):
     the two do not disagree.
     """
     seed_tenant_baseline(default_currency)
-    seed_tenant_owner()
+    seed_demo_tenant_owner()
 
 
 def provision_tenant(tenant_id: int, timezone_name: str | None, currency: str | None, admin: dict) -> dict:
@@ -148,10 +148,17 @@ def provision_tenant(tenant_id: int, timezone_name: str | None, currency: str | 
 def bootstrap_tenant(tenant):
     """Provision a freshly created tenant: enter its scope, then seed defaults.
 
-    This is what tenant creation should call. `tenant` is an ORM `Tenant` (or
-    anything with `id`, `timezone` and `currency`); the id decides the rows'
-    `tenant_id`, the zone decides how the tenant's dates are interpreted, and
-    the currency is copied into its settings.
+    DEMO PATH ONLY, and nothing currently calls it. Platform tenant creation
+    uses `provision_tenant` above, which seeds the same baseline WITHOUT a
+    user account: a real tenant's first administrator comes from the
+    invitation, and a seeded owner with known credentials is exactly what
+    that design exists to prevent. Calling this on a real tenant would give
+    it one.
+
+    `tenant` is an ORM `Tenant` (or anything with `id`, `timezone` and
+    `currency`); the id decides the rows' `tenant_id`, the zone decides how
+    the tenant's dates are interpreted, and the currency is copied into its
+    settings.
 
     Kept here, beside the seeders that define the template, rather than in a
     service: a service should not have to import a seeder module to provision a

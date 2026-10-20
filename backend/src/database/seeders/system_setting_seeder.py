@@ -31,7 +31,7 @@ def seed_system_settings(default_currency: str = "INR"):
         print("!!! Error seeding system settings:", str(e))
         ## Re-raise: this runs during tenant provisioning now, and a swallowed
         ## error leaves the tenant without its settings while the run reports
-        ## success. Consistent with role_seeder and tenant_owner_seeder.
+        ## success. Consistent with role_seeder and demo_tenant_owner_seeder.
         raise
 
     finally:
