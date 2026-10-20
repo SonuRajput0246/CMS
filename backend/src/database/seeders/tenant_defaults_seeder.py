@@ -25,7 +25,7 @@ from src.api.tenancy.context import tenant_scope
 from src.api.services.tenant_invitation_service import create_invitation
 from src.database.seeders.prefixes_seeder import seed_prefixes
 from src.database.seeders.role_seeder import seed_roles
-from src.database.seeders.super_admin_seeder import seed_super_admin
+from src.database.seeders.tenant_owner_seeder import seed_tenant_owner
 from src.database.seeders.system_setting_seeder import seed_system_settings
 from src.database.seeders.template_seeder import seed_templates
 from src.database.session import db_session
@@ -37,7 +37,7 @@ def seed_tenant_baseline(default_currency: str = "INR"):
     Split out from `seed_tenant_defaults` because the two callers need the
     first half and disagree about the admin:
 
-      * the demo seeders still want the hardcoded `seed_super_admin`, so
+      * the demo seeders still want the hardcoded `seed_tenant_owner`, so
         `seed_tenant_defaults` adds it and behaves exactly as before;
       * a tenant created from the platform console supplies its own
         administrator (`provision_tenant` below), and must NOT get the seeder's
@@ -61,7 +61,7 @@ def seed_tenant_defaults(default_currency: str = "INR"):
     the two do not disagree.
     """
     seed_tenant_baseline(default_currency)
-    seed_super_admin()
+    seed_tenant_owner()
 
 
 def provision_tenant(tenant_id: int, timezone_name: str | None, currency: str | None, admin: dict) -> dict:

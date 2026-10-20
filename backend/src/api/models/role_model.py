@@ -35,7 +35,7 @@ class Role(BaseTenantModel):
           ## hold two tenants both having an "ADMIN". Scoping the constraint to
           ## the tenant is what lets each cafe define its own roles while
           ## role_code stays a stable key for the seeders and for the
-          ## SUPER_ADMIN lookups in the service layer.
+          ## OWNER lookups in the service layer.
           UniqueConstraint("tenant_id", "role_code", name="uq_role_tenant_code"),
 
           ## The read path for almost everything: this tenant's live rows.

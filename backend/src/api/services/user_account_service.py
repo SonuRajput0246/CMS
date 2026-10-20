@@ -78,15 +78,19 @@ class UserAccountService:
         if not bcrypt.check_password_hash(user.password.encode('utf-8'), data['password'].encode('utf-8')):
             return {"error": "Provided password is incorrect", "code": 403}
 
-        ## Only a super admin deletes immediately. Everyone else gets a pending
-        ## request an admin reviews, which is also the path to take for a user
-        ## with live orders.
+        ## Only the tenant's Owner deletes immediately. Everyone else gets a
+        ## pending request an admin reviews, which is also the path to take
+        ## for a user with live orders.
         ##
         ## Matched on role_code, not role_id: role ids are per tenant now, so
         ## `role_id == 1` identified nothing in particular. It only "worked"
-        ## before because the single-tenant schema happened to make the super
-        ## admin id 1.
-        isImmediateDeletion = user.role is not None and user.role.role_code == "SUPER_ADMIN"
+        ## before because the single-tenant schema happened to make the owner
+        ## role id 1.
+        ##
+        ## OWNER was SUPER_ADMIN until the platform's operators (who do live
+        ## in `super_admin_users`) made the old name a collision. The row is
+        ## the same one; see the migration that renamed it.
+        isImmediateDeletion = user.role is not None and user.role.role_code == "OWNER"
         ### Add this check in deactivate use also
 
         ## Validate the enum-backed columns before writing. Keys must match

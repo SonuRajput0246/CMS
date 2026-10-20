@@ -15,9 +15,10 @@ Design notes worth keeping:
   module seeder, but keying enforcement on a name keeps the decision readable
   and survives a database whose module tree was seeded by an older build.
 
-* **There is no wildcard.** ROLE_PERMISSIONS gives SUPER_ADMIN a "*", but
+* **There is no wildcard.** ROLE_PERMISSIONS gives the tenant's OWNER role a
+ * "*", but
   role_seeder expands it into concrete role_module_access rows at seed time. So
-  a super admin is simply a role holding every module, and needs no special
+  a tenant owner is simply a role holding every module, and needs no special
   case here.
 
 * **Deny by default.** Every authenticated route must say what it needs.

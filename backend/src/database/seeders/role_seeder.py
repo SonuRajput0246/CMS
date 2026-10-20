@@ -9,10 +9,14 @@ from datetime import datetime, timezone
 # ROLE DEFINITIONS (Shared across instances)
 # ============================================
 ROLE_DEFINITIONS = [
+    ## Renamed from Super Admin / SUPER_ADMIN. The word "super" belonged to
+    ## the platform operators in `super_admin_users`, who manage tenants
+    ## themselves; this role sees exactly one tenant and nothing else, so it
+    ## oversold. "Owner" is what it always was in practice.
     {
-        "role_name": "Super Admin",
-        "role_code": "SUPER_ADMIN",
-        "description": "Full system access",
+        "role_name": "Owner",
+        "role_code": "OWNER",
+        "description": "Full access within this tenant",
         "is_system": True,
         # Gets ALL modules automatically
     },
@@ -21,7 +25,7 @@ ROLE_DEFINITIONS = [
         "role_code": "ADMIN",
         "description": "Administrative access",
         "is_system": True,
-        # Gets most modules except super-admin only
+        # Every module; Export comes from its own REPORTS entry, not here
     },
     {
         "role_name": "Manager",
@@ -65,9 +69,9 @@ ROLE_DEFINITIONS = [
 # ============================================
 # Maps role_code -> list of module_name patterns + operations
 ROLE_PERMISSIONS = {
-    "SUPER_ADMIN": {
+    "OWNER": {
         # Export included: it is the operation that pulls bulk business data
-        # out, and a super admin with no way to export is a support ticket.
+        # out, and an owner with no way to export is a support ticket.
         "*": ["Create", "Edit", "Delete", "View", "Export"]  # All modules, all ops
     },
     "ADMIN": {
@@ -123,7 +127,7 @@ ROLE_PERMISSIONS = {
 ## role should reach. Listing it here makes the grant auditable in one place.
 ##
 ## MANAGER already gets it from its explicit entry; ADMIN from its wildcard.
-## SUPER_ADMIN from its wildcard. No staff role is listed, which is the point.
+## OWNER from its wildcard. No staff role is listed, which is the point.
 REPORTS_ROLES = ("MANAGER",)
 
 
@@ -196,7 +200,7 @@ def _assign_role_permissions(role: Role, module_map: dict):
 
     for module_pattern, operations in perm_config.items():
         if module_pattern == "*":
-            # Super Admin / Admin: all modules
+            # Owner / Admin: all modules
             target_modules = module_map.items()
         else:
             # Specific module - skip if it does not exist

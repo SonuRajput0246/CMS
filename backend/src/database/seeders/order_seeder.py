@@ -169,7 +169,7 @@ def _load_user() -> User:
     ).scalars().first()
     if user is None:
         raise LookupError(
-            "order_seeder: no active user. Run super_admin_seeder first -- "
+            "order_seeder: no active user. Run tenant_owner_seeder first -- "
             "cms_orders.created_by is NOT NULL."
         )
     return user

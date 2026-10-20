@@ -423,7 +423,7 @@ class TenantInvitationService:
                     )
 
                 ## Resolved by CODE, not id -- ids differ per tenant, and a
-                ## literal `1` would mean Super Admin on one deployment and
+                ## literal `1` would mean Owner on one deployment and
                 ## Dashboard on another. seed_roles ran during provisioning;
                 ## its absence is a seeding failure, not a user error.
                 role = (
