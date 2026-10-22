@@ -76,7 +76,7 @@ export class PlatformActivityComponent {
 
   logs: IAuditLog[] = [];
   totalRecords = 0;
-  pageSize = 15;
+  pageSize = 10;
   pageIndex = 0;
 
   actionFilter = '';
