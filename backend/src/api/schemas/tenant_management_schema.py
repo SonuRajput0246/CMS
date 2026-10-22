@@ -1,6 +1,7 @@
-from marshmallow import fields, validate
+from marshmallow import ValidationError, fields, validate, validates_schema
 
 from src.api.schemas.base import BaseSchema
+from src.api.schemas.fields.password import update_password_field
 from src.api.schemas.pagination_schema import PaginationSchema
 
 
@@ -84,18 +85,25 @@ def _currency_field(required: bool):
 
 
 class CreateTenantSchema(BaseSchema):
-    """Register a hotel and its first administrator's invitation in one call.
+    """Register a hotel and its first administrator in one call.
 
     The administrator's fields are named with an `admin_` prefix rather than
     being nested, because the screen that gathers them is one form: keeping
     them flat means the payload the browser sends has no invented shape.
 
-    There is deliberately NO `admin_password` field. The platform records
-    only a name and an email address; the backend issues a single-use
-    invitation (src/api/services/tenant_invitation_service.py) and the
-    administrator chooses their own password on the accept page, so no
-    credential ever exists in the create payload, the audit trail, or the
-    operator's memory.
+    `admin_mode` chooses how that first account comes to exist:
+
+      * `owner` (direct) -- `admin_password` is required, and the backend
+        creates the account immediately as the tenant's OWNER. Nothing is
+        emailed, so the operator hands the credential over themselves.
+      * `invitation` (the default) -- no password. The backend issues a
+        single-use invitation (src/api/services/tenant_invitation_service.py)
+        and the administrator chooses their own password on the accept page.
+
+    The default keeps every older client working: a payload with no
+    `admin_mode` still gets the invitation. The password is rejected when it
+    is not meaningful, rather than silently ignored, so an operator is never
+    left believing they set a credential that was never stored.
     """
     name = fields.String(
         required=True, allow_none=False,
@@ -122,8 +130,36 @@ class CreateTenantSchema(BaseSchema):
         error_messages={"required": "Admin email is required", "null": "Admin email cannot be null",
                         "invalid": "Invalid admin email address"},
     )
-    ## No password here -- see the class docstring. The account's credential
-    ## is chosen by its owner on the invitation accept page.
+    admin_mode = fields.String(
+        required=False, allow_none=False,
+        load_default="invitation",
+        validate=validate.OneOf(
+            ["owner", "invitation"],
+            error="Admin mode must be 'owner' or 'invitation'",
+        ),
+        error_messages={"null": "Admin mode cannot be null"},
+    )
+    ## Only meaningful in `owner` mode -- enforced below rather than by
+    ## `required=True`, which would break the invite path and every older
+    ## client that sends no mode at all.
+    admin_password = update_password_field("Admin password", required=False)
+
+    @validates_schema
+    def validate_admin_credentials(self, data, **kwargs):
+        mode = data.get("admin_mode", "invitation")
+        password = data.get("admin_password")
+
+        if mode == "owner" and not password:
+            raise ValidationError(
+                "A password is required when the owner is created directly.",
+                field_name="admin_password",
+            )
+        if mode != "owner" and password:
+            raise ValidationError(
+                "A password can only be sent when the owner is created "
+                "directly; an invitation lets them choose their own.",
+                field_name="admin_password",
+            )
 
 
 class UpdateTenantSchema(BaseSchema):

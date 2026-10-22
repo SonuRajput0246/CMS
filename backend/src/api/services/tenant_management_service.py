@@ -273,9 +273,13 @@ class TenantManagementService:
 
         ## Provisioning runs as its own committed step -- see the module
         ## docstring for why. On failure the tenant is archived so it cannot be
-        ## reached at a subdomain that has no roles, prefixes or invitation.
+        ## reached at a subdomain that has no roles, prefixes or admin.
+        ##
+        ## The password is present only when the operator chose to create the
+        ## owner directly; `provision_tenant` branches on that and never sees
+        ## a credential it should not use.
         try:
-            invitation = provision_tenant(
+            provisioned = provision_tenant(
                 tenant_id=tenant_id,
                 timezone_name=timezone_name,
                 currency=currency,
@@ -283,6 +287,7 @@ class TenantManagementService:
                     "first_name": data["admin_first_name"],
                     "last_name": data["admin_last_name"],
                     "email": data["admin_email"].strip().lower(),
+                    "password": data.get("admin_password"),
                 },
             )
         except Exception:
@@ -296,61 +301,73 @@ class TenantManagementService:
                 500,
             )
 
+        mode = provisioned.get("mode", "invitation")
+
         ## Delivery is deliberately OUTSIDE the provisioning try: the tenant
-        ## and its invitation row are committed, and a mail server refusing
-        ## a message must not archive a perfectly good cafe. Failure lands
-        ## in `email_sent` below, and the operator has Resend invitation.
+        ## and its admin record are committed, and a mail server refusing a
+        ## message must not archive a perfectly good cafe. Failure lands in
+        ## `email_sent` below, and the operator has Resend invitation. The
+        ## direct-owner path has nothing to deliver at all.
         created = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
         email_sent = False
-        if invitation is not None:
+        if mode == "invitation":
             try:
                 email_sent = self.invitation_service.send_invitation(
                     tenant=created,
-                    invitation_id=invitation["invitation_id"],
-                    raw_token=invitation["token"],
+                    invitation_id=provisioned["invitation_id"],
+                    raw_token=provisioned["token"],
                 )
             except Exception:
                 logging.exception(
                     "Tenant %s created but the admin invitation email failed", slug
                 )
 
-        self._audit(
-            actor,
-            "CREATE_TENANT",
-            "tenant",
-            tenant_id,
-            {
-                "slug": slug,
-                "name": data["name"],
-                "timezone": timezone_name,
-                "currency": currency,
-                "admin_email": invitation["email"] if invitation else None,
-                ## Part of the record: whether the admin can act on the
-                ## create RIGHT NOW depends on this flag, not on the row.
-                "invitation_email_sent": email_sent,
-            },
-        )
+        details = {
+            "slug": slug,
+            "name": data["name"],
+            "timezone": timezone_name,
+            "currency": currency,
+            "admin_email": provisioned["email"],
+            "admin_mode": mode,
+        }
+        if mode == "invitation":
+            ## Part of the record: whether the admin can act on the create
+            ## RIGHT NOW depends on this flag, not on the row.
+            details["invitation_email_sent"] = email_sent
+        self._audit(actor, "CREATE_TENANT", "tenant", tenant_id, details)
 
         payload = self._serialize(created)
-        payload["admin_invitation"] = {
-            "email": invitation["email"] if invitation else None,
-            "expires_at": _iso(invitation["expires_at"]) if invitation else None,
-            "email_sent": email_sent,
-        }
+        payload["admin_mode"] = mode
+        ## None in owner mode: there is no invitation to resend, and the edit
+        ## screen keys the resend card off exactly this value.
+        payload["admin_invitation"] = (
+            {
+                "email": provisioned["email"],
+                "expires_at": _iso(provisioned["expires_at"]),
+                "email_sent": email_sent,
+            }
+            if mode == "invitation"
+            else None
+        )
 
-        if email_sent:
+        if mode == "owner":
+            message = (
+                f"Tenant created. The owner account for {provisioned['email']} "
+                "was created with the password you set."
+            )
+        elif email_sent:
             message = (
                 f"Tenant created. The administrator invitation was emailed to "
-                f"{invitation['email']}."
+                f"{provisioned['email']}."
             )
-        elif invitation:
+        elif mode == "invitation":  ## issued, but SMTP refused
             message = (
                 f"Tenant created, but the invitation email could not be sent "
-                f"to {invitation['email']}. Use 'Resend invitation' to try again."
+                f"to {provisioned['email']}. Use 'Resend invitation' to try again."
             )
-        else:  ## pragma: no cover -- invitation is None only if provisioning
-            ## returned nothing, which the try above would already have caught.
-            message = "Tenant created without an administrator invitation."
+        else:  ## pragma: no cover -- provisioning only returns the two modes
+            ## above; reaching this would mean the seeder invented a third one.
+            message = "Tenant created without an administrator."
         return service_response(True, message, payload, 201)
 
     def update_tenant(self, tenant_id: int, data: dict, actor):

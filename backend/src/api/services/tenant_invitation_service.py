@@ -16,13 +16,18 @@ stages share a secret (the raw token) and a rule (single-use):
 
 WHY THE USER DOES NOT EXIST UNTIL ACCEPTANCE
 --------------------------------------------
-`provision_tenant` used to create the admin inline with an operator-chosen
-password. The new flow has no password to store at issue time, and a
-pre-created, not-yet-claimed account would sit in the tenant's user list
-with a placeholder credential nobody should ever be able to sign in with.
-So the row in `users` is born here, at acceptance, `is_email_verified=True`
--- the click through an emailed link IS the verification of the address --
-with the password the administrator just chose.
+On the invitation path (the default) nobody has a password to store at issue
+time, and a pre-created, not-yet-claimed account would sit in the tenant's
+user list with a placeholder credential nobody should ever be able to sign
+in with. So the row in `users` is born here, at acceptance,
+`is_email_verified=True` -- the click through an emailed link IS the
+verification of the address -- with the password the administrator just
+chose.
+
+The platform operator can opt out of that flow (`admin_mode='owner'`): they
+set the password themselves and `provision_tenant` creates the OWNER account
+immediately. Both paths are deliberate; neither leaves a half-created
+account behind.
 
 FAILURE POLICY
 --------------
@@ -394,6 +399,35 @@ class TenantInvitationService:
                 None,
                 403,
             )
+
+        ## Direct-owner tenants have no invitation to accept (the account was
+        ## created by the platform operator). Accepting their link is meaningless
+        ## and would also race a pre-existing user; the message points them to
+        ## sign in instead of inventing an error.
+        try:
+            with tenant_scope(tenant.id, tenant.timezone):
+                existing = (
+                    self.db.query(User)
+                    .filter(
+                        User.tenant_id == tenant.id,
+                        User.email == invitation.email,
+                        User.is_deleted == False,
+                    )
+                    .first()
+                )
+                if existing is not None:
+                    return service_response(
+                        False,
+                        "An account with this email already exists for this "
+                        "hotel. Sign in instead.",
+                        None,
+                        409,
+                    )
+        except Exception:
+            ## If the scope read fails for any reason, fall through to the
+            ## existing creation path below -- the unique constraint will
+            ## catch a real race and the normal errors still apply.
+            pass
 
         hashed = bcrypt.generate_password_hash(password, 12).decode("utf-8")
 

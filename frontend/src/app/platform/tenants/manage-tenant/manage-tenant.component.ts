@@ -55,6 +55,9 @@ export class ManageTenantComponent implements OnDestroy {
   isSaving = false;
   isLookupsLoading = false;
 
+  /** Choose how the first owner is created on a new tenant. */
+  adminMode: 'owner' | 'invitation' = 'invitation';
+
   /** This tenant's own audit trail, newest first. Populated only when editing,
    * since a brand-new tenant has no history to show. */
   tenantHistory: IAuditLog[] = [];
@@ -158,14 +161,44 @@ export class ManageTenantComponent implements OnDestroy {
         '',
         [Validators.required, Validators.email, Validators.maxLength(255)],
       ];
-      /* No password control: the administrator sets theirs by accepting the
-       * emailed invitation, so there is no credential for this form to hold. */
+      controls['admin_password'] = ['', [Validators.minLength(6), Validators.maxLength(20)]];
     }
 
     this.form = this.fb.group(controls);
+    if (!this.isEdit) {
+      this.updateAdminMode(this.adminMode);
+    }
   }
 
-  /** Re-filter a picker whenever its search box changes. */
+  /** Switch between sending an invitation or creating the owner directly. */
+  setAdminMode(mode: 'owner' | 'invitation'): void {
+    if (this.isEdit || this.isSaving) {
+      return;
+    }
+    this.updateAdminMode(mode);
+  }
+
+  private updateAdminMode(mode: 'owner' | 'invitation'): void {
+    this.adminMode = mode;
+    const password = this.form?.get('admin_password');
+    if (!password) {
+      return;
+    }
+
+    if (mode === 'owner') {
+      password.setValidators([Validators.required, Validators.minLength(6), Validators.maxLength(20)]);
+    } else {
+      password.clearValidators();
+      password.setValue('');
+    }
+    password.updateValueAndValidity();
+  }
+
+  /**
+   * Keep the pickers' visible options in step with their search boxes. The
+   * terms live outside the form because they filter what is offered; they are
+   * not values the tenant has.
+   */
   private watchFilters(): void {
     this.subs.add(
       this.currencyFilter.valueChanges.subscribe((term) => {
@@ -350,6 +383,8 @@ export class ManageTenantComponent implements OnDestroy {
           admin_first_name: value.admin_first_name,
           admin_last_name: value.admin_last_name,
           admin_email: value.admin_email,
+          admin_mode: this.adminMode,
+          admin_password: this.adminMode === 'owner' ? value.admin_password : undefined,
         });
 
     request$
