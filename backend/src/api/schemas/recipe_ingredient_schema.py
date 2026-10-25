@@ -66,7 +66,9 @@ class ReplaceRecipeIngredientsSchema(BaseSchema):
             UpsertRecipeIngredientSchema,
             ## Nested schema carries its own id; inside a replace payload that
             ## id is only a hint for matching and 0 means "new row".
-            many=True,
+            ## Do NOT set many=True here: fields.List already iterates the
+            ## input, and a many-nested inner field would expect each item to
+            ## itself be a list, rejecting every replace payload.
             only=("id", "inventory_id", "quantity", "unit", "is_optional", "is_prepped")
         ),
         required=True,

@@ -227,7 +227,7 @@ modules_data = [{
         "has_child_menu": False,
         "route_path": "reports",
         "display_order_no": 12,
-        "icon": "menu_book.png",
+        "icon": "report.png",
         "access_json": [
 			{"key": "View", "value": False, "operation_key": "View"},
 			{"key": "Export", "value": False, "operation_key": "Export"}

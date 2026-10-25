@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, text
+from sqlalchemy import and_, func, text
 
 from src.api.models.order_model import (
     CMSOrder,
@@ -11,6 +11,8 @@ from src.api.models.order_model import (
     PaymentStatusEnum,
     PREP_VOIDED,
 )
+from src.api.models.recipe_category_model import RecipeCategory
+from src.api.models.recipe_model import Recipe
 from src.api.models.user_model import User
 from src.api.utils.datetime_helper import (
     business_timezone,
@@ -137,22 +139,35 @@ class ReportsService:
 
         ## item_name is denormalised onto the line, so this report stays
         ## correct even after a recipe is renamed or deactivated.
+        ## Outer joins: a line whose recipe or category has since been
+        ## hard-deleted must still appear in the report, with a null category
+        ## rather than disappearing from the sales total.
         rows = (
             self.db.query(
                 CMSOrderItem.item_type,
                 CMSOrderItem.item_id,
                 CMSOrderItem.item_name,
                 CMSOrderItem.station,
+                RecipeCategory.display_name.label("category_display_name"),
                 func.coalesce(func.sum(CMSOrderItem.quantity), 0).label("qty"),
                 func.coalesce(func.sum(CMSOrderItem.total_price), 0).label("value"),
                 func.count(func.distinct(CMSOrderItem.order_id)).label("order_count"),
             )
+            .outerjoin(
+                Recipe,
+                and_(
+                    CMSOrderItem.item_type == "recipe",
+                    Recipe.id == CMSOrderItem.item_id,
+                )
+            )
+            .outerjoin(RecipeCategory, RecipeCategory.id == Recipe.category_id)
             .filter(*filters)
             .group_by(
                 CMSOrderItem.item_type,
                 CMSOrderItem.item_id,
                 CMSOrderItem.item_name,
                 CMSOrderItem.station,
+                RecipeCategory.display_name,
             )
             .all()
         )
@@ -170,6 +185,7 @@ class ReportsService:
                 "item_type": row.item_type,
                 "item_id": row.item_id,
                 "item_name": row.item_name,
+                "category_display_name": row.category_display_name,
                 "station": row.station,
                 "quantity_sold": str(qty),
                 "revenue": str(value),
@@ -183,7 +199,11 @@ class ReportsService:
             })
 
         if include_dead:
-            items.extend(self._dead_stock(start, end, {i["item_id"] for i in items}))
+            ## Only recipe ids: an inventory item with the same numeric id as
+            ## an unsold recipe must not hide that recipe from dead stock.
+            items.extend(self._dead_stock(start, end, {
+                i["item_id"] for i in items if i["item_type"] == "recipe"
+            }))
 
         if sort_by == "revenue":
             items.sort(key=lambda i: _d(i["revenue"]), reverse=True)
@@ -592,8 +612,6 @@ class ReportsService:
         Bounded to what the cafe can actually sell now: inactive recipes, 86'd
         dishes and deleted ones are not "dead stock", they are retired.
         """
-        from src.api.models.recipe_model import Recipe
-
         sold = sold_item_ids or set()
         recipes = (
             self.db.query(Recipe)
@@ -609,6 +627,7 @@ class ReportsService:
                 "item_type": "recipe",
                 "item_id": r.id,
                 "item_name": r.name,
+                "category_display_name": r.category.display_name if r.category else None,
                 "station": r.station,
                 "quantity_sold": "0.00",
                 "revenue": "0.00",

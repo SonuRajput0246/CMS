@@ -40,4 +40,8 @@ export class AppConfig {
     }
     return this.config[key];
   }
+
+  getOr<T = any>(key: string, fallback: T): T {
+    return key in this.config ? this.config[key] : fallback;
+  }
 }

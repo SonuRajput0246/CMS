@@ -31,10 +31,45 @@ export const childRoutes = [
         canActivate: [AuthGuard]
     },
     {
+        path: "tables",
+        loadChildren: () =>
+            import('./tables/tables.module').then(t => t.TablesModule),
+        data: { menuId: 3 },
+        canActivate: [AuthGuard]
+    },
+    {
+        path: "orders",
+        loadChildren: () =>
+            import('./orders/orders.module').then(o => o.OrdersModule),
+        data: { menuId: 4 },
+        canActivate: [AuthGuard]
+    },
+    {
+        path: "customers",
+        loadChildren: () =>
+            import('./customers/customers.module').then(c => c.CustomersModule),
+        data: { menuId: 5 },
+        canActivate: [AuthGuard]
+    },
+    {
+        path: "recipes",
+        loadChildren: () =>
+            import('./recipes/recipes.module').then(r => r.RecipesModule),
+        data: { menuId: 11 },
+        canActivate: [AuthGuard]
+    },
+    {
         path: "inventory",
         loadChildren: () =>
             import('./inventory/inventory.module').then(a => a.InventoryModule),
         data: { menuId: 3 },
+        canActivate: [AuthGuard]
+    },
+    {
+        path: "reports",
+        loadChildren: () =>
+            import('./reports/reports.module').then(r => r.ReportsModule),
+        data: { menuId: 16 },
         canActivate: [AuthGuard]
     },
     {

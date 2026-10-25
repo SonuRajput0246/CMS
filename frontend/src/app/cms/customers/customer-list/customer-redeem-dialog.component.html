@@ -1,0 +1,32 @@
+<div class="dlg customer-redeem-dialog">
+  <header class="dlg-head">
+    <div class="dlg-title">
+      <h2>Redeem Points</h2>
+      <p>{{ data.customer.name }} &middot; {{ availablePoints }} points available</p>
+    </div>
+    <button mat-icon-button (click)="close()"><mat-icon>close</mat-icon></button>
+  </header>
+
+  <div class="dlg-body">
+    <p class="note">
+      <mat-icon>redeem</mat-icon>
+      Points are debited immediately. Apply the equivalent discount to the order separately.
+    </p>
+
+    <div class="field-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Points to redeem</mat-label>
+        <input matInput type="number" min="1" [max]="availablePoints" [(ngModel)]="pointsToRedeem">
+        <mat-hint>Maximum {{ availablePoints }}</mat-hint>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <footer class="dlg-foot">
+    <button mat-stroked-button (click)="close()" [disabled]="isSaving">Cancel</button>
+    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isSaving || availablePoints <= 0">
+      <mat-spinner *ngIf="isSaving" diameter="16"></mat-spinner>
+      <span *ngIf="!isSaving">Redeem</span>
+    </button>
+  </footer>
+</div>

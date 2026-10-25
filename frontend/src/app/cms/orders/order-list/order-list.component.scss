@@ -1,0 +1,215 @@
+// ============================================================
+//  ORDER LIST — Style
+//  Uses shared tokens from cms-theme.scss (no local reassignments)
+// ============================================================
+
+@use 'sass:list';
+@use '../../cms-theme' as theme;
+
+// ------------------------------------------------------------
+//  Shell — fills the routed area inside the CMS layout
+// ------------------------------------------------------------
+.order-list-shell {
+  @include theme.cms-shell(16px);
+}
+
+// ------------------------------------------------------------
+//  Filter card
+// ------------------------------------------------------------
+.filter-card {
+  flex: 0 0 auto;
+  @include theme.cms-card;
+  margin-bottom: 12px;
+
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+
+    .search-field {
+      flex: 1 1 300px;
+      min-width: 250px;
+    }
+
+    .filter-field {
+      min-width: 160px;
+      flex: 1 1 180px;
+
+      ::ng-deep .mat-mdc-form-field {
+        .mat-mdc-text-field-wrapper {
+          background: transparent;
+        }
+      }
+    }
+
+    .date-field {
+      min-width: 180px;
+
+      ::ng-deep .mat-mdc-form-field {
+        .mat-mdc-text-field-wrapper {
+          background: transparent;
+        }
+      }
+    }
+
+    .clear-btn {
+      height: 48px;
+      margin-top: 4px;
+    }
+  }
+}
+
+// ------------------------------------------------------------
+//  Table card
+// ------------------------------------------------------------
+.table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  @include theme.cms-card;
+  display: flex;
+  flex-direction: column;
+
+  .table-header {
+    flex: 0 0 auto;
+    padding: 16px 20px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid theme.$border;
+
+    .table-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .head-icon {
+        color: theme.$navy;
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+      }
+
+      .head-text h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: theme.$text;
+      }
+
+      .head-text p {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: theme.$text-muted;
+      }
+    }
+  }
+
+  .table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 8px 8px;
+
+    ::ng-deep .mat-mdc-table {
+      background: transparent;
+    }
+  }
+
+  .order-table {
+    width: 100%;
+    table-layout: fixed;
+
+    .cell-strong {
+      font-weight: 600;
+      color: theme.$text;
+    }
+
+    .cell-amount {
+      font-weight: 600;
+      color: theme.$navy;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cell-reference {
+      font-size: 12.5px;
+      color: theme.$text-muted;
+    }
+
+    .status-pill,
+    .payment-status-pill {
+      @include theme.cms-pill(theme.$neutral-soft, theme.$neutral);
+    }
+
+    // Order status pills — use shared $order-status-colors
+    @each $status, $pair in theme.$order-status-colors {
+      .st-#{$status} {
+        @include theme.cms-pill(list.nth($pair, 1), list.nth($pair, 2));
+      }
+    }
+
+    // Payment status pills — explicit map here since payments are a separate axis
+    .st-partial {
+      @include theme.cms-pill(theme.$warn-soft, theme.$warn);
+    }
+
+    .st-paid {
+      @include theme.cms-pill(theme.$ok-soft, theme.$ok);
+    }
+
+    .st-refunded {
+      @include theme.cms-pill(theme.$teal-soft, theme.$teal);
+    }
+
+    .st-failed {
+      @include theme.cms-pill(theme.$danger-soft, theme.$danger);
+    }
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: theme.$text-muted;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    span {
+      font-size: 14px;
+    }
+  }
+
+  .table-footer {
+    flex: 0 0 auto;
+    padding: 8px 20px 16px;
+
+    ::ng-deep .mat-mdc-paginator {
+      .mdc-paginator__page-size-label {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------
+//  Loading overlay (absolute inside the table card)
+// ------------------------------------------------------------
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: theme.$radius;
+
+  mat-spinner {
+    color: theme.$navy;
+  }
+}

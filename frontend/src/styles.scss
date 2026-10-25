@@ -835,5 +835,10 @@ $console-dialog-border: #e2e8f0;
   }
 }
 
+// ---------- CMS dialogs ----------
+// MatDialog renders into a CDK overlay outside the component view, so these
+// styles have to be global.
+@import './app/cms/cms-dialogs';
+
 
 
