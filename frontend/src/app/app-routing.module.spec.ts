@@ -11,8 +11,8 @@ import { PageNotFoundComponent } from './shared/page-not-found/page-not-found.co
 /**
  * Covers the host-split root table.
  *
- * Two surfaces share one bundle and the host tells them apart: `admin.*` is the
- * platform console, every other host is the tenant app. Each surface is a
+ * Two surfaces share one bundle and the host tells them apart: `platform.*` is
+ * the platform console, every other host is the tenant app. Each surface is a
  * component-less shell carrying a `canMatch` guard, with its own children.
  *
  * The checks come in two kinds:
@@ -226,12 +226,14 @@ describe('app routing', () => {
     return appRoutes.find(r => r.canMatch?.includes(guard))?.children ?? [];
   }
 
-  it('holds every console route in the console shell', () => {
+  it('holds every console route in the console shell, without a prefix', () => {
     const lazy = shellChildren(platformHostMatch)
       .filter(r => typeof r.loadChildren === 'function')
       .map(r => r.path);
 
-    expect(lazy).toEqual(['platform']);
+    // Mounted at the root: console URLs are `/login`, `/dashboard`, not
+    // `/platform/login`.
+    expect(lazy).toEqual(['']);
   });
 
   it('holds every workspace route in the workspace shell', () => {
@@ -245,10 +247,9 @@ describe('app routing', () => {
   it('redirects the console host only into the console', () => {
     const redirects = shellChildren(platformHostMatch).filter(r => r.redirectTo);
 
-    expect(redirects.map(r => r.path)).toEqual(['', 'auth/login', 'auth']);
-    // Resolved against the shell (whose path is empty), so they stay inside
-    // the console rather than sending the operator into the tenant app.
-    expect(redirects.every(r => r.redirectTo!.startsWith('platform/'))).toBe(true);
+    expect(redirects.map(r => r.path)).toEqual(['auth/login', 'auth']);
+    // The canonical console sign-in now lives at the root.
+    expect(redirects.every(r => r.redirectTo === 'login')).toBe(true);
   });
 
   it('redirects the workspace host only to its own dashboard', () => {

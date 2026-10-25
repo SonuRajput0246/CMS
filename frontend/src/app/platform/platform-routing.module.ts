@@ -14,8 +14,9 @@ import { ManageTenantComponent } from './tenants/manage-tenant/manage-tenant.com
 
 /**
  * Console routes. The whole module is only reachable on the platform host --
- * `app-routing.module.ts` gates the lazy load with `platformHostMatch` -- so
- * nothing here repeats that check.
+ * `app-routing.module.ts` gates the lazy load with `platformHostMatch` and
+ * mounts it at the host's root, so these paths are `/login`, `/dashboard`,
+ * `/tenants` and so on -- without a `/platform` prefix.
  *
  * `login` is a sibling of the shell rather than a child: signing in must not
  * render the toolbar, and the shell's `canActivate` would bounce a

@@ -16,9 +16,10 @@ export class TenantService {
 
   /**
    * Labels that are infrastructure, not a workspace. Mirrors the backend's
-   * `_RESERVED_LABELS` (backend/src/api/tenancy/resolution.py): `admin` and
-   * `superadmin` name the platform console, so a request arriving at one of
-   * them is not a tenant request and must send no slug.
+   * `_RESERVED_LABELS` (backend/src/api/tenancy/resolution.py): `platform`
+   * and `superadmin` name the platform console, so a request arriving at one
+   * of them is not a tenant request and must send no slug. `admin` is kept as
+   * a reserved label for deployments still serving the console there.
    */
   private static readonly RESERVED = [
     'localhost',
@@ -26,6 +27,7 @@ export class TenantService {
     'api',
     'app',
     'admin',
+    'platform',
     'superadmin',
     'sa',
     'panel',

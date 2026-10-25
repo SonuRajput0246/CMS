@@ -18,5 +18,5 @@ export const platformAuthGuard: CanActivateFn = () => {
     return true;
   }
 
-  return router.createUrlTree(['/platform/login']);
+  return router.createUrlTree(['/login']);
 };

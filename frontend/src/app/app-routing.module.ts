@@ -9,8 +9,8 @@ import { platformHostMatch, tenantHostMatch } from './core/platform-host.guard';
  *
  * Two products share this bundle and must never be reachable from each other:
  * the tenant app and the platform (super admin) console. Which one a visitor
- * gets is decided by the host -- `admin.localhost:4200` is the console, every
- * other host is a workspace.
+ * gets is decided by the host -- `platform.localhost:4200` is the console,
+ * every other host is a workspace.
  *
  * Each surface is a single component-less "shell" route carrying a `canMatch`
  * host guard, with everything that surface can do as its children.
@@ -27,8 +27,8 @@ import { platformHostMatch, tenantHostMatch } from './core/platform-host.guard';
  * `canMatch` rather than `canActivate` is deliberate: it is consulted before a
  * lazy module is fetched, so the console's chunks are never downloaded on a
  * tenant host and the tenant's never are on the console host. It is also what
- * lets `/auth/login` mean two different things, since the path alone cannot
- * tell the two surfaces apart.
+ * keeps a tenant path from resolving on the console host (and the reverse),
+ * since the path alone cannot tell the two surfaces apart.
  */
 export const routes: Routes = [
   // ---- Platform console: only on the console host. ----
@@ -37,22 +37,19 @@ export const routes: Routes = [
     canMatch: [platformHostMatch],
     children: [
       {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'platform/dashboard'
-      },
-      {
-        // The URL the operator reaches for first on the console host.
+        // Legacy aliases: the console sign-in used to sit under `/auth`.
         path: 'auth/login',
-        redirectTo: 'platform/login'
+        redirectTo: 'login'
       },
       {
         path: 'auth',
         pathMatch: 'full',
-        redirectTo: 'platform/login'
+        redirectTo: 'login'
       },
       {
-        path: 'platform',
+        // Mounted at the root so console URLs carry no `/platform` prefix:
+        // `platform.localhost:4200/login`, not `.../platform/login`.
+        path: '',
         loadChildren: () => import('./platform/platform.module').then(a => a.PlatformModule)
       }
     ]

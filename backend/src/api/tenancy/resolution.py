@@ -65,11 +65,22 @@ TENANT_SLUG_HEADER = "X-Tenant-Slug"
 ## Host labels that are infrastructure, not a workspace. A request arriving at
 ## one of these has no tenant -- the correct answer for the bare app domain.
 ##
-## `admin` and `superadmin` are reserved for the platform console itself: if a
-## tenant could take one, admin.localhost would resolve as a hotel and the
-## management panel would stop being reachable. `is_reserved_slug()` is used on
-## the write side so that refusal is decided in one place and cannot drift.
-_RESERVED_LABELS = {"localhost", "www", "api", "app", "admin", "superadmin", "sa", "panel"}
+## `platform` and `superadmin` are reserved for the platform console itself: if
+## a tenant could take one, platform.localhost would resolve as a hotel and the
+## management panel would stop being reachable. `admin` is kept for deployments
+## still serving the console there. `is_reserved_slug()` is used on the write
+## side so that refusal is decided in one place and cannot drift.
+_RESERVED_LABELS = {
+    "localhost",
+    "www",
+    "api",
+    "app",
+    "admin",
+    "platform",
+    "superadmin",
+    "sa",
+    "panel",
+}
 
 
 def is_reserved_slug(slug: str | None) -> bool:

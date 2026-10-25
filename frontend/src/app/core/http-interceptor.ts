@@ -163,7 +163,7 @@ export class HttpIntercept implements HttpInterceptor {
     private handlePlatform401(): Observable<never> {
         sessionStorage.removeItem('cms_sa_accessToken');
         localStorage.removeItem('cms_sa_profile');
-        this.router.navigate(['/platform/login'], { replaceUrl: true });
+        this.router.navigate(['/login'], { replaceUrl: true });
         return throwError(() => new Error('Platform session expired'));
     }
 }

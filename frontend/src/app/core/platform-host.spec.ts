@@ -15,15 +15,17 @@ import { platformHostMatch, tenantHostMatch } from './platform-host.guard';
 describe('isPlatformHost', () => {
 
   it('recognises the console labels in development and production', () => {
-    expect(isPlatformHost('admin.localhost')).toBe(true);
+    expect(isPlatformHost('platform.localhost')).toBe(true);
     expect(isPlatformHost('superadmin.localhost')).toBe(true);
-    expect(isPlatformHost('admin.example.com')).toBe(true);
-    expect(isPlatformHost('admin.tenant.example.com')).toBe(true);
+    expect(isPlatformHost('platform.example.com')).toBe(true);
+    expect(isPlatformHost('platform.tenant.example.com')).toBe(true);
   });
 
   it('treats a tenant subdomain as a workspace', () => {
     expect(isPlatformHost('demo.localhost')).toBe(false);
     expect(isPlatformHost('demo1.example.com')).toBe(false);
+    // `admin` was the console's old label; it must not keep selecting it.
+    expect(isPlatformHost('admin.localhost')).toBe(false);
   });
 
   it('treats the bare and infrastructural hosts as neither', () => {
@@ -40,18 +42,18 @@ describe('isPlatformHost', () => {
   });
 
   it('is case- and whitespace-insensitive', () => {
-    expect(isPlatformHost('  ADMIN.Localhost ')).toBe(true);
+    expect(isPlatformHost('  PLATFORM.Localhost ')).toBe(true);
   });
 
   it('matches a label rather than a substring', () => {
-    // `admin-2` is a tenant that merely starts with the word; it must not be
-    // mistaken for the console.
-    expect(isPlatformHost('admin-2.localhost')).toBe(false);
-    expect(isPlatformHost('notadmin.localhost')).toBe(false);
+    // `platform-2` is a tenant that merely starts with the word; it must not
+    // be mistaken for the console.
+    expect(isPlatformHost('platform-2.localhost')).toBe(false);
+    expect(isPlatformHost('notplatform.localhost')).toBe(false);
   });
 
   it('exposes the reserved labels it recognises', () => {
-    expect(PLATFORM_HOST_LABELS).toEqual(['admin', 'superadmin']);
+    expect(PLATFORM_HOST_LABELS).toEqual(['platform', 'superadmin']);
   });
 });
 

@@ -6,8 +6,8 @@ import { isPlatformHost } from './platform-host';
  * Route-level host split.
  *
  * Two products share this bundle, so a path alone is not enough to pick a
- * route: `/auth/login` is the tenant sign-in on `demo.localhost:4200` and the
- * platform sign-in on `admin.localhost:4200`. `canMatch` is the right
+ * route: the same URL can mean the tenant app on `demo.localhost:4200` and the
+ * platform console on `platform.localhost:4200`. `canMatch` is the right
  * primitive because it is evaluated before the router commits to a route and,
  * crucially, before a lazy module is fetched -- the tenant's chunks are never
  * downloaded on the platform host, and the reverse.
@@ -30,5 +30,5 @@ export const tenantHostMatch: CanMatchFn = () => {
   if (!isPlatformHost()) {
     return true;
   }
-  return inject(Router).createUrlTree(['/auth/login']);
+  return inject(Router).createUrlTree(['/login']);
 };

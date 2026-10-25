@@ -2,15 +2,17 @@
  * Which hostnames serve the platform (super admin) console.
  *
  * The console is a second surface inside the same bundle: it is reached at a
- * reserved subdomain -- `admin.localhost:4200` in development, `admin.example.com`
- * in production -- and is never addressable from a tenant's subdomain. Only the
- * first DNS label is consulted, so both forms behave identically.
+ * reserved subdomain -- `platform.localhost:4200` in development,
+ * `platform.example.com` in production -- and is never addressable from a
+ * tenant's subdomain. Only the first DNS label is consulted, so both forms
+ * behave identically.
  *
  * These labels mirror the backend's reserved list
  * (`backend/src/api/tenancy/resolution.py`). They can never name a tenant, so
- * there is no collision between "a workspace called admin" and "the platform".
+ * there is no collision between "a workspace called platform" and "the
+ * platform".
  */
-export const PLATFORM_HOST_LABELS = ['admin', 'superadmin'];
+export const PLATFORM_HOST_LABELS = ['platform', 'superadmin'];
 
 /** True when `hostname` (defaulting to the current one) names the platform. */
 export function isPlatformHost(hostname?: string): boolean {
