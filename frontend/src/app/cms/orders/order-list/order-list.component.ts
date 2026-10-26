@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, Inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
 import { ISearchRequest, IGenricGrid, INavigationaBar } from '../../../models/ICommon.model';
@@ -7,8 +8,8 @@ import { IOrderSummary } from '../../../models/ICms.model';
 import { CmsOrderService } from '../../../services/cms/order.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { ConfirmationService } from '../../../services/confirmation.service';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 
 @Component({
   selector: 'app-order-list',
@@ -21,7 +22,6 @@ export class OrderListComponent implements OnInit {
   private _snackbar = inject(CustomSnackbarService);
   private _confirmService = inject(ConfirmationService);
   private _router = inject(Router);
-  private _dialog = inject(MatDialog);
 
   // State
   isPageLoad = false;
@@ -31,8 +31,18 @@ export class OrderListComponent implements OnInit {
   displayedColumns: string[] = ['sr', 'order_number', 'reference_label', 'ordered_at', 'item_count', 'total_amount', 'payment_status', 'status', 'actions'];
   dataSource = new MatTableDataSource<IOrderSummary>();
 
-  /** Exposed for the template's total-pages maths. */
-  Math = Math;
+  /// Same page-size trigger and option list as the other CMS list pages.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
+
+  get totalPages(): number {
+    return this.pageDet.total_docs > 0
+      ? Math.ceil(this.pageDet.total_docs / this.pageDet.limit)
+      : 1;
+  }
+
+  get currentPageIndex(): number {
+    return (this.requestData.page_number || 1) - 1;
+  }
 
   navData: INavigationaBar[] = [
     { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: '/cms/dashboard' },
@@ -90,6 +100,13 @@ export class OrderListComponent implements OnInit {
             this.pageDet.total_docs = res.meta?.total_records || 0;
             this.pageDet.limit = this.requestData.page_size!;
             this.dataSource.data = this.orderList;
+
+            // Deleting/cancelling the last row on a page can leave the
+            // operator on an empty page; step back like the other lists.
+            if (this.orderList.length === 0 && (this.requestData.page_number || 1) > 1) {
+              this.requestData.page_number!--;
+              this.fetchOrderList();
+            }
           } else {
             this._snackbar.openSnackBar(res?.message || 'Failed to fetch orders', 'error');
           }
@@ -148,41 +165,9 @@ export class OrderListComponent implements OnInit {
     this.fetchOrderList();
   }
 
+  /// Row click and the row menu both open the routed detail page.
   onRowClick(order: IOrderSummary): void {
-    this.openOrderDetail(order.id);
-  }
-
-  private openOrderDetail(orderId: number): void {
-    this.isPageLoad = true;
-    this._orderService.getOrderById(orderId)
-      .pipe(finalize(() => this.isPageLoad = false))
-      .subscribe({
-        next: (res) => {
-          if (res?.status && res.data) {
-            this.openOrderDetailDialog(res.data);
-          } else {
-            this._snackbar.openSnackBar(res?.message || 'Failed to fetch order details', 'error');
-          }
-        },
-        error: (err) => {
-          const msg = err.error?.message || 'Failed to fetch order details';
-          this._snackbar.openSnackBar(msg, 'error');
-        }
-      });
-  }
-
-  private openOrderDetailDialog(order: any): void {
-    const dialogRef = this._dialog.open(OrderDetailDialogComponent, {
-      width: '800px',
-      maxHeight: '90vh',
-      data: order,
-      panelClass: 'order-detail-dialog'
-    });
-
-    dialogRef.afterClosed().subscribe(() => {
-      // Refresh list when dialog closes
-      this.fetchOrderList();
-    });
+    this._router.navigate(['/cms/orders/view', order.id]);
   }
 
   onCancelOrder(order: any): void {
@@ -262,112 +247,5 @@ export class OrderListComponent implements OnInit {
       failed: 'st-failed'
     };
     return classes[status] || 'st-default';
-  }
-}
-
-// Dialog Component for Order Detail
-@Component({
-  selector: 'app-order-detail-dialog',
-  standalone: false,
-  templateUrl: './order-detail-dialog.component.html'
-})
-export class OrderDetailDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<OrderDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any,
-    private _orderService: CmsOrderService,
-    private _snackbar: CustomSnackbarService
-  ) {}
-
-  close(): void {
-    this.dialogRef.close();
-  }
-
-  printBill(): void {
-    this._orderService.getBill(this.data.id).subscribe({
-      next: (res) => {
-        if (res?.status && res.data) {
-          this.openPrintWindow(res.data);
-        }
-      }
-    });
-  }
-
-  private openPrintWindow(bill: any): void {
-    const printHtml = this.generateBillHtml(bill);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printHtml);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 250);
-    }
-  }
-
-  private generateBillHtml(bill: any): string {
-    const itemsHtml = bill.items?.map((item: any) => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${item.item_name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹ ${Number(item.unit_price).toFixed(2)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹ ${Number(item.total_price).toFixed(2)}</td>
-      </tr>
-    `).join('') || '';
-
-    const paymentsHtml = bill.payments?.map((p: any) => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${p.payment_method}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">₹ ${Number(p.amount).toFixed(2)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${p.paid_at ? new Date(p.paid_at).toLocaleString() : '-'}</td>
-      </tr>
-    `).join('') || '';
-
-    return `
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .details { margin-bottom: 20px; }
-            .details div { margin: 4px 0; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-            th { background: #f2f6fc; font-weight: 600; }
-            .totals { text-align: right; margin-top: 20px; }
-            .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
-            .grand-total { font-weight: bold; font-size: 1.1em; border-top: 2px solid #003366; }
-            .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 0.9em; }
-            @media print { .no-print { display: none; } }
-          </style>
-        </head>
-        <body onload="window.print()">
-          <div class="header">
-            <h2>${bill.table?.table_name || 'Walk-in'}</h2>
-            <p>Order: ${bill.order_number} | ${bill.reference_label}</p>
-          </div>
-          <div class="details">
-            <div><strong>Ordered:</strong> ${bill.ordered_at ? new Date(bill.ordered_at).toLocaleString() : '-'}</p>
-            <div><strong>Type:</strong> ${bill.order_type}</div>
-          </div>
-          <table>
-            <thead>
-              <tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr>
-            </thead>
-            <tbody>${itemsHtml}</tbody>
-          </table>
-          <div class="totals">
-            <div class="total-row"><span>Subtotal:</span><span>₹ ${bill.totals.item_subtotal}</span></div>
-            <div class="total-row"><span>Tax:</span><span>₹ ${bill.totals.tax_amount}</span></div>
-            <div class="total-row"><span>Discount:</span><span>₹ ${bill.totals.discount_amount}</span></div>
-            <div class="total-row grand-total"><span>Total:</span><span>₹ ${bill.totals.total_amount}</span></div>
-          </div>
-          <table style="width:100%; margin-top:20px;">
-            <thead><tr><th>Method</th><th style="text-align:right">Amount</th><th>Time</th></tr></thead>
-            <tbody>${paymentsHtml}</tbody>
-          </table>
-          <div class="footer">Thank you for visiting!</div>
-        </body>
-      </html>
-    `;
   }
 }

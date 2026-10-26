@@ -212,36 +212,10 @@ $dlg-muted: #64748b;
   }
 }
 
-// status chips shared by the order detail dialog
-.dlg .chip {
-  display: inline-block;
-  padding: 3px 11px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  background: #f1f5f9;
-  color: #64748b;
-  text-transform: uppercase;
-}
-
-.dlg .st-completed { background: #e8f7ee; color: #16a34a; }
-.dlg .st-cancelled { background: #fdeaea; color: #dc2626; }
-.dlg .st-confirmed { background: #e8efff; color: #2563eb; }
-.dlg .st-preparing { background: #fef3e2; color: #d97706; }
-.dlg .st-ready    { background: #e8f7ee; color: #16a34a; }
-.dlg .st-served   { background: #e6f7f5; color: #16b4a4; }
-
-.dlg .pay-paid     { background: #e8f7ee; color: #16a34a; }
-.dlg .pay-partial  { background: #fef3e2; color: #d97706; }
-.dlg .pay-failed   { background: #fdeaea; color: #dc2626; }
-.dlg .pay-refunded { background: #e6f7f5; color: #16b4a4; }
-
 // Angular Material renders the dialog panel itself; strip its default radius
 // so the dialog matches the card language used everywhere else.
 .customer-form-dialog .mat-mdc-dialog-surface,
-.customer-redeem-dialog .mat-mdc-dialog-surface,
-.order-detail-dialog .mat-mdc-dialog-surface {
+.customer-redeem-dialog .mat-mdc-dialog-surface {
   border-radius: 16px;
   overflow: hidden;
 }

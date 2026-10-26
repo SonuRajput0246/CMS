@@ -1,215 +1,658 @@
 // ============================================================
-//  ORDER LIST — Style
-//  Uses shared tokens from cms-theme.scss (no local reassignments)
+//  ORDER LIST — CMS admin screen
+//
+//  Same anatomy as the user and table lists: one card with a
+//  fixed header carrying the filters, only the grid scrolls, and
+//  the compact paginator pinned below. Colours come from the
+//  shared theme so a status pill matches the same status on the
+//  POS floor.
 // ============================================================
 
 @use 'sass:list';
 @use '../../cms-theme' as theme;
 
-// ------------------------------------------------------------
-//  Shell — fills the routed area inside the CMS layout
-// ------------------------------------------------------------
-.order-list-shell {
-  @include theme.cms-shell(16px);
-}
-
-// ------------------------------------------------------------
-//  Filter card
-// ------------------------------------------------------------
-.filter-card {
-  flex: 0 0 auto;
-  @include theme.cms-card;
-  margin-bottom: 12px;
-
-  .filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-end;
-
-    .search-field {
-      flex: 1 1 300px;
-      min-width: 250px;
-    }
-
-    .filter-field {
-      min-width: 160px;
-      flex: 1 1 180px;
-
-      ::ng-deep .mat-mdc-form-field {
-        .mat-mdc-text-field-wrapper {
-          background: transparent;
-        }
-      }
-    }
-
-    .date-field {
-      min-width: 180px;
-
-      ::ng-deep .mat-mdc-form-field {
-        .mat-mdc-text-field-wrapper {
-          background: transparent;
-        }
-      }
-    }
-
-    .clear-btn {
-      height: 48px;
-      margin-top: 4px;
-    }
-  }
-}
-
-// ------------------------------------------------------------
-//  Table card
-// ------------------------------------------------------------
-.table-card {
-  flex: 1 1 auto;
-  min-height: 0;
-  @include theme.cms-card;
+:host {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+// ------------------------------------------------------------
+//  Page wrapper
+// ------------------------------------------------------------
+.orders-page {
+  height: calc(100vh - 110px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 20px 16px;
+  box-sizing: border-box;
+  @include theme.cms-page-bg;
+}
+
+// ------------------------------------------------------------
+//  Table card — fixed header, scrollable body, fixed paginator
+// ------------------------------------------------------------
+.table-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  @include theme.cms-card;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
+  overflow: hidden;
 
   .table-header {
-    flex: 0 0 auto;
-    padding: 16px 20px 8px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
     border-bottom: 1px solid theme.$border;
 
     .table-title {
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
 
       .head-icon {
-        color: theme.$navy;
-        font-size: 22px;
-        width: 22px;
-        height: 22px;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, theme.$navy, theme.$navy-light);
+        box-shadow: 0 4px 10px rgba(0, 51, 102, 0.25);
+
+        mat-icon {
+          color: #fff;
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
       }
 
-      .head-text h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: theme.$text;
+      .head-text {
+        min-width: 0;
+
+        h3 {
+          margin: 0;
+          font-size: 15.5px;
+          font-weight: 700;
+          color: theme.$navy;
+          letter-spacing: 0.2px;
+        }
+
+        p {
+          margin: 2px 0 0;
+          font-size: 12.5px;
+          color: theme.$text-muted;
+        }
+      }
+    }
+
+    .filter-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-left: auto;
+
+      .custom-input {
+        width: 230px;
       }
 
-      .head-text p {
-        margin: 2px 0 0;
-        font-size: 12px;
-        color: theme.$text-muted;
+      .select-input {
+        width: 150px;
+      }
+
+      .date-input {
+        width: 145px;
+      }
+    }
+
+    .filter-action button {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1.5px solid theme.$danger;
+      border-radius: 999px;
+      background-color: theme.$danger-soft !important;
+      color: theme.$danger !important;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 14px;
+      transition: all 0.2s ease;
+
+      mat-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+      }
+
+      &:hover {
+        background-color: #fecaca !important;
+        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2);
       }
     }
   }
 
   .table-scroll {
-    flex: 1 1 auto;
+    flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 0 8px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #c3d2e4 transparent;
 
-    ::ng-deep .mat-mdc-table {
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #c3d2e4;
+      border-radius: 8px;
+    }
+    &::-webkit-scrollbar-track {
       background: transparent;
     }
   }
 
-  .order-table {
-    width: 100%;
-    table-layout: fixed;
+  .table-footer {
+    border-top: 1px solid theme.$border;
+    background: #fbfcfe;
+    padding: 2px 14px 2px 0;
+  }
+}
 
-    .cell-strong {
-      font-weight: 600;
-      color: theme.$text;
-    }
+// Paginator spacing parity with the user/table lists.
+::ng-deep .table-footer .mat-mdc-paginator {
+  .mat-mdc-paginator-page-size {
+    margin-right: 2px;
 
-    .cell-amount {
-      font-weight: 600;
-      color: theme.$navy;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .cell-reference {
-      font-size: 12.5px;
-      color: theme.$text-muted;
-    }
-
-    .status-pill,
-    .payment-status-pill {
-      @include theme.cms-pill(theme.$neutral-soft, theme.$neutral);
-    }
-
-    // Order status pills — use shared $order-status-colors
-    @each $status, $pair in theme.$order-status-colors {
-      .st-#{$status} {
-        @include theme.cms-pill(list.nth($pair, 1), list.nth($pair, 2));
-      }
-    }
-
-    // Payment status pills — explicit map here since payments are a separate axis
-    .st-partial {
-      @include theme.cms-pill(theme.$warn-soft, theme.$warn);
-    }
-
-    .st-paid {
-      @include theme.cms-pill(theme.$ok-soft, theme.$ok);
-    }
-
-    .st-refunded {
-      @include theme.cms-pill(theme.$teal-soft, theme.$teal);
-    }
-
-    .st-failed {
-      @include theme.cms-pill(theme.$danger-soft, theme.$danger);
+    .mat-mdc-paginator-page-size-label {
+      margin: 0 3px 0 0;
     }
   }
 
-  .no-data {
-    text-align: center;
-    padding: 40px 20px;
+  .mat-mdc-paginator-range-label {
+    margin: 0 4px 0 8px;
+  }
+}
+
+// ------------------------------------------------------------
+//  Compact header filter fields — same token trick as the other
+//  list screens.
+// ------------------------------------------------------------
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 10px;
+  font-size: 13px;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-text-field-wrapper {
+  background: #f8fafd;
+  border-radius: 11px !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-notched-outline__leading {
+  border-radius: 11px 0 0 11px !important;
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-notched-outline__trailing {
+  border-radius: 0 11px 11px 0 !important;
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-notched-outline > * {
+  border-color: #dbe4f0 !important;
+}
+::ng-deep .orders-page .table-header .filter-controls
+  .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid)
+  .mdc-notched-outline > * {
+  border-color: theme.$navy !important;
+  border-width: 1.5px !important;
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-floating-label {
+  color: #7d8ea3;
+  font-size: 13px;
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-floating-label--float-above {
+  color: theme.$navy !important;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-input-element,
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-select-value-text {
+  font-size: 13px !important;
+  color: theme.$text !important;
+  font-weight: 500;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-select-placeholder {
+  color: #7d8ea3;
+  font-size: 13px;
+  font-weight: 500;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-select-arrow {
+  color: theme.$navy;
+}
+::ng-deep .orders-page .table-header .filter-controls .mdc-line-ripple::before,
+::ng-deep .orders-page .table-header .filter-controls .mdc-line-ripple::after {
+  display: none;
+}
+::ng-deep .orders-page .table-header .filter-controls .mat-mdc-form-field-icon-prefix {
+  color: theme.$navy;
+  padding: 0 4px 0 10px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// The datepicker toggle ships a 48px icon button; shrink it to fit the
+// 40px filter field.
+::ng-deep .orders-page .table-header .filter-controls .mat-datepicker-toggle {
+  color: theme.$navy;
+
+  // Flex centring keeps the glyph on the hover ring's axis; the inline
+  // SVG would otherwise sit ~3px high on the text baseline.
+  .mat-mdc-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    --mdc-icon-button-state-layer-size: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .mat-mdc-button-touch-target {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mat-mdc-focus-indicator::before {
+    inset: 0;
+  }
+
+  // The toggle renders an <svg>, not a <mat-icon>, so its size has to be
+  // set directly or it stays at Material's 24px.
+  .mat-datepicker-toggle-default-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Compact calendar popup. panelClass lands on <mat-calendar> itself, so the
+// box and the tokens it reads are styled off the hook class; the wrapper's
+// container tokens need :has() because it sits above that element.
+::ng-deep .cdk-overlay-container mat-calendar.orders-datepicker-panel {
+  width: 264px;
+  height: 316px;
+
+  --mat-datepicker-calendar-header-text-color: #{theme.$navy};
+  --mat-datepicker-calendar-header-divider-color: #{theme.$border};
+  --mat-datepicker-calendar-period-button-text-color: #{theme.$navy};
+  --mat-datepicker-calendar-period-button-icon-color: #{theme.$navy};
+  --mat-datepicker-calendar-period-button-text-size: 13px;
+  --mat-datepicker-calendar-navigation-button-icon-color: #{theme.$navy};
+  --mat-datepicker-calendar-date-text-color: #{theme.$text};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{theme.$navy-soft};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{theme.$navy-soft};
+  --mat-datepicker-calendar-date-selected-state-background-color: #{theme.$teal};
+  --mat-datepicker-calendar-date-selected-state-text-color: #ffffff;
+  --mat-datepicker-calendar-date-today-outline-color: #{theme.$navy};
+  --mat-datepicker-calendar-date-today-selected-state-outline-color: #{theme.$card-bg};
+  --mat-datepicker-calendar-date-disabled-state-text-color: #{theme.$text-faint};
+  --mat-datepicker-calendar-body-label-text-color: #{theme.$text-muted};
+
+  .mat-calendar-header {
+    padding: 11px 10px 6px;
+  }
+
+  .mat-calendar-table-header th {
     color: theme.$text-muted;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mat-calendar-body-cell-content {
+    font-size: 12px;
+    font-weight: 500;
+  }
+}
+
+::ng-deep .cdk-overlay-container .mat-datepicker-content:has(.orders-datepicker-panel) {
+  --mat-datepicker-calendar-container-background-color: #{theme.$card-bg};
+  --mat-datepicker-calendar-container-text-color: #{theme.$text};
+  --mat-datepicker-calendar-container-shape: #{theme.$radius};
+  --mat-datepicker-calendar-container-elevation-shadow: #{theme.$shadow-raised};
+
+  border: 1px solid #{theme.$border-strong};
+  overflow: hidden;
+}
+
+// Narrow filters open a menu no wider than the field itself, like the
+// table list's filter selects.
+::ng-deep .cdk-overlay-container div.console-select-panel.order-filter-panel.mat-mdc-select-panel {
+  min-width: 0;
+}
+
+// ------------------------------------------------------------
+//  Grid
+// ------------------------------------------------------------
+.table-scroll .orders-table {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  background: transparent;
+  --mat-table-row-item-container-height: 30px;
+  --mat-table-header-container-height: 29px;
+}
+
+::ng-deep .table-scroll .orders-table th.mat-mdc-header-cell {
+  background: theme.$navy-soft;
+  color: theme.$navy;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 5px 10px;
+  line-height: 30px;
+  white-space: nowrap;
+  border-bottom: 1.5px solid #d5e0ee;
+}
+
+::ng-deep .table-scroll .orders-table td.mat-mdc-cell {
+  font-size: 12px;
+  color: theme.$text;
+  padding: 4px 10px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom-color: theme.$border;
+}
+
+// Pills and the row menu must not be clipped by the ellipsis rule.
+::ng-deep .table-scroll .orders-table td.mat-column-payment_status,
+::ng-deep .table-scroll .orders-table td.mat-column-status,
+::ng-deep .table-scroll .orders-table td.mat-column-actions {
+  overflow: visible;
+}
+
+::ng-deep .table-scroll .orders-table tr.mat-mdc-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+::ng-deep .table-scroll .orders-table tr.mat-mdc-row:hover td.mat-mdc-cell {
+  background: #e2f6f3;
+}
+
+.cell-strong {
+  font-weight: 600;
+  color: theme.$navy;
+}
+
+.cell-reference {
+  font-size: 12.5px;
+  color: theme.$text-muted;
+}
+
+.cell-amount {
+  font-weight: 600;
+  color: theme.$navy;
+  font-variant-numeric: tabular-nums;
+}
+
+// ------------------------------------------------------------
+//  Status pills. Same shape as the user/table pills: pastel fill,
+//  strong label, status dot.
+// ------------------------------------------------------------
+.status-pill,
+.payment-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: theme.$neutral-soft;
+  color: theme.$neutral;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+@each $status, $pair in theme.$order-status-colors {
+  .st-#{$status} {
+    background: list.nth($pair, 2);
+    color: list.nth($pair, 1);
+
+    &::before {
+      background: currentColor;
+    }
+  }
+}
+
+// The shared map draws completed as a dark chip; keep it light like the
+// rest of the grid while retaining navy as the label colour.
+.status-pill.st-completed {
+  background: theme.$ok-soft;
+  color: theme.$navy;
+}
+
+// Payment axis. `pending` comes from the order map above.
+.payment-status-pill {
+  &.st-partial {
+    background: theme.$warn-soft;
+    color: theme.$warn;
+  }
+
+  &.st-paid {
+    background: theme.$ok-soft;
+    color: theme.$ok;
+  }
+
+  &.st-refunded {
+    background: theme.$teal-soft;
+    color: theme.$teal;
+  }
+
+  &.st-failed {
+    background: theme.$danger-soft;
+    color: theme.$danger;
+  }
+}
+
+// ------------------------------------------------------------
+//  Row action button + menu
+// ------------------------------------------------------------
+.action-btn {
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  color: theme.$navy !important;
+  transition: all 0.15s ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    flex: 0 0 auto;
+  }
+
+  &:hover {
+    background: theme.$navy-soft !important;
+  }
+}
+
+::ng-deep .cms-actions-menu {
+  border-radius: 12px;
+  min-width: 100px;
+  padding: 5px !important;
+  border: 1px solid theme.$border;
+  box-shadow: 0 12px 30px rgba(0, 51, 102, 0.18);
+
+  .mat-mdc-menu-item {
+    position: relative;
+    border-radius: 8px;
+    min-height: 32px;
+    font-size: 12px;
+    font-weight: 500;
+    color: theme.$text;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      border-bottom: 1px solid theme.$border;
+    }
 
     mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
-      opacity: 0.4;
+      color: theme.$navy;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 6px !important;
     }
 
-    span {
-      font-size: 14px;
+    .mat-mdc-menu-item-text {
+      text-align: left;
+      font-size: 12px !important;
+      line-height: 1.3;
     }
-  }
 
-  .table-footer {
-    flex: 0 0 auto;
-    padding: 8px 20px 16px;
+    &:hover {
+      background: theme.$navy-soft;
+      color: theme.$navy;
+    }
 
-    ::ng-deep .mat-mdc-paginator {
-      .mdc-paginator__page-size-label {
-        margin-right: 8px;
+    &.delete-item {
+      color: theme.$danger;
+
+      mat-icon {
+        color: theme.$danger;
+      }
+
+      &:hover {
+        background: theme.$danger-soft;
       }
     }
   }
 }
 
 // ------------------------------------------------------------
-//  Loading overlay (absolute inside the table card)
+//  Empty state
 // ------------------------------------------------------------
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  border-radius: theme.$radius;
+::ng-deep .table-scroll .orders-table tr.mat-mdc-no-data-row td {
+  display: table-cell;
+  width: 100%;
+  height: calc(100vh - 340px);
+  padding: 40px 16px;
+  border-bottom: none;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+}
 
-  mat-spinner {
-    color: theme.$navy;
+.no-data {
+  width: 100%;
+  height: 100%;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  color: theme.$text-muted;
+  font-size: 13px;
+
+  mat-icon {
+    display: block;
+    margin: 0 auto 10px;
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: #9db6d4;
+  }
+
+  span {
+    display: block;
+    text-align: center;
+  }
+}
+
+// ------------------------------------------------------------
+//  Responsive — filters tighten before the header wraps.
+// ------------------------------------------------------------
+@media (max-width: 1300px) {
+  .table-header .filter-controls {
+    .custom-input {
+      width: 210px;
+    }
+    .select-input {
+      width: 145px;
+    }
+    .date-input {
+      width: 138px;
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .table-header .filter-controls {
+    .custom-input {
+      width: 200px;
+    }
+    .select-input {
+      width: 140px;
+    }
+    .date-input {
+      width: 132px;
+    }
+  }
+}
+
+@media (max-width: 1000px) {
+  .orders-page {
+    padding: 8px 14px 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .table-header .filter-controls {
+    .custom-input {
+      width: 180px;
+    }
   }
 }

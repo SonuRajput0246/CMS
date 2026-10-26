@@ -5,11 +5,10 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SharedModule } from '../../../shared/shared.module';
 import { AppConfig } from '../../../core/config/config';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 
-import { OrderListComponent, OrderDetailDialogComponent } from './order-list.component';
+import { OrderListComponent } from './order-list.component';
 
 class MockSnackbarService {
   openSnackBar = jasmine.createSpy('openSnackBar');
@@ -25,13 +24,11 @@ describe('OrderListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SharedModule, RouterTestingModule, NoopAnimationsModule],
-      declarations: [OrderListComponent, OrderDetailDialogComponent],
+      declarations: [OrderListComponent],
       providers: [
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
         provideNativeDateAdapter(),
-        { provide: MatDialogRef, useValue: { close: jasmine.createSpy('close'), afterClosed: () => import('rxjs').then(r => r.of(null)) } },
-        { provide: MAT_DIALOG_DATA, useValue: {} },
         { provide: CustomSnackbarService, useClass: MockSnackbarService },
       ],
     })
@@ -70,6 +67,36 @@ describe('OrderListComponent', () => {
   it('loads orders on init', () => {
     expect(component.orderList.length).toBe(2);
     expect(component.pageDet.total_docs).toBe(2);
+  });
+
+  it('exposes the paginator page index and total pages', () => {
+    expect(component.currentPageIndex).toBe(0);
+    expect(component.totalPages).toBe(1);
+
+    (component as any).requestData.page_number = 3;
+    component.pageDet.total_docs = 46;
+    expect(component.currentPageIndex).toBe(2);
+    expect(component.totalPages).toBe(5);
+  });
+
+  it('steps back a page when a fetch returns an empty later page', () => {
+    (component as any).requestData.page_number = 2;
+    (component as any).fetchOrderList();
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/order/get` &&
+      req.body.page_number === 2
+    ).flush({ status: true, data: [], meta: { total_records: 10 } });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/order/get` &&
+      req.body.page_number === 1
+    ).flush({
+      status: true,
+      data: [{ id: 1, order_number: 'ORD-001', status: 'completed', payment_status: 'paid' }],
+      meta: { total_records: 10 },
+    });
+
+    expect((component as any).requestData.page_number).toBe(1);
   });
 
   it('applies search filter with 3+ chars', () => {
@@ -123,19 +150,13 @@ describe('OrderListComponent', () => {
     ).flush({ status: true, data: [], meta: { total_records: 0 } });
   });
 
-  it('opens order detail dialog on row click', () => {
-    const order = component.orderList[0];
-    spyOn(component as any, 'openOrderDetail').and.callThrough();
+  it('navigates to the order detail page on row click', () => {
+    spyOn((component as any)._router, 'navigate');
+    component.onRowClick(component.orderList[0]);
 
-    component.onRowClick(order);
-
-    expect((component as any).openOrderDetail).toHaveBeenCalledWith(1);
-
-    /// openOrderDetail makes a GET request to fetch order details
-    httpMock.expectOne(`${base}/api/v1/order/get-by-id/1`).flush({
-      status: true,
-      data: { id: 1, order_number: 'ORD-001', items: [], payments: [] },
-    });
+    expect((component as any)._router.navigate).toHaveBeenCalledWith(['/cms/orders/view', 1]);
+    /// The detail page owns the fetch now; the list must not duplicate it.
+    httpMock.expectNone(`${base}/api/v1/order/get-by-id/1`);
   });
 
   // Dialog afterClosed refresh tested implicitly; dialog mechanics are complex to mock fully.
