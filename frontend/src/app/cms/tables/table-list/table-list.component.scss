@@ -694,6 +694,7 @@
   font-weight: 700;
   color: theme.$navy;
   border-bottom: 1px solid theme.$border;
+  background: linear-gradient(135deg, rgba(0, 51, 102, 0.03), rgba(22, 180, 164, 0.06));
 
   mat-icon {
     color: theme.$teal;
@@ -703,9 +704,30 @@
   }
 }
 
-.tbl-dialog-body {
-  padding: 18px 20px 4px;
+// Material injects its dialog-content padding after the component styles,
+// and its title+content padding-top rule is a 3-class selector, so this has
+// to go through the panel class to win the cascade. overflow-x stays hidden
+// because the vertical scrollbar's width would otherwise trigger a second,
+// horizontal bar along the bottom.
+::ng-deep .tbl-dialog-panel .mat-mdc-dialog-container .mat-mdc-dialog-content.tbl-dialog-body {
+  padding: 14px 20px 4px;
+  overflow-x: hidden;
   overflow-y: auto;
+
+  // Slim scrollbar, same treatment as the add-user form.
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .tbl-dialog-actions {
@@ -718,18 +740,46 @@
   border-radius: 999px;
 }
 
+// Matches the submit buttons on the routed form pages instead of the
+// prebuilt indigo primary.
 .btn-submit {
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 40px;
+  padding: 0 22px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, theme.$teal, theme.$teal-dark) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(22, 180, 164, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(22, 180, 164, 0.45);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+::ng-deep .tbl-dialog-panel .btn-submit .mat-mdc-progress-spinner circle {
+  stroke: #ffffff;
 }
 
 // ------------------------------------------------------------
 //  Dialog form internals
 // ------------------------------------------------------------
-.full-width {
-  grid-column: 1 / -1;
+// The remarks field fills the body; it deliberately avoids the global
+// `.full-width` helper, whose 15px side padding would inset it from the
+// status cards above.
+.remarks-field {
+  width: 100%;
 }
 
 // The "why is this not editable" explanations. Deliberately verbose: these
@@ -767,15 +817,29 @@
 .status-choices {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: 6px;
+  // Breathing room under the title, above the first status card.
+  margin: 8px 0 14px;
 }
 
 .status-choice {
   border: 1px solid theme.$border;
-  border-radius: 10px;
-  padding: 4px 10px;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  border-radius: 12px;
+  padding: 6px 12px;
+  background: #fbfcfe;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #c7d6ea;
+    background: #ffffff;
+  }
+
+  // MatRadioButton puts mat-mdc-radio-checked on this same host element.
+  &.mat-mdc-radio-checked {
+    border-color: theme.$teal;
+    background: theme.$teal-soft;
+    box-shadow: 0 0 0 2px rgba(22, 180, 164, 0.12);
+  }
 
   ::ng-deep .mdc-form-field {
     width: 100%;

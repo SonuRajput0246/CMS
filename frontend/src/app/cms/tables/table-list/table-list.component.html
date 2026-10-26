@@ -319,7 +319,7 @@
 <!-- ==============================================================
      DIALOG — Change Status
      ============================================================== -->
-<ng-template #statusFormTpl let-dialogRef>
+<ng-template #statusFormTpl>
     <div class="tbl-dialog">
         <h2 mat-dialog-title class="tbl-dialog-title">
             <mat-icon>sync_alt</mat-icon>
@@ -339,7 +339,7 @@
                     Pick a status
                 </mat-error>
 
-                <mat-form-field appearance="outline" floatLabel="always" class="full-width">
+                <mat-form-field appearance="outline" floatLabel="always" class="remarks-field">
                     <mat-label>Remarks (optional)</mat-label>
                     <textarea matInput rows="2" formControlName="remarks"
                         placeholder="Why this table is out of service"></textarea>
@@ -373,7 +373,7 @@
         <mat-dialog-actions align="end" class="tbl-dialog-actions">
             <button mat-stroked-button type="button" class="btn-cancel" [mat-dialog-close]="undefined">Cancel</button>
             <button mat-flat-button type="button" color="primary" class="btn-submit" [disabled]="isSaving"
-                (click)="saveStatus(dialogRef)">
+                (click)="saveStatus()">
                 <mat-progress-spinner *ngIf="isSaving" diameter="18" mode="indeterminate"></mat-progress-spinner>
                 <mat-icon *ngIf="!isSaving">sync_alt</mat-icon>
                 Update Status

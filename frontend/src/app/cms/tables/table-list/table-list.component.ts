@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -46,6 +46,10 @@ export class TableListComponent implements OnInit {
   /// The status dialog is the only form that still lives in this component.
   /// Add / edit for tables and zones are routed pages (see tables-routing).
   @ViewChild('statusFormTpl') statusFormTpl!: TemplateRef<unknown>;
+
+  /// Held here because the template context's `dialogRef` comes through null,
+  /// which left this dialog stuck open after a successful save.
+  private statusDialogRef: MatDialogRef<unknown> | null = null;
 
   //// Constants
   readonly statusLabels = TABLE_STATUS_LABELS;
@@ -320,15 +324,17 @@ export class TableListComponent implements OnInit {
         : 'available',
       remarks: ''
     });
-    this._dialog.open(this.statusFormTpl, {
+    const ref = this._dialog.open(this.statusFormTpl, {
       width: '460px',
       maxWidth: '95vw',
       autoFocus: false,
       panelClass: 'tbl-dialog-panel'
     });
+    this.statusDialogRef = ref;
+    ref.afterClosed().subscribe(() => { this.statusDialogRef = null; });
   }
 
-  saveStatus(dialogRef: { close: () => void }): void {
+  saveStatus(): void {
     if (this.statusForm.invalid || !this.editingTable?.id) {
       this.statusForm.markAllAsTouched();
       return;
@@ -356,7 +362,7 @@ export class TableListComponent implements OnInit {
         next: (res) => {
           if (res?.status) {
             this._snackbar.openSnackBar(res.message || 'Status updated successfully', 'success');
-            dialogRef.close();
+            this.statusDialogRef?.close();
             this.fetchTables();
           } else {
             this._snackbar.openSnackBar(res?.message || 'Failed to update the status', 'error');

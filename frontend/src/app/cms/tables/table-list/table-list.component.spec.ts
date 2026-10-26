@@ -146,9 +146,45 @@ describe('TableListComponent', () => {
   it('rejects saving an occupied status manually', () => {
     component.statusForm.reset({ status: 'occupied', remarks: '' });
     component.editingTable = { id: 1 } as any;
-    component.saveStatus({ close: () => {} });
+    component.saveStatus();
 
     httpMock.expectNone(`${base}/api/v1/table/update-status`);
+  });
+
+  it('closes the status dialog and refreshes the list after a successful update', () => {
+    component.onChangeStatus(component.tableList[0]);
+    component.statusForm.patchValue({ status: 'maintenance' });
+    const dialogRef = (component as any).statusDialogRef;
+    spyOn(dialogRef, 'close').and.callThrough();
+
+    component.saveStatus();
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/table/update-status` &&
+      req.body.status === 'maintenance'
+    ).flush({ status: true, message: 'Table status updated successfully.' });
+
+    expect(dialogRef.close).toHaveBeenCalled();
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/table/get`
+    ).flush({ status: true, data: [], meta: { total_records: 0 } });
+  });
+
+  it('keeps the status dialog open when the update is refused', () => {
+    component.onChangeStatus(component.tableList[0]);
+    component.statusForm.patchValue({ status: 'available' });
+    const dialogRef = (component as any).statusDialogRef;
+    spyOn(dialogRef, 'close').and.callThrough();
+
+    component.saveStatus();
+
+    httpMock.expectOne(`${base}/api/v1/table/update-status`).flush(
+      { status: false, message: 'Table has an open order.' },
+      { status: 409, statusText: 'Conflict' }
+    );
+
+    expect(dialogRef.close).not.toHaveBeenCalled();
   });
 
   it('toggles is_active inline', () => {
