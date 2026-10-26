@@ -36,6 +36,10 @@ export class CmsFloorService {
     return this.http.post(`${this.baseURL}/api/v1/table-zone/upsert`, data);
   }
 
+  getZoneById(zoneId: number): Observable<IEntityResponse> {
+    return this.http.get(`${this.baseURL}/api/v1/table-zone/get-by-id?id=${zoneId}`);
+  }
+
   getZoneTableCount(zoneId: number): Observable<IEntityResponse> {
     return this.http.get(`${this.baseURL}/api/v1/table-zone/get-table-count?id=${zoneId}`);
   }

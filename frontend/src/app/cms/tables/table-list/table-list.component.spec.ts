@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SharedModule } from '../../../shared/shared.module';
 import { AppConfig } from '../../../core/config/config';
@@ -12,6 +13,7 @@ describe('TableListComponent', () => {
   let component: TableListComponent;
   let fixture: ComponentFixture<TableListComponent>;
   let httpMock: HttpTestingController;
+  let router: Router;
 
   const base = 'http://localhost:5000';
 
@@ -28,6 +30,7 @@ describe('TableListComponent', () => {
 
     TestBed.inject(AppConfig).set('BASE_URL', base);
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
 
     fixture = TestBed.createComponent(TableListComponent);
     component = fixture.componentInstance;
@@ -114,43 +117,22 @@ describe('TableListComponent', () => {
     ).flush({ status: true, data: [], meta: { total_records: 0 } });
   });
 
-  it('opens add table dialog with defaults', () => {
+  it('navigates to the add table page', () => {
+    const nav = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
     component.onAddTable();
-    expect(component.editingTable).toBeNull();
-    expect(component.tableForm.value.table_number).toBe('');
-    expect(component.tableForm.value.capacity).toBe(2);
+    expect(nav).toHaveBeenCalledWith(['/cms/tables/add-table']);
   });
 
-  it('opens edit table dialog with row data', () => {
-    const row = component.tableList[0];
-    component.onEditTable(row);
-
-    expect(component.editingTable?.id).toBe(10);
-    expect(component.tableForm.value.table_number).toBe('T1');
-    expect(component.tableForm.value.zone_id).toBe(1);
+  it('navigates to the edit table page with the row id', () => {
+    const nav = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    component.onEditTable(component.tableList[0]);
+    expect(nav).toHaveBeenCalledWith(['/cms/tables/update-table', 10]);
   });
 
-  it('rejects save when table form is invalid', () => {
-    component.tableForm.reset({ table_number: '', capacity: 0 });
-    component.saveTable({ close: () => {} });
-
-    httpMock.expectNone(`${base}/api/v1/table/upsert`);
-  });
-
-  it('saves a table via upsert and reloads', () => {
-    component.tableForm.reset({ table_number: 'T3', table_name: 'Bar', capacity: 2, zone_id: 1, shape: 'square', is_combinable: true, is_active: true });
-    component.saveTable({ close: () => {} });
-
-    httpMock.expectOne(req =>
-      req.method === 'POST' && req.url === `${base}/api/v1/table/upsert` &&
-      req.body.table_number === 'T3'
-    ).flush({ status: true, message: 'Table saved successfully' });
-
-    httpMock.expectOne(req =>
-      req.method === 'POST' && req.url === `${base}/api/v1/table/get`
-    ).flush({ status: true, data: [], meta: { total_records: 0 } });
-
-    expect(component.tableForm.value.table_number).toBe('T3');
+  it('does not navigate to edit without an id', () => {
+    const nav = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    component.onEditTable({ table_number: 'T9' });
+    expect(nav).not.toHaveBeenCalled();
   });
 
   it('does not offer occupied in the status dialog', () => {
@@ -208,23 +190,21 @@ describe('TableListComponent', () => {
     ).flush({ status: true, data: { table_count: 3 } });
   });
 
-  it('adds a zone', () => {
-    component.zoneForm.reset({ name: 'bar', display_name: 'Bar', description: '', display_order: 0, is_active: true });
-    component.saveZone({ close: () => {} });
+  it('navigates to the add zone page', () => {
+    const nav = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    component.onAddZone();
+    expect(nav).toHaveBeenCalledWith(['/cms/tables/add-zone']);
+  });
 
-    httpMock.expectOne(req =>
-      req.method === 'POST' && req.url === `${base}/api/v1/table-zone/upsert` &&
-      req.body.name === 'bar'
-    ).flush({ status: true, message: 'Zone saved successfully' });
-
-    httpMock.expectOne(req =>
-      req.method === 'POST' && req.url === `${base}/api/v1/table-zone/get`
-    ).flush({ status: true, data: [] });
+  it('navigates to the edit zone page with the row id', () => {
+    const nav = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    component.onEditZone({ id: 2, name: 'patio' });
+    expect(nav).toHaveBeenCalledWith(['/cms/tables/update-zone', 2]);
   });
 
   it('deletes a zone with warning about unassigned tables', () => {
-    component.editingZone = { id: 2, name: 'patio', display_name: 'Patio', table_count: 4 } as any;
-    (component as any).executeDeleteZone(component.editingZone);
+    const zone = { id: 2, name: 'patio', display_name: 'Patio', table_count: 4 } as any;
+    (component as any).executeDeleteZone(zone);
 
     httpMock.expectOne(req =>
       req.method === 'POST' && req.url === `${base}/api/v1/table-zone/upsert` &&

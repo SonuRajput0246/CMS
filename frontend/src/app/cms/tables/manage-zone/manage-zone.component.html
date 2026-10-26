@@ -1,0 +1,132 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
+<div class="tbl-form-page">
+
+    <div class="top-sub-nav-controls">
+        <button type="button" mat-raised-button color="primary" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon> Back
+        </button>
+    </div>
+
+    <div class="form-scroll">
+        <form [formGroup]="zoneForm" (ngSubmit)="saveZone()" autocomplete="off">
+            <div class="form-shell tbl-manage-form">
+
+                <!-- ================= Zone Details ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>grid_view</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Zone Details</h3>
+                            <p>How this area is named and ordered on the floor</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Zone Name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. patio">
+                            <mat-hint>Lowercase key used by reports — avoid spaces</mat-hint>
+                            <mat-error *ngIf="zoneForm.get('name')?.hasError('required')">
+                                Zone Name is required
+                            </mat-error>
+                            <mat-error *ngIf="zoneForm.get('name')?.hasError('maxlength')">
+                                Max 50 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Name</mat-label>
+                            <input matInput type="text" formControlName="display_name"
+                                placeholder="e.g. Garden Patio">
+                            <mat-error *ngIf="zoneForm.get('display_name')?.hasError('required')">
+                                Display Name is required
+                            </mat-error>
+                            <mat-error *ngIf="zoneForm.get('display_name')?.hasError('maxlength')">
+                                Max 50 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Order</mat-label>
+                            <input matInput type="number" formControlName="display_order" min="0" step="1">
+                            <mat-hint>Lower numbers appear first on the floor</mat-hint>
+                            <mat-error *ngIf="zoneForm.get('display_order')?.hasError('min')">
+                                Cannot be negative
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always" class="field-full">
+                            <mat-label>Description</mat-label>
+                            <textarea matInput rows="2" formControlName="description"
+                                placeholder="e.g. Outdoors, covers 20, closed in monsoon"></textarea>
+                            <mat-error *ngIf="zoneForm.get('description')?.hasError('maxlength')">
+                                Max 255 characters
+                            </mat-error>
+                        </mat-form-field>
+                    </div>
+                </section>
+
+                <!-- ================= Availability ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>tune</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Availability</h3>
+                            <p>Whether this zone is offered when assigning a table</p>
+                        </div>
+                    </header>
+
+                    <div class="toggle-grid">
+                        <div class="toggle-card">
+                            <span class="toggle-icon success"><mat-icon>verified_user</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Active</strong>
+                                <small>Offered in the "pick a zone" list</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_active"></mat-slide-toggle>
+                        </div>
+                    </div>
+
+                    <div class="inline-note">
+                        <mat-icon>info</mat-icon>
+                        <span>
+                            Deleting a zone leaves its tables on the floor as <strong>Unassigned</strong>.
+                            Renaming is always safe — tables point at the zone by id, not by name.
+                        </span>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="form-footer">
+                <div class="footer-note">
+                    <mat-icon>verified</mat-icon>
+                    <span>Zone changes appear on the floor immediately</span>
+                </div>
+
+                <div class="footer-buttons">
+                    <button mat-stroked-button type="button" class="btn-cancel" (click)="goBack()">
+                        Cancel
+                    </button>
+                    <button mat-flat-button type="submit" class="btn-submit"
+                        [disabled]="isSaving || isPageLoad">
+                        <span class="btn-content" *ngIf="!isSaving">
+                            <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+                            {{ isEditMode ? 'Update Zone' : 'Add Zone' }}
+                        </span>
+                        <span class="btn-content" *ngIf="isSaving">
+                            Please Wait
+                            <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                            </mat-progress-spinner>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <app-page-loader *ngIf="isPageLoad"></app-page-loader>
+    </div>
+
+</div>

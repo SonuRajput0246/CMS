@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import { IGenricGrid, INavigationaBar } from '../../../models/ICommon.model';
@@ -38,14 +38,12 @@ export class TableListComponent implements OnInit {
   private _confirmService = inject(ConfirmationService);
   private _dialog = inject(MatDialog);
   private _route = inject(ActivatedRoute);
+  private _router = inject(Router);
   private _fb = inject(FormBuilder);
 
-  /// Dialog templates live in this component's own view. Declaring them inline
-  /// (rather than as separate components) keeps the whole screen in six files
-  /// and keeps the form's reactive state next to the methods that read it.
-  @ViewChild('tableFormTpl') tableFormTpl!: TemplateRef<unknown>;
+  /// The status dialog is the only form that still lives in this component.
+  /// Add / edit for tables and zones are routed pages (see tables-routing).
   @ViewChild('statusFormTpl') statusFormTpl!: TemplateRef<unknown>;
-  @ViewChild('zoneFormTpl') zoneFormTpl!: TemplateRef<unknown>;
 
   //// Constants
   readonly statusLabels = TABLE_STATUS_LABELS;
@@ -64,9 +62,6 @@ export class TableListComponent implements OnInit {
    * occupied tables" is a legitimate thing to want.
    */
   readonly settableStatuses: TableStatus[] = ['available', 'reserved', 'cleaning', 'maintenance'];
-
-  /// Mirrors TABLE_SHAPES in table_schema.py -- square / round / rectangle.
-  readonly tableShapes = ['square', 'round', 'rectangle'];
 
   //// State Properties
   navData: INavigationaBar[] = [];
@@ -107,21 +102,21 @@ export class TableListComponent implements OnInit {
   private zoneRequest = { page_number: 1, page_size: 200, search_value: '' };
 
   //// Form State
-  tableForm!: FormGroup;
-  zoneForm!: FormGroup;
   statusForm!: FormGroup;
 
-  /// Row currently open in the table form / status dialog. Held on the
-  /// component because the dialogs are inline templates, so they can read these
-  /// without an injected data object.
+  /// Table currently open in the status dialog. Add / edit forms load their
+  /// own record on their own routes.
   editingTable: ITable | null = null;
-  editingZone: ITableZone | null = null;
 
   /// ids with an in-flight write, so a double click cannot fire two upserts
   /// for the same row (the second would land on a stale copy of the payload).
   busyIds = new Set<number>();
 
   ngOnInit(): void {
+    // Zone add/edit returns here with ?tab=zones so the operator lands on the
+    // tab where the saved zone is visible.
+    this.selectedTabIndex = this._route.snapshot.queryParamMap.get('tab') === 'zones' ? 1 : 0;
+
     this.buildForms();
     this.initNavigation();
     this.loadZones();
@@ -149,16 +144,6 @@ export class TableListComponent implements OnInit {
   //// ------------------------------------------------------------------
 
   private buildForms(): void {
-    this.tableForm = this._fb.group({
-      table_number: ['', [Validators.required, Validators.maxLength(20)]],
-      table_name: ['', Validators.maxLength(50)],
-      capacity: [2, [Validators.required, Validators.min(1), Validators.max(50)]],
-      zone_id: [null],
-      shape: ['square'],
-      is_combinable: [true],
-      is_active: [true]
-    });
-
     // status is NOT in the table form. The upsert schema accepts it but the
     // service ignores it for an occupied table, so a status change from this
     // screen has to go through the dedicated dialog where the guard rails
@@ -166,14 +151,6 @@ export class TableListComponent implements OnInit {
     this.statusForm = this._fb.group({
       status: ['available', Validators.required],
       remarks: ['', Validators.maxLength(255)]
-    });
-
-    this.zoneForm = this._fb.group({
-      name: ['', [Validators.required, Validators.maxLength(50)]],
-      display_name: ['', [Validators.required, Validators.maxLength(50)]],
-      description: ['', Validators.maxLength(255)],
-      display_order: [0, [Validators.min(0)]],
-      is_active: [true]
     });
   }
 
@@ -222,6 +199,12 @@ export class TableListComponent implements OnInit {
           }
           this.zoneList = res.data || [];
           this.zoneDataSource.data = this.zoneList;
+          // Landing here from a zone form (?tab=zones) means the Zones tab is
+          // already open, so its counts have to hydrate now rather than on a
+          // tab-change event that will never fire.
+          if (this.selectedTabIndex === 1) {
+            this.loadZoneTableCounts();
+          }
         },
         error: (err) => this._snackbar.openSnackBar(
           err?.error?.message || 'An error occurred while fetching zones', 'error'
@@ -300,90 +283,17 @@ export class TableListComponent implements OnInit {
   }
 
   //// ------------------------------------------------------------------
-  ////  Dialogs -- tables
+  ////  Navigation to the add / edit pages
   //// ------------------------------------------------------------------
 
   onAddTable(): void {
-    this.editingTable = null;
-    this.tableForm.reset({
-      table_number: '',
-      table_name: '',
-      capacity: 2,
-      zone_id: this.filterZoneId,
-      shape: 'square',
-      is_combinable: true,
-      is_active: true
-    });
-    this._dialog.open(this.tableFormTpl, {
-      width: '620px',
-      maxWidth: '95vw',
-      autoFocus: false,
-      panelClass: 'tbl-dialog-panel'
-    });
+    this._router.navigate(['/cms/tables/add-table']);
   }
 
   onEditTable(table: ITable): void {
+    if (!table.id) return;
     (document.activeElement as HTMLElement)?.blur();
-    this.editingTable = table;
-    this.tableForm.reset({
-      table_number: table.table_number || '',
-      table_name: table.table_name || '',
-      capacity: table.capacity || 2,
-      zone_id: table.zone_id ?? null,
-      shape: table.shape || 'square',
-      is_combinable: table.is_combinable ?? true,
-      is_active: table.is_active ?? true
-    });
-    this._dialog.open(this.tableFormTpl, {
-      width: '620px',
-      maxWidth: '95vw',
-      autoFocus: false,
-      panelClass: 'tbl-dialog-panel'
-    });
-  }
-
-  saveTable(dialogRef: { close: () => void }): void {
-    if (this.tableForm.invalid) {
-      this.tableForm.markAllAsTouched();
-      return;
-    }
-
-    this.isSaving = true;
-    const value = this.tableForm.value;
-
-    /**
-     * is_deleted is required by the upsert schema on every write, so an update
-     * must explicitly say "still live". Table_zone / recipe_category behave the
-     * same way; this codebase does soft deletes through the same payload.
-     */
-    const payload = {
-      id: this.editingTable?.id || 0,
-      table_number: value.table_number,
-      table_name: value.table_name || null,
-      capacity: value.capacity,
-      zone_id: value.zone_id || null,
-      shape: value.shape || null,
-      is_combinable: !!value.is_combinable,
-      is_active: !!value.is_active,
-      is_deleted: false
-    };
-
-    this._floorService.upsertTable(payload)
-      .pipe(finalize(() => this.isSaving = false))
-      .subscribe({
-        next: (res) => {
-          if (res?.status) {
-            this._snackbar.openSnackBar(res.message || 'Table saved successfully', 'success');
-            dialogRef.close();
-            this.fetchTables();
-          } else {
-            this._snackbar.openSnackBar(res?.message || 'Failed to save the table', 'error');
-          }
-        },
-        error: (err) => this._snackbar.openSnackBar(
-          err?.error?.message || 'An error occurred while saving the table', 'error'
-        )
-      });
+    this._router.navigate(['/cms/tables/update-table', table.id]);
   }
 
   onChangeStatus(table: ITable): void {
@@ -570,82 +480,17 @@ export class TableListComponent implements OnInit {
     if (this.isZoneSearch.length >= 3 || this.isZoneSearch.length === 0) {
       this.zoneRequest.search_value = this.isZoneSearch;
       this.loadZones();
-      if (this.selectedTabIndex === 1) {
-        this.loadZoneTableCounts();
-      }
     }
   }
 
   onAddZone(): void {
-    this.editingZone = null;
-    this.zoneForm.reset({
-      name: '',
-      display_name: '',
-      description: '',
-      display_order: this.zoneList.length,
-      is_active: true
-    });
-    this._dialog.open(this.zoneFormTpl, {
-      width: '560px',
-      maxWidth: '95vw',
-      autoFocus: false,
-      panelClass: 'tbl-dialog-panel'
-    });
+    this._router.navigate(['/cms/tables/add-zone']);
   }
 
   onEditZone(zone: ITableZone): void {
+    if (!zone.id) return;
     (document.activeElement as HTMLElement)?.blur();
-    this.editingZone = zone;
-    this.zoneForm.reset({
-      name: zone.name || '',
-      display_name: zone.display_name || '',
-      description: zone.description || '',
-      display_order: zone.display_order ?? 0,
-      is_active: zone.is_active ?? true
-    });
-    this._dialog.open(this.zoneFormTpl, {
-      width: '560px',
-      maxWidth: '95vw',
-      autoFocus: false,
-      panelClass: 'tbl-dialog-panel'
-    });
-  }
-
-  saveZone(dialogRef: { close: () => void }): void {
-    if (this.zoneForm.invalid) {
-      this.zoneForm.markAllAsTouched();
-      return;
-    }
-
-    this.isSaving = true;
-    const value = this.zoneForm.value;
-
-    const payload = {
-      id: this.editingZone?.id || 0,
-      name: value.name,
-      display_name: value.display_name,
-      description: value.description || null,
-      display_order: value.display_order || 0,
-      is_active: !!value.is_active,
-      is_deleted: false
-    };
-
-    this._floorService.upsertZone(payload)
-      .pipe(finalize(() => this.isSaving = false))
-      .subscribe({
-        next: (res) => {
-          if (res?.status) {
-            this._snackbar.openSnackBar(res.message || 'Zone saved successfully', 'success');
-            dialogRef.close();
-            this.loadZones();
-          } else {
-            this._snackbar.openSnackBar(res?.message || 'Failed to save the zone', 'error');
-          }
-        },
-        error: (err) => this._snackbar.openSnackBar(
-          err?.error?.message || 'An error occurred while saving the zone', 'error'
-        )
-      });
+    this._router.navigate(['/cms/tables/update-zone', zone.id]);
   }
 
   onDeleteZone(zone: ITableZone): void {

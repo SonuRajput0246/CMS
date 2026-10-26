@@ -1,0 +1,155 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
+<div class="tbl-form-page">
+
+    <div class="top-sub-nav-controls">
+        <button type="button" mat-raised-button color="primary" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon> Back
+        </button>
+    </div>
+
+    <div class="form-scroll">
+        <form [formGroup]="tableForm" (ngSubmit)="saveTable()" autocomplete="off">
+            <div class="form-shell tbl-manage-form">
+
+                <!-- ================= Table Details ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>table_restaurant</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Table Details</h3>
+                            <p>Number, capacity and where it sits on the floor</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Table Number</mat-label>
+                            <input matInput type="text" formControlName="table_number" placeholder="e.g. T-01">
+                            <mat-hint>The floor label a waiter reads out</mat-hint>
+                            <mat-error *ngIf="tableForm.get('table_number')?.hasError('required')">
+                                Table Number is required
+                            </mat-error>
+                            <mat-error *ngIf="tableForm.get('table_number')?.hasError('maxlength')">
+                                Max 20 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Table Name</mat-label>
+                            <input matInput type="text" formControlName="table_name" placeholder="e.g. Window 4">
+                            <mat-error *ngIf="tableForm.get('table_name')?.hasError('maxlength')">
+                                Max 50 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Capacity</mat-label>
+                            <input matInput type="number" formControlName="capacity" min="1" max="50" step="1">
+                            <mat-error *ngIf="tableForm.get('capacity')?.hasError('required')">
+                                Capacity is required
+                            </mat-error>
+                            <mat-error
+                                *ngIf="tableForm.get('capacity')?.hasError('min') || tableForm.get('capacity')?.hasError('max')">
+                                Seats must be between 1 and 50
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Zone</mat-label>
+                            <mat-select formControlName="zone_id" placeholder="Unassigned"
+                                panelClass="console-select-panel">
+                                <mat-option [value]="null">Unassigned</mat-option>
+                                <mat-option *ngFor="let zone of zoneList" [value]="zone.id">
+                                    {{ zone.name }} — {{ zone.display_name }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Shape</mat-label>
+                            <mat-select formControlName="shape" panelClass="console-select-panel">
+                                <mat-option *ngFor="let shape of tableShapes" [value]="shape">
+                                    {{ shape | titlecase }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+                </section>
+
+                <!-- ================= Preferences ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>tune</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Preferences &amp; Status</h3>
+                            <p>How the table behaves on the POS floor</p>
+                        </div>
+                    </header>
+
+                    <div class="toggle-grid">
+                        <div class="toggle-card">
+                            <span class="toggle-icon"><mat-icon>merge</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Combinable</strong>
+                                <small>May be joined with a neighbour for a large party</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_combinable"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card">
+                            <span class="toggle-icon success"><mat-icon>verified_user</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>In Service</strong>
+                                <small>Offered to the POS as a seatable table</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_active"></mat-slide-toggle>
+                        </div>
+                    </div>
+
+                    <!-- The status is not on this form, and the absence is a
+                         decision, not an oversight. Occupancy belongs to the
+                         order lifecycle. -->
+                    <div class="inline-note">
+                        <mat-icon>info</mat-icon>
+                        <span>
+                            Status is not edited here. Use <strong>Change Status</strong> on the table row —
+                            <em>Occupied</em> is set by the POS when an order is opened and clears itself
+                            when that order is closed.
+                        </span>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="form-footer">
+                <div class="footer-note">
+                    <mat-icon>verified</mat-icon>
+                    <span>Changes appear on the POS floor immediately</span>
+                </div>
+
+                <div class="footer-buttons">
+                    <button mat-stroked-button type="button" class="btn-cancel" (click)="goBack()">
+                        Cancel
+                    </button>
+                    <button mat-flat-button type="submit" class="btn-submit"
+                        [disabled]="isSaving || isPageLoad">
+                        <span class="btn-content" *ngIf="!isSaving">
+                            <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+                            {{ isEditMode ? 'Update Table' : 'Add Table' }}
+                        </span>
+                        <span class="btn-content" *ngIf="isSaving">
+                            Please Wait
+                            <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                            </mat-progress-spinner>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <app-page-loader *ngIf="isPageLoad"></app-page-loader>
+    </div>
+
+</div>

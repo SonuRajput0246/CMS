@@ -17,11 +17,14 @@
 }
 
 .tbl-list {
-  flex: 1;
+  height: calc(100vh - 110px);
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 10px 20px 16px;
+  box-sizing: border-box;
+  @include theme.cms-page-bg;
   // NOT position: relative on purpose — see list-category.component.scss.
   // The global `.top-sub-nav-controls` is absolutely positioned against the
   // app container; making this box positioned would capture the CTAs into the
@@ -29,58 +32,109 @@
 }
 
 // ------------------------------------------------------------
-//  Tabs — same pill treatment as the inventory shell, so the
-//  two products feel identical when you move between them.
+//  Tabs — the same white pill bar as the inventory shell.
+//  Material draws the header and the body as siblings, so the
+//  card treatment goes on the header; the body sits one gap below
+//  exactly like the inventory tabs/card pair.
 // ------------------------------------------------------------
-::ng-deep .tbl-list .tbl-tabs {
-  flex: 0 0 auto;
+.tbl-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 
-  .mat-mdc-tab-header {
-    border-bottom: 1px solid theme.$border;
+  // Material colours tab labels through these custom properties, not through
+  // inheritance, so they have to be set on the tabs host.
+  --mat-tab-header-active-label-text-color: #ffffff;
+  --mat-tab-header-active-hover-label-text-color: #ffffff;
+  --mat-tab-header-active-focus-label-text-color: #ffffff;
+  --mat-tab-header-inactive-label-text-color: #{theme.$text-muted};
+  --mat-tab-header-inactive-hover-label-text-color: #{theme.$navy};
+  --mat-tab-header-inactive-focus-label-text-color: #{theme.$navy};
+  --mat-tab-header-active-ripple-color: rgba(255, 255, 255, 0.22);
+  --mat-tab-header-inactive-ripple-color: rgba(0, 51, 102, 0.08);
+}
+
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab-header {
+  background: #ffffff;
+  border: 1px solid theme.$border;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 42, 77, 0.05);
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab {
+  min-width: 0;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 10px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+
+  .mdc-tab__text-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
   }
 
-  .mat-mdc-tab {
-    min-width: 150px;
-
-    .mdc-tab__text-label {
-      gap: 7px;
-      color: theme.$text-muted;
-      font-weight: 600;
-    }
-
-    .mdc-tab--active .mdc-tab__text-label {
-      color: theme.$navy;
-    }
-
-    .mdc-tab-indicator__content--underline {
-      border-color: theme.$teal;
-      border-width: 3px;
-      border-radius: 3px 3px 0 0;
-    }
+  // the active state is carried by the pill background instead
+  .mdc-tab-indicator {
+    display: none;
   }
+}
 
-  .mat-mdc-tab-body-wrapper {
-    flex: 1;
-    min-height: 0;
-  }
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab.mdc-tab--active {
+  background: linear-gradient(135deg, theme.$navy, theme.$navy-light);
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
+}
 
-  .mat-mdc-tab-body-content {
-    height: 100%;
-    overflow: hidden;
-  }
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab:not(.mdc-tab--active):hover {
+  background: theme.$navy-soft;
+}
 
-  .mdc-tab {
-    padding: 0 18px;
-    min-width: 150px;
-    height: 46px;
+::ng-deep .tbl-list .tbl-tabs .mdc-tab {
+  min-width: 0;
+  padding: 0;
+}
+
+// tab label content (icon + text)
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: theme.$text-muted;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: theme.$navy;
   }
+}
+
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab.mdc-tab--active .tab-label {
+  color: #ffffff;
+
+  mat-icon {
+    color: #ffffff;
+  }
+}
+
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab-body-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+::ng-deep .tbl-list .tbl-tabs .mat-mdc-tab-body-content {
+  height: 100%;
+  overflow: hidden;
 }
 
 .tab-body {
   height: 100%;
   min-height: 0;
   display: flex;
-  padding: 10px 0 0;
 }
 
 // ------------------------------------------------------------
@@ -159,13 +213,13 @@
       margin-left: auto;
 
       .custom-input {
-        width: 200px;
+        width: 260px;
       }
 
       // Selects carry a dropdown arrow, so they need a touch more room than
       // the plain search box to keep the placeholder readable.
       .select-input {
-        width: 165px;
+        width: 160px;
       }
     }
 
@@ -275,19 +329,33 @@
   border-color: theme.$navy !important;
   border-width: 1.5px !important;
 }
-::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-floating-label {
+::ng-deep .tbl-list .table-header .filter-controls .mdc-floating-label {
   color: #7d8ea3;
   font-size: 13px;
 }
-::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-floating-label--float-above {
+::ng-deep .tbl-list .table-header .filter-controls .mdc-floating-label--float-above {
   color: theme.$navy !important;
-  font-size: 14px;
+  font-size: 14px !important;
   font-weight: 600;
 }
-::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-input-element {
+::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-input-element,
+::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-select-value-text {
   font-size: 13px !important;
   color: theme.$text !important;
   font-weight: 500;
+}
+::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-select-placeholder {
+  color: #7d8ea3;
+  font-size: 13px;
+  font-weight: 500;
+}
+::ng-deep .tbl-list .table-header .filter-controls .mat-mdc-select-arrow {
+  color: theme.$navy;
+}
+// The shared panel has a 240px floor that would make these narrow filters'
+// menus much wider than the field they drop from; let them match the field.
+::ng-deep .cdk-overlay-container div.console-select-panel.tbl-filter-panel.mat-mdc-select-panel {
+  min-width: 0;
 }
 ::ng-deep .tbl-list .table-header .filter-controls .mdc-line-ripple::before,
 ::ng-deep .tbl-list .table-header .filter-controls .mdc-line-ripple::after {
@@ -309,10 +377,10 @@
 // ------------------------------------------------------------
 .table-scroll .cms-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 940px;
   table-layout: fixed;
   background: transparent;
-  --mat-table-row-item-container-height: 32px;
+  --mat-table-row-item-container-height: 30px;
   --mat-table-header-container-height: 29px;
 }
 
@@ -352,7 +420,7 @@
   transition: background 0.15s ease;
 }
 ::ng-deep .table-scroll .cms-table tr.mat-mdc-row:hover td.mat-mdc-cell {
-  background: theme.$teal-soft;
+  background: #e2f6f3;
 }
 
 .cell-strong {
@@ -365,14 +433,25 @@
 //  can never drift from the POS/KDS colours for the same status.
 // ------------------------------------------------------------
 .status-pill {
-  @include theme.cms-pill(theme.$neutral-soft, theme.$neutral);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: theme.$neutral-soft;
+  color: theme.$neutral;
 
   &::before {
     content: "";
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: currentColor;
+    background: #9ca3af;
   }
 }
 
@@ -380,34 +459,59 @@
   .st-#{$key} {
     background: nth($pair, 2);
     color: nth($pair, 1);
+
+    &::before {
+      background: nth($pair, 1);
+    }
   }
 }
 
 // Admin lifecycle pill (is_active), which is a different axis from status.
 .status-pill.st-active {
-  background: theme.$ok-soft;
-  color: theme.$ok;
+  background: #dcfce7;
+  color: #15803d;
 
   &::before {
-    background: theme.$ok;
-    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+    background: #15803d;
+    box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.2);
   }
 }
 
 .status-pill.st-inactive {
-  background: theme.$danger-soft;
+  background: #fee2e2;
   color: theme.$danger;
+
+  &::before {
+    background: theme.$danger;
+  }
 }
 
 .count-chip {
-  display: inline-block;
-  min-width: 26px;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 1px 9px;
   border-radius: 999px;
+  border: 1px solid #cfe0f5;
   background: theme.$navy-soft;
   color: theme.$navy;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.5;
+}
+
+// Same teal switch the inventory / user / role forms use. The row toggle
+// lives outside those forms, so it needs the tokens here too.
+.cms-table mat-slide-toggle,
+.toggle-card mat-slide-toggle {
+  --mdc-switch-selected-handle-color: #ffffff;
+  --mdc-switch-selected-track-color: #{theme.$teal};
+  --mdc-switch-selected-pressed-track-color: #{theme.$teal};
+  --mdc-switch-selected-hover-track-color: #{theme.$teal};
+  --mdc-switch-selected-focus-track-color: #{theme.$teal};
+  --mdc-switch-unselected-track-color: #cfd9e6;
+  --mdc-switch-unselected-handle-color: #ffffff;
 }
 
 // ------------------------------------------------------------
@@ -441,26 +545,38 @@
 
 ::ng-deep .cms-actions-menu {
   border-radius: 12px;
-  min-width: 168px;
+  min-width: 100px;
   padding: 5px !important;
   border: 1px solid theme.$border;
   box-shadow: 0 12px 30px rgba(0, 51, 102, 0.18);
 
   .mat-mdc-menu-item {
+    position: relative;
     border-radius: 8px;
-    min-height: 34px;
+    min-height: 32px;
     font-size: 12px;
     font-weight: 500;
     color: theme.$text;
     padding-left: 12px !important;
     padding-right: 12px !important;
 
+    // Same hairline separator the inventory row menu uses.
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      border-bottom: 1px solid theme.$border;
+    }
+
     mat-icon {
       color: theme.$navy;
       font-size: 18px;
       width: 18px;
       height: 18px;
-      margin-right: 8px !important;
+      margin-right: 6px !important;
     }
 
     .mat-mdc-menu-item-text {
@@ -596,71 +712,8 @@
 // ------------------------------------------------------------
 //  Dialog form internals
 // ------------------------------------------------------------
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 14px;
-}
-
 .full-width {
   grid-column: 1 / -1;
-}
-
-.toggle-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
-  margin: 6px 0 14px;
-}
-
-.toggle-card {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 13px;
-  border: 1px solid theme.$border;
-  border-radius: 12px;
-  background: #fbfcfe;
-
-  .toggle-icon {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: theme.$navy-soft;
-    color: theme.$navy;
-
-    &.success {
-      background: theme.$ok-soft;
-      color: theme.$ok;
-    }
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-  }
-
-  .toggle-body {
-    flex: 1;
-    min-width: 0;
-
-    strong {
-      display: block;
-      font-size: 12.5px;
-      color: theme.$navy;
-    }
-
-    small {
-      display: block;
-      font-size: 11px;
-      color: theme.$text-muted;
-    }
-  }
 }
 
 // The "why is this not editable" explanations. Deliberately verbose: these
@@ -730,18 +783,29 @@
 //  Responsive — the header wraps before the filters squeeze.
 // ------------------------------------------------------------
 @media (max-width: 1200px) {
-  .table-header .filter-controls .custom-input {
-    width: 175px;
+  // Qualified through .table-card to match the nested base selectors; without
+  // that the base widths win and these breakpoints never apply.
+  .table-card .table-header .filter-controls .custom-input {
+    width: 220px;
   }
-  .table-header .filter-controls .select-input {
-    width: 145px;
+  .table-card .table-header .filter-controls .select-input {
+    width: 150px;
+  }
+}
+
+// Same shell padding switch as the inventory dashboard at this width.
+@media (max-width: 1000px) {
+  .tbl-list {
+    padding: 8px 14px 14px;
   }
 }
 
 @media (max-width: 900px) {
-  .table-header .filter-controls .custom-input,
-  .table-header .filter-controls .select-input {
-    width: 100%;
+  .table-card .table-header .filter-controls .custom-input {
+    width: 200px;
+  }
+  .table-card .table-header .filter-controls .select-input {
+    width: 140px;
   }
 
   .section-grid {
