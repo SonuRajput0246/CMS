@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
@@ -10,6 +11,7 @@ import { ITable, ITableZone, TABLE_STATUS_LABELS, TableStatus } from '../../../m
 import { CmsFloorService } from '../../../services/cms/floor.service';
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 
 /**
  * Table management.
@@ -80,6 +82,9 @@ export class TableListComponent implements OnInit {
   tableDataSource = new MatTableDataSource<ITable>();
   displayedColumns: string[] = ['sr', 'table_number', 'table_name', 'zone_name', 'capacity', 'status', 'is_active', 'actions'];
   pageDet: IGenricGrid = { total_docs: 0, limit: 10 };
+
+  /// Same page-size trigger and option list as every other CMS list page.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
 
   /// Zone list doubles as the filter dropdown AND the form's zone picker, so
   /// the operator never sees a zone they cannot then select.
@@ -174,6 +179,13 @@ export class TableListComponent implements OnInit {
           this.pageDet.total_docs = res.meta?.total_records || 0;
           this.pageDet.limit = this.requestData.page_size;
           this.tableDataSource.data = this.tableList;
+
+          // Deleting the last row on a page can leave the operator on an empty
+          // page; step back like the other list screens.
+          if (this.tableList.length === 0 && this.requestData.page_number > 1) {
+            this.requestData.page_number--;
+            this.fetchTables();
+          }
         },
         error: (err) => this._snackbar.openSnackBar(
           err?.error?.message || 'An error occurred while fetching the table list', 'error'

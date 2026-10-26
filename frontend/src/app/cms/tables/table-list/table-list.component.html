@@ -165,7 +165,8 @@
 
                     <footer class="table-footer" *ngIf="!isPageLoad">
                         <mat-paginator #tablePaginator [pageIndex]="currentPageIndex" [length]="pageDet.total_docs"
-                            [pageSize]="pageDet.limit" [pageSizeOptions]="[10, 20, 50, 100]"
+                            [pageSize]="pageDet.limit" [pageSizeOptions]="[10, 20, 50]"
+                            [selectConfig]="pageSizeSelect"
                             (page)="onPaginateChange($event)" showFirstLastButtons>
                         </mat-paginator>
                     </footer>

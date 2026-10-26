@@ -246,4 +246,25 @@ describe('TableListComponent', () => {
     expect(component.getSrNo(0)).toBe(11);
     expect(component.getSrNo(4)).toBe(15);
   });
+
+  it('steps back a page when a fetch returns an empty later page', () => {
+    (component as any).requestData.page_number = 2;
+    (component as any).fetchTables();
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/table/get` &&
+      req.body.page_number === 2
+    ).flush({ status: true, data: [], meta: { total_records: 10 } });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/table/get` &&
+      req.body.page_number === 1
+    ).flush({
+      status: true,
+      data: [component.tableList[0] || { id: 1 }],
+      meta: { total_records: 10 }
+    });
+
+    expect((component as any).requestData.page_number).toBe(1);
+  });
 });

@@ -274,6 +274,22 @@
   }
 }
 
+// Spacing parity with the user list's paginator; the rest of the compact
+// paginator styling lives in the global list-page block.
+::ng-deep .table-footer .mat-mdc-paginator {
+  .mat-mdc-paginator-page-size {
+    margin-right: 2px;
+
+    .mat-mdc-paginator-page-size-label {
+      margin: 0 3px 0 0;
+    }
+  }
+
+  .mat-mdc-paginator-range-label {
+    margin: 0 4px 0 8px;
+  }
+}
+
 // Zones are reference data and never page — say so rather than showing a
 // paginator with one page that silently does nothing.
 .no-pager-note {
