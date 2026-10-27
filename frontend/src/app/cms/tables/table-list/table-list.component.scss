@@ -782,6 +782,78 @@
   width: 100%;
 }
 
+// Style the remarks field like the CMS form pages instead of the prebuilt
+// indigo theme: soft fill, rounded outline, navy label and focus ring.
+::ng-deep .tbl-dialog-panel .remarks-field {
+  --mat-form-field-container-height: 48px;
+  --mat-form-field-container-vertical-padding: 12px;
+  font-size: 13.5px;
+
+  .mat-mdc-text-field-wrapper {
+    background: #f8fafd;
+    border-radius: 12px !important;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+  }
+
+  .mdc-notched-outline__leading {
+    border-radius: 12px 0 0 12px !important;
+  }
+  .mdc-notched-outline__trailing {
+    border-radius: 0 12px 12px 0 !important;
+  }
+  .mdc-notched-outline > * {
+    border-color: #dbe4f0 !important;
+  }
+
+  .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid)
+    .mdc-notched-outline > * {
+    border-color: theme.$navy !important;
+    border-width: 1.5px !important;
+  }
+  .mat-mdc-text-field-wrapper.mdc-text-field--invalid .mdc-notched-outline > * {
+    border-color: theme.$danger !important;
+  }
+
+  .mdc-floating-label {
+    color: #7d8ea3 !important;
+    font-size: 14px;
+  }
+  .mdc-floating-label--float-above {
+    color: theme.$navy !important;
+    font-size: 14px !important;
+    font-weight: 600;
+  }
+  .mat-mdc-text-field--invalid .mdc-floating-label--float-above {
+    color: theme.$danger !important;
+  }
+
+  .mat-mdc-input-element {
+    font-size: 14px !important;
+    color: theme.$text !important;
+    font-weight: 500;
+    caret-color: theme.$navy;
+  }
+
+  .mdc-line-ripple::before,
+  .mdc-line-ripple::after {
+    display: none;
+  }
+
+  .mat-mdc-form-field-hint {
+    font-size: 11.5px;
+    color: theme.$text-faint;
+  }
+  .mat-mdc-form-field-error {
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+}
+
 // The "why is this not editable" explanations. Deliberately verbose: these
 // are the two places an operator is most likely to think the screen is broken.
 .inline-note {

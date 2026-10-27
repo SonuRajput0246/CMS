@@ -26,7 +26,6 @@
                         <mat-form-field appearance="outline" floatLabel="always">
                             <mat-label>Name</mat-label>
                             <input matInput type="text" formControlName="name" placeholder="e.g. John Doe">
-                            <mat-hint>Letters, spaces, hyphens and apostrophes only</mat-hint>
                             <mat-error *ngIf="customerForm.get('name')?.hasError('required')">
                                 Name is required
                             </mat-error>
