@@ -1,0 +1,461 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
+<div class="tbl-form-page">
+
+    <div class="top-sub-nav-controls">
+        <button type="button" mat-raised-button color="primary" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon> Back to Menu
+        </button>
+    </div>
+
+    <div class="form-scroll">
+        <form [formGroup]="recipeForm" (ngSubmit)="saveRecipe()" autocomplete="off">
+            <div class="form-shell tbl-manage-form">
+
+                <!-- ================= Identity ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>badge</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Identity</h3>
+                            <p>What the kitchen calls it, and what the customer reads</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Recipe Name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. paneer tikka masala">
+                            <mat-hint>Internal, unique across the menu</mat-hint>
+                            <mat-error *ngIf="recipeForm.get('name')?.hasError('required')">
+                                Recipe Name is required
+                            </mat-error>
+                            <mat-error *ngIf="recipeForm.get('name')?.hasError('maxlength')">
+                                Max 100 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Name</mat-label>
+                            <input matInput type="text" formControlName="display_name" placeholder="e.g. Paneer Tikka Masala">
+                            <mat-hint>Printed on the POS menu and the bill</mat-hint>
+                            <mat-error *ngIf="recipeForm.get('display_name')?.hasError('required')">
+                                Display Name is required
+                            </mat-error>
+                            <mat-error *ngIf="recipeForm.get('display_name')?.hasError('maxlength')">
+                                Max 100 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Category</mat-label>
+                            <mat-select formControlName="category_id" placeholder="Uncategorised"
+                                panelClass="console-select-panel recipe-form-panel">
+                                <mat-option [value]="null">Uncategorised</mat-option>
+                                <mat-option *ngFor="let cat of categoryList" [value]="cat.id">
+                                    {{ cat.display_name || cat.name }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Order</mat-label>
+                            <input matInput type="number" formControlName="display_order" min="0" step="1">
+                            <mat-hint>Lower appears first on the menu</mat-hint>
+                            <mat-error *ngIf="recipeForm.get('display_order')?.hasError('min')">
+                                Cannot be negative
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always" class="field-full">
+                            <mat-label>Description</mat-label>
+                            <textarea matInput rows="2" formControlName="description"
+                                placeholder="Short blurb shown under the dish name"></textarea>
+                            <mat-error *ngIf="recipeForm.get('description')?.hasError('maxlength')">
+                                Max 1000 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always" class="field-full">
+                            <mat-label>Instructions</mat-label>
+                            <textarea matInput rows="4" formControlName="instructions"
+                                placeholder="Method step by step"></textarea>
+                            <mat-error *ngIf="recipeForm.get('instructions')?.hasError('maxlength')">
+                                Max 2000 characters
+                            </mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <div class="inline-note" *ngIf="isEditMode && editingRecipe?.recipe_code">
+                        <mat-icon>lock</mat-icon>
+                        <span>
+                            Recipe code <strong>{{ editingRecipe?.recipe_code }}</strong> is assigned by the
+                            system and stays the same for the life of the dish.
+                        </span>
+                    </div>
+                </section>
+
+                <!-- ================= Price & Kitchen ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>sell</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Price &amp; Kitchen</h3>
+                            <p>What it sells for, and where it is made</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Selling Price (₹)</mat-label>
+                            <input matInput type="number" formControlName="selling_price" min="0" step="0.01">
+                            <mat-error *ngIf="recipeForm.get('selling_price')?.hasError('required')">
+                                Selling Price is required
+                            </mat-error>
+                            <mat-error *ngIf="recipeForm.get('selling_price')?.hasError('min')">
+                                Price cannot be negative
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Station</mat-label>
+                            <mat-select formControlName="station"
+                                panelClass="console-select-panel recipe-form-panel">
+                                <mat-option *ngFor="let s of stationList" [value]="s">
+                                    {{ stationLabel(s) }}
+                                </mat-option>
+                            </mat-select>
+                            <mat-hint>Kitchen stations come from the seeded enum</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Prep Time (min)</mat-label>
+                            <input matInput type="number" formControlName="prep_time_minutes" min="0" max="1440" step="1">
+                            <mat-error *ngIf="recipeForm.get('prep_time_minutes')?.hasError('min')">
+                                Cannot be negative
+                            </mat-error>
+                            <mat-error *ngIf="recipeForm.get('prep_time_minutes')?.hasError('max')">
+                                Max 1440 minutes
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Cook Time (min)</mat-label>
+                            <input matInput type="number" formControlName="cook_time_minutes" min="0" max="1440" step="1">
+                            <mat-error *ngIf="recipeForm.get('cook_time_minutes')?.hasError('min')">
+                                Cannot be negative
+                            </mat-error>
+                            <mat-error *ngIf="recipeForm.get('cook_time_minutes')?.hasError('max')">
+                                Max 1440 minutes
+                            </mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <!-- cost_price is intentionally absent: the server owns it
+                         and restates it from the ingredient lines. -->
+                    <div class="derived-card">
+                        <span class="derived-icon"><mat-icon>calculate</mat-icon></span>
+                        <div class="derived-body">
+                            <strong>Cost Price &amp; Margin</strong>
+                            <small>
+                                Calculated by the server from the ingredient lines below.
+                                Change an ingredient and this restates itself.
+                            </small>
+                        </div>
+                        <div class="derived-value">
+                            <span class="dv-cost">{{ liveCostPrice | currencyInr }}</span>
+                            <span class="dv-margin" *ngIf="liveMarginPercent">
+                                {{ liveMarginPercent | number:'1.0-1' }}% margin
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= Dietary & Flags ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>eco</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Dietary &amp; Flags</h3>
+                            <p>What the POS menu badges show, and the default spice level</p>
+                        </div>
+                    </header>
+
+                    <div class="toggle-grid">
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_vegetarian')?.value">
+                            <span class="toggle-icon success"><mat-icon>eco</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Vegetarian</strong>
+                                <small>No meat, no fish</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_vegetarian"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_vegan')?.value">
+                            <span class="toggle-icon success"><mat-icon>grass</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Vegan</strong>
+                                <small>No animal products at all</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_vegan"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_spicy')?.value">
+                            <span class="toggle-icon hot"><mat-icon>local_fire_department</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Spicy</strong>
+                                <small>Carries a chilli warning on the menu</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_spicy"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_recommended')?.value">
+                            <span class="toggle-icon"><mat-icon>star</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Recommended</strong>
+                                <small>Highlighted on the POS menu</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_recommended"></mat-slide-toggle>
+                        </div>
+                    </div>
+
+                    <div class="inline-note warn-note" *ngIf="recipeForm.get('is_vegan')?.value">
+                        <mat-icon>info</mat-icon>
+                        <span>
+                            <strong>Vegan is a subset of vegetarian.</strong> Ticking Vegan has ticked
+                            Vegetarian for you — the server rejects the impossible pair outright.
+                        </span>
+                    </div>
+
+                    <div class="inline-note danger-note" *ngIf="veganNeedsVegetarian">
+                        <mat-icon>error</mat-icon>
+                        <span>
+                            This dish is marked <strong>Vegan</strong> but not <strong>Vegetarian</strong>.
+                            Tick <strong>Vegetarian</strong> above, or untick <strong>Vegan</strong>.
+                        </span>
+                    </div>
+
+                    <div class="section-grid spice-field-row">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Default Spice Level</mat-label>
+                            <mat-select formControlName="default_spice_level"
+                                panelClass="console-select-panel recipe-form-panel">
+                                <mat-option [value]="null">Not spicy / none</mat-option>
+                                <mat-option *ngFor="let level of spiceLevels" [value]="level">
+                                    {{ level | titlecase }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+
+                    <!-- is_active and is_available look like near-duplicates and
+                         are not: one retires the dish from every screen, the other
+                         just takes it off the menu for today. -->
+                    <div class="toggle-grid">
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_active')?.value">
+                            <span class="toggle-icon success"><mat-icon>verified_user</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>In Service</strong>
+                                <small>Admin lifecycle — hidden everywhere when off</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_active"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card" [class.toggled]="recipeForm.get('is_available')?.value">
+                            <span class="toggle-icon" [class.warn]="!recipeForm.get('is_available')?.value">
+                                <mat-icon>{{ recipeForm.get('is_available')?.value ? 'restaurant' : 'block' }}</mat-icon>
+                            </span>
+                            <div class="toggle-body">
+                                <strong>On the Menu</strong>
+                                <small>The 86 switch — off means the cashier cannot sell it</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_available"></mat-slide-toggle>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= Ingredients ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>inventory_2</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Ingredients</h3>
+                            <p>These lines are what Cost Price and Margin are made of</p>
+                        </div>
+                    </header>
+
+                    <div class="inline-note" *ngIf="!isEditMode">
+                        <mat-icon>info</mat-icon>
+                        <span>
+                            Save the recipe first. Ingredient lines are attached to a recipe id, which only
+                            exists once the recipe itself has been created — the grid below becomes editable
+                            the moment you save.
+                        </span>
+                    </div>
+
+                    <ng-container *ngIf="isEditMode">
+                        <div class="ing-toolbar">
+                            <button mat-stroked-button type="button" class="btn-outline" (click)="addIngredientRow()"
+                                [disabled]="ingredientRows.length >= 100">
+                                <mat-icon>add</mat-icon> Add Ingredient
+                            </button>
+                            <span class="toolbar-note" *ngIf="ingredientRows.length >= 100">
+                                A recipe can hold at most 100 ingredient lines.
+                            </span>
+
+                            <span class="spacer"></span>
+
+                            <button mat-stroked-button type="button" class="btn-outline" (click)="checkStock()"
+                                [disabled]="isStockLoad">
+                                <mat-spinner *ngIf="isStockLoad" diameter="16"></mat-spinner>
+                                <mat-icon *ngIf="!isStockLoad">fact_check</mat-icon>
+                                Check Stock
+                            </button>
+
+                            <button mat-flat-button type="button" color="primary" class="btn-submit"
+                                (click)="saveIngredients()" [disabled]="isIngredientSave || ingredientRows.length === 0">
+                                <mat-progress-spinner *ngIf="isIngredientSave" diameter="18" mode="indeterminate">
+                                </mat-progress-spinner>
+                                <mat-icon *ngIf="!isIngredientSave">save</mat-icon>
+                                Save Ingredients
+                            </button>
+                        </div>
+
+                        <div class="stock-banner" *ngIf="stockCheck as sc">
+                            <ng-container *ngIf="sc.is_makeable; else cannotMake">
+                                <mat-icon class="ok">check_circle</mat-icon>
+                                <span>
+                                    Can be made now.
+                                    <strong *ngIf="sc.portions_available !== null">
+                                        {{ sc.portions_available }} portion{{ sc.portions_available === 1 ? '' : 's' }} left
+                                        at current stock.
+                                    </strong>
+                                </span>
+                            </ng-container>
+                            <ng-template #cannotMake>
+                                <mat-icon class="bad">error</mat-icon>
+                                <span>
+                                    <strong>Not makeable from current stock.</strong>
+                                    Short:
+                                    <ng-container *ngFor="let s of sc.short_items; let last = last">
+                                        {{ s.inventory_name }} (need {{ s.required }} {{ s.unit }}, have
+                                        {{ s.available }})<ng-container *ngIf="!last">, </ng-container>
+                                    </ng-container>
+                                </span>
+                            </ng-template>
+                        </div>
+
+                        <div class="ing-table-wrap" *ngIf="isInventoryLoad; else ingGrid">
+                            <mat-spinner diameter="28"></mat-spinner>
+                        </div>
+
+                        <ng-template #ingGrid>
+                            <table class="ing-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 42%;">Inventory Item</th>
+                                        <th style="width: 14%;">Qty</th>
+                                        <th style="width: 13%;">Unit</th>
+                                        <th style="width: 11%; text-align: center;">Optional</th>
+                                        <th style="width: 11%; text-align: center;">Prepped</th>
+                                        <th style="width: 13%; text-align: right;">Line Cost</th>
+                                        <th style="width: 7%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let row of ingredientRows; let i = index">
+                                        <td>
+                                            <mat-form-field appearance="outline" class="ing-field"
+                                                [matTooltip]="row.inventory_name || ''">
+                                                <mat-select [ngModel]="row.inventory_id"
+                                                    [ngModelOptions]="{standalone: true}"
+                                                    placeholder="Choose an item"
+                                                    (ngModelChange)="onInventoryPicked(row, $event)">
+                                                    <mat-option *ngFor="let item of inventoryList" [value]="item.id">
+                                                        {{ item.name }}
+                                                    </mat-option>
+                                                </mat-select>
+                                            </mat-form-field>
+                                        </td>
+                                        <td>
+                                            <mat-form-field appearance="outline" class="ing-field">
+                                                <input matInput type="number" step="0.001" min="0.001"
+                                                    [(ngModel)]="row.quantity"
+                                                    [ngModelOptions]="{standalone: true}">
+                                            </mat-form-field>
+                                        </td>
+                                        <td>
+                                            <mat-form-field appearance="outline" class="ing-field">
+                                                <mat-select [(ngModel)]="row.unit"
+                                                    [ngModelOptions]="{standalone: true}">
+                                                    <mat-option *ngFor="let u of ingredientUnits" [value]="u">{{ u }}</mat-option>
+                                                </mat-select>
+                                            </mat-form-field>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <mat-checkbox [(ngModel)]="row.is_optional"
+                                                [ngModelOptions]="{standalone: true}"
+                                                aria-label="Optional garnish"></mat-checkbox>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <mat-checkbox [(ngModel)]="row.is_prepped"
+                                                [ngModelOptions]="{standalone: true}"
+                                                aria-label="Already prepped"></mat-checkbox>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <span class="line-cost">{{ row.line_cost | currencyInr }}</span>
+                                            <mat-icon class="stock-out" *ngIf="row.in_stock === false"
+                                                matTooltip="This line is short on stock">warning</mat-icon>
+                                        </td>
+                                        <td>
+                                            <button mat-icon-button class="action-btn danger"
+                                                (click)="removeIngredientRow(i)" aria-label="Remove line">
+                                                <mat-icon>delete</mat-icon>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="ingredientRows.length === 0">
+                                        <td colspan="7" class="ing-empty">
+                                            No ingredient lines yet — a recipe with none has a cost of 0 and a
+                                            misleading 100% margin.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </ng-template>
+                    </ng-container>
+                </section>
+
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="form-footer">
+                <div class="footer-note">
+                    <mat-icon>lock</mat-icon>
+                    <span>Saving never changes cost price directly — it is restated from the ingredient lines</span>
+                </div>
+
+                <div class="footer-buttons">
+                    <button mat-stroked-button type="button" class="btn-cancel" (click)="goBack()">
+                        Cancel
+                    </button>
+                    <button mat-flat-button type="submit" class="btn-submit"
+                        [disabled]="isSaving || isPageLoad">
+                        <span class="btn-content" *ngIf="!isSaving">
+                            <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+                            {{ isEditMode ? 'Save Recipe' : 'Create Recipe' }}
+                        </span>
+                        <span class="btn-content" *ngIf="isSaving">
+                            Please Wait
+                            <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                            </mat-progress-spinner>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <app-page-loader *ngIf="isPageLoad"></app-page-loader>
+    </div>
+
+</div>

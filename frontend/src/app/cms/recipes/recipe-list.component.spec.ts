@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
@@ -20,6 +21,14 @@ describe('RecipeListComponent', () => {
   let fixture: ComponentFixture<RecipeListComponent>;
   let httpMock: HttpTestingController;
   let snackbar: MockSnackbarService;
+  let router: Router;
+
+  /// The list only reads `tab` off the route; a stub keeps the spec from
+  /// having to build a routed shell just to open the categories tab.
+  let queryTab: string | null = null;
+  const routeStub = {
+    snapshot: { queryParamMap: { get: (key: string) => (key === 'tab' ? queryTab : null) } }
+  };
 
   const base = 'http://localhost:5000';
   const recipeUrl = `${base}/api/v1/recipe/get`;
@@ -70,18 +79,23 @@ describe('RecipeListComponent', () => {
   }
 
   beforeEach(async () => {
+    queryTab = null;
+
     await TestBed.configureTestingModule({
       imports: [SharedModule, RouterTestingModule, NoopAnimationsModule],
       declarations: [RecipeListComponent],
       providers: [
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
+        { provide: ActivatedRoute, useValue: routeStub },
         { provide: CustomSnackbarService, useClass: MockSnackbarService }
       ]
     }).compileComponents();
 
     TestBed.inject(AppConfig).set('BASE_URL', base);
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
     snackbar = TestBed.inject(CustomSnackbarService) as unknown as MockSnackbarService;
 
     fixture = TestBed.createComponent(RecipeListComponent);
@@ -104,7 +118,7 @@ describe('RecipeListComponent', () => {
     expect(component.pageDet.total_docs).toBe(2);
     expect(component.categoryList.length).toBe(1);
     expect(component.stationList).toContain('tandoor');
-    expect(component.defaultStation).toBe('other');
+    expect(component.totalPages).toBe(1);
   });
 
   //// ---- filters ------------------------------------------------------
@@ -167,6 +181,62 @@ describe('RecipeListComponent', () => {
     ).flush({ status: true, data: [], meta: { total_records: 0 } });
   });
 
+  //// ---- navigation ---------------------------------------------------
+
+  it('keeps the active tab in the query string', () => {
+    component.onTabChange(1);
+
+    expect(component.selectedTabIndex).toBe(1);
+    expect(router.navigate).toHaveBeenCalledWith([], {
+      relativeTo: routeStub as unknown as ActivatedRoute,
+      queryParams: { tab: 'categories' },
+      replaceUrl: true
+    });
+
+    component.onTabChange(0);
+
+    expect(router.navigate).toHaveBeenCalledWith([], {
+      relativeTo: routeStub as unknown as ActivatedRoute,
+      queryParams: {},
+      replaceUrl: true
+    });
+  });
+
+  it('opens the categories tab when the url asks for it', () => {
+    queryTab = 'categories';
+
+    component.ngOnInit();
+    flushInit();
+
+    expect(component.selectedTabIndex).toBe(1);
+  });
+
+  it('navigates to the add-recipe page', () => {
+    component.onAddRecipe();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/recipes/add-recipe']);
+  });
+
+  it('navigates to the edit-recipe page with the id', () => {
+    component.onEditRecipe(recipeRows[0]);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/recipes/update-recipe', 1]);
+  });
+
+  it('ignores a recipe with no id', () => {
+    component.onEditRecipe({ name: 'draft' });
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the add-category and edit-category pages', () => {
+    component.onAddCategory();
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/recipes/add-category']);
+
+    component.onEditCategory({ id: 2, name: 'starters' });
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/recipes/update-category', 2]);
+  });
+
   //// ---- 86 toggle ----------------------------------------------------
 
   it('flips availability only after the server accepts', () => {
@@ -210,135 +280,6 @@ describe('RecipeListComponent', () => {
     flushRecipes();
   });
 
-  //// ---- recipe dialog ------------------------------------------------
-
-  it('rejects an invalid recipe form without sending a request', () => {
-    component.saveRecipe({ close: () => { } });
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Please correct the highlighted fields', 'warn');
-    expect(component.recipeForm.valid).toBeFalse();
-    httpMock.expectNone(`${base}/api/v1/recipe/upsert`);
-  });
-
-  it('saves the recipe without a client-side cost_price', () => {
-    component.editingRecipe = recipeRows[0];
-    component.recipeForm.patchValue({
-      name: 'paneer_tikka',
-      display_name: 'Paneer Tikka',
-      category_id: 2,
-      selling_price: 240,
-      station: 'tandoor',
-      is_vegetarian: true,
-      is_available: true,
-      is_active: true
-    });
-
-    component.saveRecipe({ close: () => { } });
-
-    const req = httpMock.expectOne(`${base}/api/v1/recipe/upsert`);
-    const body = req.request.body;
-    expect(body.id).toBe(1);
-    expect(body.name).toBe('paneer_tikka');
-    expect(body.selling_price).toBe(240);
-    expect(body.is_deleted).toBeFalse();
-    expect(body.cost_price).toBeUndefined();
-
-    req.flush({ status: true, message: 'Recipe saved', data: { id: 1 } });
-    flushRecipes();
-    flushCategories();
-  });
-
-  it('ticks vegetarian when vegan is selected', () => {
-    component.recipeForm.get('is_vegan')?.setValue(true);
-
-    expect(component.recipeForm.get('is_vegetarian')?.value).toBeTrue();
-    expect(component.veganNeedsVegetarian).toBeFalse();
-  });
-
-  //// ---- ingredient grid ---------------------------------------------
-
-  it('refuses to save ingredients before the recipe exists', () => {
-    component.ingredientRows = [{
-      id: 0, inventory_id: 2, inventory_name: 'Paneer',
-      quantity: '1', unit: 'kg', is_optional: false, is_prepped: false
-    }];
-
-    component.saveIngredients();
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Save the recipe first, then add its ingredients', 'warn');
-    httpMock.expectNone(req => req.url.includes('/recipe-ingredient/'));
-  });
-
-  it('refuses a row with no item, quantity or unit', () => {
-    component.editingRecipe = { id: 7 };
-    component.ingredientRows = [{
-      id: 0, inventory_id: null, inventory_name: null,
-      quantity: '1', unit: 'pcs', is_optional: false, is_prepped: false
-    }];
-
-    component.saveIngredients();
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Row 1 needs an item, a quantity and a unit', 'warn');
-    httpMock.expectNone(req => req.url.includes('/recipe-ingredient/'));
-  });
-
-  it('refuses duplicate inventory rows before hitting the schema', () => {
-    component.editingRecipe = { id: 7 };
-    component.ingredientRows = [
-      { id: 0, inventory_id: 2, inventory_name: 'Paneer', quantity: '1', unit: 'kg', is_optional: false, is_prepped: false },
-      { id: 0, inventory_id: 2, inventory_name: 'Paneer', quantity: '2', unit: 'kg', is_optional: false, is_prepped: false }
-    ];
-
-    component.saveIngredients();
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Row 2 repeats an item already in the list', 'warn');
-    httpMock.expectNone(req => req.url.includes('/recipe-ingredient/'));
-  });
-
-  it('replaces the grid in one call and adopts the server cost', () => {
-    component.editingRecipe = { id: 7 };
-    component.ingredientRows = [{
-      id: 0, inventory_id: 2, inventory_name: 'Paneer',
-      quantity: '0.05', unit: 'kg', is_optional: false, is_prepped: false
-    }];
-
-    component.saveIngredients();
-
-    const req = httpMock.expectOne(`${base}/api/v1/recipe-ingredient/7/replace`);
-    expect(req.request.body.recipe_id).toBe(7);
-    expect(req.request.body.ingredients).toEqual([{
-      id: 0, inventory_id: 2, quantity: '0.05', unit: 'kg', is_optional: false, is_prepped: false
-    }]);
-
-    req.flush({
-      status: true,
-      message: 'Ingredients saved',
-      data: {
-        cost_price: '97.25',
-        margin_percent: '59.48',
-        ingredients: [{
-          id: 11, inventory_id: 2, inventory_name: 'Paneer', quantity: '0.050',
-          unit: 'kg', is_optional: false, is_prepped: false, line_cost: '97.25', in_stock: true
-        }]
-      }
-    });
-
-    expect(component.ingredientRows.length).toBe(1);
-    expect(component.ingredientRows[0].id).toBe(11);
-    expect(component.liveCostPrice).toBe('97.25');
-    expect(component.liveMarginPercent).toBe('59.48');
-
-    httpMock.expectOne(req2 =>
-      req2.method === 'GET' && req2.url === `${base}/api/v1/recipe-ingredient/7/check-stock`
-    ).flush({
-      status: true,
-      data: { recipe_id: 7, is_makeable: true, portions_available: 80, short_items: [] }
-    });
-    flushRecipes();
-
-    expect(component.stockCheck?.portions_available).toBe(80);
-  });
-
   //// ---- helpers ------------------------------------------------------
 
   it('bands margins for the list badges', () => {
@@ -363,41 +304,11 @@ describe('RecipeListComponent', () => {
     expect(component.getSrNo(0)).toBe(1);
 
     component.onPaginateChange({ pageIndex: 1, pageSize: 10 });
-    flushRecipes();
+    flushRecipes({ status: true, data: recipeRows.map(r => ({ ...r })), meta: { total_records: 25 } });
 
     expect(component.getSrNo(0)).toBe(11);
     expect(component.currentPageIndex).toBe(1);
-  });
-
-  //// ---- categories ---------------------------------------------------
-
-  it('saves a category and reloads the filter list', () => {
-    component.editingCategory = { id: 2 };
-    component.categoryForm.patchValue({
-      name: 'starters',
-      display_name: 'Starters',
-      description: 'Small plates',
-      display_order: 1,
-      is_active: true
-    });
-    const dialogRef = { close: jasmine.createSpy('close') };
-
-    component.saveCategory(dialogRef);
-
-    const req = httpMock.expectOne(`${base}/api/v1/recipe-category/upsert`);
-    expect(req.request.body).toEqual({
-      id: 2,
-      name: 'starters',
-      display_name: 'Starters',
-      description: 'Small plates',
-      display_order: 1,
-      is_active: true,
-      is_deleted: false
-    });
-
-    req.flush({ status: true, message: 'Category saved' });
-
-    expect(dialogRef.close).toHaveBeenCalled();
-    flushCategories();
+    expect(component.currentPage).toBe(2);
+    expect(component.totalPages).toBe(3);
   });
 });

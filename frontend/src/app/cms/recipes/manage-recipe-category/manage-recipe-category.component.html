@@ -1,0 +1,135 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
+<div class="tbl-form-page">
+
+    <div class="top-sub-nav-controls">
+        <button type="button" mat-raised-button color="primary" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon> Back to Categories
+        </button>
+    </div>
+
+    <div class="form-scroll">
+        <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" autocomplete="off">
+            <div class="form-shell tbl-manage-form">
+
+                <!-- ================= Category Details ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>category</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Category Details</h3>
+                            <p>How this section of the POS menu is named and ordered</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Category Name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. starters">
+                            <mat-hint>Lowercase key — avoid spaces</mat-hint>
+                            <mat-error *ngIf="categoryForm.get('name')?.hasError('required')">
+                                Category Name is required
+                            </mat-error>
+                            <mat-error *ngIf="categoryForm.get('name')?.hasError('maxlength')">
+                                Max 50 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Name</mat-label>
+                            <input matInput type="text" formControlName="display_name" placeholder="e.g. Starters">
+                            <mat-error *ngIf="categoryForm.get('display_name')?.hasError('required')">
+                                Display Name is required
+                            </mat-error>
+                            <mat-error *ngIf="categoryForm.get('display_name')?.hasError('maxlength')">
+                                Max 50 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Display Order</mat-label>
+                            <input matInput type="number" formControlName="display_order" min="0" step="1">
+                            <mat-hint>Section order on the POS menu</mat-hint>
+                            <mat-error *ngIf="categoryForm.get('display_order')?.hasError('min')">
+                                Cannot be negative
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always" class="field-full">
+                            <mat-label>Description</mat-label>
+                            <textarea matInput rows="2" formControlName="description"
+                                placeholder="Optional note about what belongs in this section"></textarea>
+                            <mat-error *ngIf="categoryForm.get('description')?.hasError('maxlength')">
+                                Max 1000 characters
+                            </mat-error>
+                        </mat-form-field>
+                    </div>
+                </section>
+
+                <!-- ================= Availability ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>tune</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Availability</h3>
+                            <p>Whether the category is offered on the menu</p>
+                        </div>
+                    </header>
+
+                    <div class="toggle-grid">
+                        <div class="toggle-card" [class.toggled]="categoryForm.get('is_active')?.value">
+                            <span class="toggle-icon success"><mat-icon>verified_user</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Active</strong>
+                                <small>Inactive categories are hidden from the POS category picker</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_active"></mat-slide-toggle>
+                        </div>
+                    </div>
+
+                    <!-- Deleting a category does not cascade to its recipes. -->
+                    <div class="inline-note" *ngIf="isEditMode">
+                        <mat-icon>info</mat-icon>
+                        <span>
+                            This category holds <strong>{{ editingCategory?.recipe_count ?? 0 }}</strong> recipe(s),
+                            <strong>{{ editingCategory?.available_recipe_count ?? 0 }}</strong> of them sellable.
+                            Deleting the category will not delete them — they move to
+                            <strong>Uncategorised</strong> on the POS menu, because the recipe → category link is
+                            emptied rather than cascading.
+                        </span>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="form-footer">
+                <div class="footer-note">
+                    <mat-icon>verified</mat-icon>
+                    <span>Category changes appear in the menu filters immediately</span>
+                </div>
+
+                <div class="footer-buttons">
+                    <button mat-stroked-button type="button" class="btn-cancel" (click)="goBack()">
+                        Cancel
+                    </button>
+                    <button mat-flat-button type="submit" class="btn-submit"
+                        [disabled]="isSaving || isPageLoad">
+                        <span class="btn-content" *ngIf="!isSaving">
+                            <mat-icon>{{ isEditMode ? 'save' : 'create_new_folder' }}</mat-icon>
+                            {{ isEditMode ? 'Save Category' : 'Create Category' }}
+                        </span>
+                        <span class="btn-content" *ngIf="isSaving">
+                            Please Wait
+                            <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                            </mat-progress-spinner>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <app-page-loader *ngIf="isPageLoad"></app-page-loader>
+    </div>
+
+</div>

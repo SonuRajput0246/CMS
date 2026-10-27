@@ -28,6 +28,10 @@ export class CmsRecipeService {
     return this.http.post(`${this.baseURL}/api/v1/recipe-category/get`, data);
   }
 
+  getCategoryById(id: number): Observable<IEntityResponse> {
+    return this.http.get(`${this.baseURL}/api/v1/recipe-category/get-by-id?id=${id}`);
+  }
+
   upsertCategory(data: any): Observable<IEntityResponse> {
     return this.http.post(`${this.baseURL}/api/v1/recipe-category/upsert`, data);
   }

@@ -1,0 +1,318 @@
+// ============================================================
+//  RECIPE FORM PAGE — pieces the shared table-form-page.scss
+//  does not cover: the server-derived cost card, the
+//  explanatory note variants and the ingredient grid.
+// ============================================================
+
+@use '../../cms-theme' as theme;
+
+// ------------------------------------------------------------
+//  Explanatory notes
+// ------------------------------------------------------------
+.inline-note {
+  &.warn-note {
+    border-color: #f3d9a8;
+    background: theme.$warn-soft;
+    color: #92400e;
+  }
+
+  &.danger-note {
+    border-color: #f5b8b8;
+    background: theme.$danger-soft;
+    color: #991b1b;
+  }
+}
+
+// The spice field sits directly under the dietary toggle cards, which have no
+// bottom margin of their own, so it needs the gap the section grid does not give.
+.spice-field-row {
+  margin-top: 18px;
+}
+
+// ------------------------------------------------------------
+//  Form dropdowns — Category, Station and Default Spice Level.
+//
+//  All opt into the shared console-select-panel option list; the station
+//  menu is long enough to overflow, so it also gets the CMS slim scrollbar
+//  rather than the browser's default gutter.
+// ------------------------------------------------------------
+::ng-deep .cdk-overlay-container div.console-select-panel.recipe-form-panel.mat-mdc-select-panel {
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// ------------------------------------------------------------
+//  Read-only derived value (cost price / margin)
+//
+//  A card rather than a disabled field: a greyed-out input reads
+//  as "broken", whereas this reads as "computed, and here is why".
+// ------------------------------------------------------------
+.derived-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 12px 15px;
+  border: 1px dashed #b9cbe4;
+  border-radius: 12px;
+  background: theme.$navy-soft;
+
+  .derived-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: theme.$navy;
+
+    mat-icon {
+      font-size: 19px;
+      width: 19px;
+      height: 19px;
+    }
+  }
+
+  .derived-body {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      font-size: 13.5px;
+      color: theme.$navy;
+    }
+
+    small {
+      display: block;
+      margin-top: 1px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: theme.$text-muted;
+    }
+  }
+
+  .derived-value {
+    text-align: right;
+    white-space: nowrap;
+
+    .dv-cost {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: theme.$navy;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dv-margin {
+      display: block;
+      font-size: 11.5px;
+      color: theme.$text-muted;
+    }
+  }
+}
+
+// ------------------------------------------------------------
+//  Ingredient grid
+// ------------------------------------------------------------
+.ing-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+
+  .spacer {
+    flex: 1;
+  }
+
+  .toolbar-note {
+    font-size: 11.5px;
+    color: theme.$text-muted;
+  }
+}
+
+.btn-outline {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+}
+
+.stock-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid theme.$ok;
+  background: theme.$ok-soft;
+  color: #14532d;
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+    margin-top: 1px;
+
+    &.ok {
+      color: theme.$ok;
+    }
+
+    // A dish that cannot be made has to be louder than one that can.
+    &.bad {
+      color: theme.$danger;
+    }
+  }
+}
+
+.ing-table-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.ing-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid theme.$border;
+  border-radius: 10px;
+  overflow: hidden;
+
+  thead th {
+    background: theme.$navy-soft;
+    color: theme.$navy;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 7px 8px;
+    text-align: left;
+    border-bottom: 1px solid #d5e0ee;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid theme.$border;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #fbfcfe;
+    }
+  }
+
+  td {
+    padding: 2px 6px;
+    vertical-align: middle;
+    font-size: 12px;
+    color: theme.$text;
+  }
+}
+
+.ing-field {
+  width: 100%;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    min-height: 38px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    font-size: 12.5px;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    background: #f8fafd;
+  }
+}
+
+.line-cost {
+  font-size: 11.5px;
+  color: theme.$text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-out {
+  margin-left: 5px;
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+  color: theme.$warn;
+  vertical-align: middle;
+}
+
+.ing-empty {
+  padding: 18px 10px !important;
+  text-align: center;
+  color: theme.$text-muted;
+  font-size: 12px;
+}
+
+.action-btn {
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  color: theme.$navy !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+  }
+
+  &.danger {
+    color: theme.$danger !important;
+
+    &:hover {
+      background: theme.$danger-soft !important;
+    }
+  }
+}
+
+// ------------------------------------------------------------
+//  Responsive
+// ------------------------------------------------------------
+@media (max-width: 820px) {
+  .ing-table {
+    font-size: 11px;
+  }
+
+  .derived-card {
+    flex-wrap: wrap;
+
+    .derived-value {
+      text-align: left;
+    }
+  }
+}
