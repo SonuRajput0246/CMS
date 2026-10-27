@@ -370,6 +370,7 @@
                                                 <mat-select [ngModel]="row.inventory_id"
                                                     [ngModelOptions]="{standalone: true}"
                                                     placeholder="Choose an item"
+                                                    panelClass="console-select-panel recipe-form-panel"
                                                     (ngModelChange)="onInventoryPicked(row, $event)">
                                                     <mat-option *ngFor="let item of inventoryList" [value]="item.id">
                                                         {{ item.name }}
@@ -387,7 +388,8 @@
                                         <td>
                                             <mat-form-field appearance="outline" class="ing-field">
                                                 <mat-select [(ngModel)]="row.unit"
-                                                    [ngModelOptions]="{standalone: true}">
+                                                    [ngModelOptions]="{standalone: true}"
+                                                    panelClass="console-select-panel recipe-form-panel">
                                                     <mat-option *ngFor="let u of ingredientUnits" [value]="u">{{ u }}</mat-option>
                                                 </mat-select>
                                             </mat-form-field>
