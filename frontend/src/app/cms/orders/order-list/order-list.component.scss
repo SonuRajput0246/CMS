@@ -346,9 +346,26 @@
 }
 
 // Narrow filters open a menu no wider than the field itself, like the
-// table list's filter selects.
+// table list's filter selects. The long status list is also the only panel
+// that overflows, so it gets the same slim scrollbar as the table list's
+// Change Status dialog instead of the browser's default gutter.
 ::ng-deep .cdk-overlay-container div.console-select-panel.order-filter-panel.mat-mdc-select-panel {
   min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 // ------------------------------------------------------------
