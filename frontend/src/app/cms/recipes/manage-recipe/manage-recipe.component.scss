@@ -133,9 +133,13 @@
 .ing-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, rgba(0, 51, 102, 0.02), rgba(22, 180, 164, 0.04));
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
 
   .spacer {
     flex: 1;
@@ -155,28 +159,88 @@
   min-height: 38px;
 }
 
+.btn-check-stock {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  border-color: theme.$navy !important;
+  color: theme.$navy !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  mat-spinner {
+    margin-right: 2px;
+  }
+
+  &:hover:not(:disabled) {
+    background: theme.$navy-soft !important;
+  }
+}
+
+.btn-save-ing {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 18px;
+  font-weight: 600;
+  background: linear-gradient(135deg, theme.$teal, theme.$teal-dark) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(22, 180, 164, 0.35);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  mat-spinner {
+    margin-right: 2px;
+  }
+
+  ::ng-deep circle {
+    stroke: #ffffff;
+  }
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 10px 22px rgba(22, 180, 164, 0.45);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+  }
+}
+
 .stock-banner {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid theme.$ok;
-  background: theme.$ok-soft;
-  color: #14532d;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #b7e4d9;
+  background: linear-gradient(90deg, rgba(22, 180, 164, 0.08), rgba(22, 180, 164, 0.03));
+  color: #065f46;
   font-size: 12.5px;
   line-height: 1.5;
+  box-shadow: 0 4px 12px rgba(22, 180, 164, 0.08);
 
   mat-icon {
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
     flex: 0 0 auto;
     margin-top: 1px;
 
     &.ok {
-      color: theme.$ok;
+      color: theme.$teal;
     }
 
     // A dish that cannot be made has to be louder than one that can.
@@ -195,21 +259,23 @@
 
 .ing-table {
   width: 100%;
-  border-collapse: collapse;
-  border: 1px solid theme.$border;
-  border-radius: 10px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15, 42, 77, 0.05);
 
   thead th {
-    background: theme.$navy-soft;
+    background: linear-gradient(90deg, rgba(0, 51, 102, 0.04), rgba(0, 51, 102, 0.02));
     color: theme.$navy;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 7px 8px;
+    padding: 8px 10px;
     text-align: left;
-    border-bottom: 1px solid #d5e0ee;
+    border-bottom: 1.5px solid #d5e0ee;
   }
 
   tbody tr {
@@ -220,12 +286,12 @@
     }
 
     &:hover {
-      background: #fbfcfe;
+      background: #f6fffd;
     }
   }
 
   td {
-    padding: 2px 6px;
+    padding: 4px 8px;
     vertical-align: middle;
     font-size: 12px;
     color: theme.$text;
@@ -239,20 +305,48 @@
     display: none;
   }
 
-  ::ng-deep .mat-mdc-form-field-infix {
-    min-height: 38px;
-    padding-top: 9px;
-    padding-bottom: 9px;
+  ::ng-deep .mat-mdc-form-field {
+    --mat-form-field-container-height: 38px;
+    --mat-form-field-container-vertical-padding: 9px;
     font-size: 12.5px;
   }
 
   ::ng-deep .mat-mdc-text-field-wrapper {
     background: #f8fafd;
+    border-radius: 10px !important;
+  }
+
+  ::ng-deep .mdc-notched-outline__leading {
+    border-radius: 10px 0 0 10px !important;
+  }
+
+  ::ng-deep .mdc-notched-outline__trailing {
+    border-radius: 0 10px 10px 0 !important;
+  }
+
+  ::ng-deep .mdc-notched-outline > * {
+    border-color: #dbe4f0 !important;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid) .mdc-notched-outline > * {
+    border-color: theme.$navy !important;
+    border-width: 1.5px !important;
+  }
+
+  ::ng-deep .mat-mdc-input-element,
+  ::ng-deep .mat-mdc-select-value-text {
+    font-size: 12.5px !important;
+    color: theme.$text !important;
+  }
+
+  ::ng-deep .mdc-line-ripple::before,
+  ::ng-deep .mdc-line-ripple::after {
+    display: none;
   }
 }
 
 .line-cost {
-  font-size: 11.5px;
+  font-size: 13px;
   color: theme.$text-muted;
   font-variant-numeric: tabular-nums;
 }

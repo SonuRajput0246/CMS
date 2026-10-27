@@ -6,9 +6,9 @@
     <!-- ============ SHARED RANGE TOOLBAR ============ -->
     <div class="range-bar" [formGroup]="form">
       <div class="range-left">
-        <mat-form-field appearance="outline" class="range-select">
+        <mat-form-field appearance="outline" floatLabel="always" class="range-select">
           <mat-label>Date Range</mat-label>
-          <mat-select formControlName="range">
+          <mat-select formControlName="range" panelClass="console-select-panel tbl-filter-panel">
             <mat-option *ngFor="let p of reportPresets" [value]="p.key">{{ p.label }}</mat-option>
           </mat-select>
         </mat-form-field>
@@ -16,14 +16,14 @@
         <!-- The server rejects a half-filled window, so the fetch only fires
              once BOTH custom dates are chosen. -->
         <ng-container *ngIf="isCustom()">
-          <mat-form-field appearance="outline" class="range-date">
+          <mat-form-field appearance="outline" floatLabel="always" class="range-date">
             <mat-label>From</mat-label>
             <input matInput [matDatepicker]="fromPicker" formControlName="from_date" (dateChange)="onCustomDateChange()">
             <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
             <mat-datepicker #fromPicker></mat-datepicker>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="range-date">
+          <mat-form-field appearance="outline" floatLabel="always" class="range-date">
             <mat-label>To</mat-label>
             <input matInput [matDatepicker]="toPicker" formControlName="to_date" (dateChange)="onCustomDateChange()">
             <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
@@ -169,15 +169,15 @@
       <!-- ============ TAB 2: ITEM SALES ============ -->
       <div class="tab-pane" *ngIf="activeTab === 1 && itemSales">
         <div class="inline-controls" [formGroup]="form">
-          <mat-form-field appearance="outline" class="ctrl">
+          <mat-form-field appearance="outline" floatLabel="always" class="ctrl">
             <mat-label>Sort by</mat-label>
-            <mat-select formControlName="sort_by" (selectionChange)="onControlChange()">
+            <mat-select formControlName="sort_by" panelClass="console-select-panel tbl-filter-panel" (selectionChange)="onControlChange()">
               <mat-option value="quantity">Quantity</mat-option>
               <mat-option value="revenue">Revenue</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="ctrl-sm">
+          <mat-form-field appearance="outline" floatLabel="always" class="ctrl-sm">
             <mat-label>Limit</mat-label>
             <input matInput type="number" formControlName="item_limit" (change)="onControlChange()">
           </mat-form-field>
@@ -278,7 +278,7 @@
           <mat-checkbox formControlName="group_by_staff" (change)="onControlChange()">
             Group by staff
           </mat-checkbox>
-          <mat-form-field appearance="outline" class="ctrl-sm">
+          <mat-form-field appearance="outline" floatLabel="always" class="ctrl-sm">
             <mat-label>Detail limit</mat-label>
             <input matInput type="number" formControlName="void_limit" (change)="onControlChange()">
           </mat-form-field>
@@ -429,7 +429,7 @@
       <!-- ============ TAB 6: CUSTOMERS ============ -->
       <div class="tab-pane" *ngIf="activeTab === 5 && customerReport">
         <div class="inline-controls" [formGroup]="form">
-          <mat-form-field appearance="outline" class="ctrl-sm">
+          <mat-form-field appearance="outline" floatLabel="always" class="ctrl-sm">
             <mat-label>Top N</mat-label>
             <input matInput type="number" formControlName="customer_limit" (change)="onControlChange()">
           </mat-form-field>

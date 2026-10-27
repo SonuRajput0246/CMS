@@ -305,14 +305,14 @@
 
                             <span class="spacer"></span>
 
-                            <button mat-stroked-button type="button" class="btn-outline" (click)="checkStock()"
+                            <button mat-stroked-button type="button" class="btn-check-stock" (click)="checkStock()"
                                 [disabled]="isStockLoad">
                                 <mat-spinner *ngIf="isStockLoad" diameter="16"></mat-spinner>
                                 <mat-icon *ngIf="!isStockLoad">fact_check</mat-icon>
                                 Check Stock
                             </button>
 
-                            <button mat-stroked-button type="button" class="btn-outline"
+                            <button mat-flat-button type="button" class="btn-save-ing"
                                 (click)="saveIngredients()" [disabled]="isIngredientSave || ingredientRows.length === 0">
                                 <mat-progress-spinner *ngIf="isIngredientSave" diameter="16" mode="indeterminate">
                                 </mat-progress-spinner>

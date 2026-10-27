@@ -24,16 +24,16 @@
 .range-bar {
   flex: 0 0 auto;
   @include theme.cms-card;
-  padding: 8px 16px;
+  padding: 10px 16px;
 
   .range-left {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     flex-wrap: wrap;
   }
 
-  .range-select { width: 260px; }
+  .range-select { width: 240px; }
   .range-date { width: 170px; }
 
   .range-meta {
@@ -55,6 +55,72 @@
 
     strong { color: theme.$navy; }
   }
+}
+
+// Compact filter fields to match tables page
+::ng-deep .rpt-shell .range-bar .mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 10px;
+  font-size: 13px;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-text-field-wrapper {
+  background: #f8fafd;
+  border-radius: 11px !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-notched-outline__leading {
+  border-radius: 11px 0 0 11px !important;
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-notched-outline__trailing {
+  border-radius: 0 11px 11px 0 !important;
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-notched-outline > * {
+  border-color: #dbe4f0 !important;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid) .mdc-notched-outline > * {
+  border-color: theme.$navy !important;
+  border-width: 1.5px !important;
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-floating-label {
+  color: #7d8ea3;
+  font-size: 13px;
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-floating-label--float-above {
+  color: theme.$navy !important;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-input-element,
+::ng-deep .rpt-shell .range-bar .mat-mdc-select-value-text {
+  font-size: 13px !important;
+  color: theme.$text !important;
+  font-weight: 500;
+}
+
+::ng-deep .rpt-shell .range-bar .mat-mdc-select-arrow {
+  color: theme.$navy;
+}
+
+::ng-deep .rpt-shell .range-bar .mdc-line-ripple::before,
+::ng-deep .rpt-shell .range-bar .mdc-line-ripple::after {
+  display: none;
 }
 
 // ------------------------------------------------------------
@@ -221,12 +287,78 @@
   padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 
   .ctrl { width: 180px; }
   .ctrl-sm { width: 110px; }
   .spacer { flex: 1 1 auto; }
+}
+
+// Compact filter fields for inline controls
+::ng-deep .rpt-shell .inline-controls .mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 10px;
+  font-size: 13px;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-text-field-wrapper {
+  background: #f8fafd;
+  border-radius: 11px !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-notched-outline__leading {
+  border-radius: 11px 0 0 11px !important;
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-notched-outline__trailing {
+  border-radius: 0 11px 11px 0 !important;
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-notched-outline > * {
+  border-color: #dbe4f0 !important;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid) .mdc-notched-outline > * {
+  border-color: theme.$navy !important;
+  border-width: 1.5px !important;
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-floating-label {
+  color: #7d8ea3;
+  font-size: 13px;
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-floating-label--float-above {
+  color: theme.$navy !important;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-input-element,
+::ng-deep .rpt-shell .inline-controls .mat-mdc-select-value-text {
+  font-size: 13px !important;
+  color: theme.$text !important;
+  font-weight: 500;
+}
+
+::ng-deep .rpt-shell .inline-controls .mat-mdc-select-arrow {
+  color: theme.$navy;
+}
+
+::ng-deep .rpt-shell .inline-controls .mdc-line-ripple::before,
+::ng-deep .rpt-shell .inline-controls .mdc-line-ripple::after {
+  display: none;
 }
 
 // ------------------------------------------------------------
