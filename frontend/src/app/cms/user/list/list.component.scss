@@ -487,7 +487,7 @@ $radius-lg: 18px;
   --mdc-icon-button-state-layer-size: 28px;
   width: 28px;
   height: 28px;
-  padding: 0 !important;          // Material adds 12px padding — that's what pushed the dots down
+  padding: 0 !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -509,7 +509,7 @@ $radius-lg: 18px;
 }
 
 // row action menu (rendered in overlay — scoped via its own class)
-::ng-deep .table-actions {
+::ng-deep .cms-actions-menu {
   border-radius: 12px;
   min-width: 100px;
   padding: 5px !important;
@@ -517,6 +517,7 @@ $radius-lg: 18px;
   box-shadow: 0 12px 30px rgba(0, 51, 102, 0.18);
 
   .mat-mdc-menu-item {
+    position: relative;
     border-radius: 8px;
     min-height: 32px;
     font-size: 12px;
@@ -525,19 +526,29 @@ $radius-lg: 18px;
     padding-left: 12px !important;
     padding-right: 12px !important;
 
+    // Same hairline separator the inventory row menu uses.
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      border-bottom: 1px solid $border;
+    }
+
     mat-icon {
       color: $navy;
       font-size: 18px;
       width: 18px;
       height: 18px;
-      margin-right: 6px !important; // tight icon → text gap
+      margin-right: 6px !important;
     }
 
-    // kill the global `.menu-item .mat-mdc-menu-item-text { text-align: center }`
-    // which centered the label inside its stretched flex span.
     .mat-mdc-menu-item-text {
       text-align: left;
       font-size: 12px !important;
+      line-height: 1.3;
     }
 
     &:hover {

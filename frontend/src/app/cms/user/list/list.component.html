@@ -82,11 +82,11 @@
                                 (click)="$event.stopPropagation();">
                                 <mat-icon>more_vert</mat-icon>
                             </button>
-                            <mat-menu class="table-actions" #structureaction="matMenu" xPosition="before" overlapTrigger="true">
-                                <button mat-menu-item color="primary" class="menu-item" (click)="onEdit(element);">
+                            <mat-menu class="cms-actions-menu" #structureaction="matMenu" xPosition="before" overlapTrigger="true">
+                                <button mat-menu-item class="menu-item" (click)="onEdit(element);">
                                     <mat-icon>edit</mat-icon> Edit
                                 </button>
-                                <button mat-menu-item color="warn" class="menu-item delete-item" (click)="onDelete(element);">
+                                <button mat-menu-item class="menu-item delete-item" (click)="onDelete(element);">
                                     <mat-icon>delete</mat-icon> Delete
                                 </button>
                             </mat-menu>
