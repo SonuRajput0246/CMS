@@ -26,9 +26,7 @@
                     <input matInput [(ngModel)]="gridSearch" placeholder="Code or name" (keyup)="applyFilter()">
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="custom-input"
-                    [floatLabel]="isChannelLoading ? 'auto' : 'always'"
-                    [hideRequiredMarker]="isChannelLoading">
+                <mat-form-field appearance="outline" floatLabel="always" class="custom-input">
                     <mat-label>
                         <span class="label-loader" *ngIf="isChannelLoading; else channelFilterLabel">
                             <span>Loading...</span>
@@ -37,7 +35,7 @@
                         <ng-template #channelFilterLabel>Channel</ng-template>
                     </mat-label>
                     <mat-select [(ngModel)]="channelFilter" (selectionChange)="applySelectFilter()"
-                        [disabled]="isChannelLoading" panelClass="compact-select-panel">
+                        [disabled]="isChannelLoading" panelClass="console-select-panel tbl-filter-panel">
                         <mat-option value="">All</mat-option>
                         <mat-option *ngFor="let c of channels" [value]="c.option_key">
                             {{ c.option_label }}
@@ -48,7 +46,7 @@
                 <mat-form-field appearance="outline" floatLabel="always" class="custom-input">
                     <mat-label>Status</mat-label>
                     <mat-select [(ngModel)]="statusFilter" (selectionChange)="applySelectFilter()"
-                        panelClass="compact-select-panel">
+                        panelClass="console-select-panel tbl-filter-panel">
                         <mat-option value="">All</mat-option>
                         <mat-option value="active">Active</mat-option>
                         <mat-option value="inactive">Inactive</mat-option>

@@ -54,8 +54,8 @@
                     </header>
 
                     <div class="section-grid">
-                        <mat-form-field appearance="outline" class="edit-disabled-field"
-                            [floatLabel]="isRoleLoading ? 'auto' : 'always'" [hideRequiredMarker]="isRoleLoading">
+                        <mat-form-field appearance="outline" floatLabel="always" class="edit-disabled-field"
+                            [hideRequiredMarker]="isRoleLoading">
                             <mat-label>
                                 <span class="label-loader" *ngIf="isRoleLoading; else roleLabel">
                                     <span>Loading...</span>
@@ -64,7 +64,7 @@
                                 <ng-template #roleLabel>Role Name</ng-template>
                             </mat-label>
                             <mat-select formControlName="role_id" placeholder="Choose Role Name"
-                                [disabled]="isRoleLoading" panelClass="manage-user-select-panel">
+                                [disabled]="isRoleLoading" panelClass="console-select-panel tbl-filter-panel">
                                 <mat-option *ngFor="let item of roleList" [value]="item.id">
                                     {{ item.role_name }}
                                 </mat-option>

@@ -30,8 +30,7 @@
                             </mat-error>
                         </mat-form-field>
 
-                        <mat-form-field appearance="outline"
-                            [floatLabel]="isCategoryLoading ? 'auto' : 'always'" [hideRequiredMarker]="isCategoryLoading">
+                        <mat-form-field appearance="outline" floatLabel="always" [hideRequiredMarker]="isCategoryLoading">
                             <mat-label>
                                 <span class="label-loader" *ngIf="isCategoryLoading; else categoryLabel">
                                     <span>Loading...</span>
@@ -40,7 +39,7 @@
                                 <ng-template #categoryLabel>Category</ng-template>
                             </mat-label>
                             <mat-select formControlName="category_id" placeholder="Choose Category"
-                                panelClass="manage-inventory-select-panel">
+                                panelClass="console-select-panel tbl-filter-panel">
                                 <mat-option *ngFor="let item of categoryList" [value]="item.id">
                                     {{ item.name }}
                                 </mat-option>
@@ -73,8 +72,7 @@
                             </mat-error>
                         </mat-form-field>
 
-                        <mat-form-field appearance="outline"
-                            [floatLabel]="isUnitsLoading ? 'auto' : 'always'" [hideRequiredMarker]="isUnitsLoading">
+                        <mat-form-field appearance="outline" floatLabel="always" [hideRequiredMarker]="isUnitsLoading">
                             <mat-label>
                                 <span class="label-loader" *ngIf="isUnitsLoading; else unitLabel">
                                     <span>Loading...</span>
@@ -83,7 +81,7 @@
                                 <ng-template #unitLabel>Unit</ng-template>
                             </mat-label>
                             <mat-select formControlName="unit" placeholder="Choose Unit"
-                                panelClass="manage-inventory-select-panel">
+                                panelClass="console-select-panel tbl-filter-panel">
                                 <mat-option *ngFor="let item of unitList" [value]="item.code">
                                     {{ item.label }}
                                 </mat-option>

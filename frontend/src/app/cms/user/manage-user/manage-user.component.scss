@@ -263,6 +263,22 @@ $radius: 12px;
   padding: 6px;
   box-shadow: 0 12px 30px rgba(0, 51, 102, 0.18);
   overflow-y: auto;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 ::ng-deep .manage-user-select-panel .mat-mdc-option {
@@ -287,13 +303,15 @@ $radius: 12px;
   }
 
   // selected option: teal accent + text instead of a checkbox
-  &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
-    background: $teal-soft;
-    color: $teal;
+  &.mat-mdc-option-selected:not(.mat-mdc-option-disabled),
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    background: $teal-soft !important;
+    color: $teal !important;
     box-shadow: inset 3px 0 0 $teal;
 
     .mdc-list-item__primary-text {
       font-weight: 700;
+      color: $teal !important;
     }
   }
 
