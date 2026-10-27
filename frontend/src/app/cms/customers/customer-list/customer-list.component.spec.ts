@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SharedModule } from '../../../shared/shared.module';
 import { AppConfig } from '../../../core/config/config';
@@ -13,7 +14,6 @@ import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-sn
 import { ConfirmationService } from '../../../services/confirmation.service';
 import {
   CustomerListComponent,
-  CustomerFormDialogComponent,
   CustomerRedeemDialogComponent
 } from './customer-list.component';
 
@@ -44,13 +44,13 @@ describe('CustomerListComponent', () => {
   let httpMock: HttpTestingController;
   let dialog: MatDialog;
   let confirmation: ConfirmationService;
+  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SharedModule, RouterTestingModule, NoopAnimationsModule],
       declarations: [
         CustomerListComponent,
-        CustomerFormDialogComponent,
         CustomerRedeemDialogComponent
       ],
       providers: [
@@ -68,6 +68,7 @@ describe('CustomerListComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
     dialog = TestBed.inject(MatDialog);
     confirmation = TestBed.inject(ConfirmationService);
+    router = TestBed.inject(Router);
 
     fixture = TestBed.createComponent(CustomerListComponent);
     component = fixture.componentInstance;
@@ -138,37 +139,20 @@ describe('CustomerListComponent', () => {
     ).flush({ status: true, data: [], meta: { total_records: 0 } });
   });
 
-  it('opens edit dialog', () => {
-    const customer = component.customerList[0];
-    spyOn(dialog, 'open').and.returnValue({
-      afterClosed: () => of(true)
-    } as any);
+  it('navigates to the edit page for a customer', () => {
+    spyOn(router, 'navigate');
 
-    component.onEdit(customer);
+    component.onEdit(component.customerList[0]);
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      CustomerFormDialogComponent,
-      jasmine.objectContaining({ data: { customer, isEdit: true } })
-    );
-    httpMock.expectOne(`${base}/api/v1/customer/get`).flush({
-      status: true, data: [], meta: { total_records: 0 }
-    });
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/customers/update-customer', 1]);
   });
 
-  it('opens add customer dialog', () => {
-    spyOn(dialog, 'open').and.returnValue({
-      afterClosed: () => of(true)
-    } as any);
+  it('navigates to the add customer page', () => {
+    spyOn(router, 'navigate');
 
     component.onAddCustomer();
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      CustomerFormDialogComponent,
-      jasmine.objectContaining({ data: { isEdit: false } })
-    );
-    httpMock.expectOne(`${base}/api/v1/customer/get`).flush({
-      status: true, data: [], meta: { total_records: 0 }
-    });
+    expect(router.navigate).toHaveBeenCalledWith(['/cms/customers/add-customer']);
   });
 
   it('opens redeem points dialog', () => {
@@ -229,95 +213,6 @@ describe('CustomerListComponent', () => {
     expect(component.getTierClass('SILVER')).toBe('tier-silver');
     expect(component.getTierClass('REGULAR')).toBe('tier-regular');
     expect(component.getTierClass('UNKNOWN')).toBe('tier-regular');
-  });
-});
-
-describe('CustomerFormDialogComponent', () => {
-  let component: CustomerFormDialogComponent;
-  let fixture: ComponentFixture<CustomerFormDialogComponent>;
-  let httpMock: HttpTestingController;
-  let snackbar: MockSnackbarService;
-  let dialogRef: MatDialogRef<CustomerFormDialogComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, NoopAnimationsModule],
-      declarations: [CustomerFormDialogComponent],
-      providers: [
-        provideHttpClient(withInterceptorsFromDi()),
-        provideHttpClientTesting(),
-        provideNativeDateAdapter(),
-        { provide: MatDialogRef, useValue: { close: jasmine.createSpy('close') } },
-        { provide: MAT_DIALOG_DATA, useValue: { isEdit: false } },
-        { provide: CustomSnackbarService, useClass: MockSnackbarService },
-      ],
-    })
-    .compileComponents();
-
-    TestBed.inject(AppConfig).set('BASE_URL', base);
-    httpMock = TestBed.inject(HttpTestingController);
-    snackbar = TestBed.inject(CustomSnackbarService) as unknown as MockSnackbarService;
-    dialogRef = TestBed.inject(MatDialogRef);
-
-    fixture = TestBed.createComponent(CustomerFormDialogComponent);
-    component = fixture.componentInstance;
-  });
-
-  afterEach(() => {
-    fixture.destroy();
-    httpMock.verify();
-  });
-
-  it('rejects a blank name or phone without calling the API', () => {
-    component.formData = { name: '  ', phone: '', is_active: true };
-
-    component.onSubmit();
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Name and phone are required', 'error');
-    httpMock.expectNone(`${base}/api/v1/customer/upsert`);
-  });
-
-  it('trims required fields and sends blank optionals as null', () => {
-    component.formData = {
-      name: '  John Doe ',
-      phone: ' 9876543210 ',
-      email: ' ',
-      address: '',
-      dietary_notes: null,
-      is_vip: true,
-      is_active: true
-    };
-
-    component.onSubmit();
-
-    const req = httpMock.expectOne(`${base}/api/v1/customer/upsert`);
-    expect(req.request.body).toEqual(jasmine.objectContaining({
-      id: 0,
-      name: 'John Doe',
-      phone: '9876543210',
-      email: null,
-      address: null,
-      dietary_notes: null,
-      is_vip: true,
-      is_active: true,
-      is_deleted: false
-    }));
-    req.flush({ status: true, message: 'Customer created', data: {} });
-
-    expect(dialogRef.close).toHaveBeenCalledWith(true);
-  });
-
-  it('surfaces the API validation message when saving fails', () => {
-    component.formData = { name: 'John Doe', phone: '123', is_active: true };
-
-    component.onSubmit();
-
-    httpMock.expectOne(`${base}/api/v1/customer/upsert`).flush(
-      { status: false, message: 'Invalid phone number format' },
-      { status: 400, statusText: 'Bad Request' }
-    );
-
-    expect(snackbar.openSnackBar).toHaveBeenCalledWith('Invalid phone number format', 'error');
   });
 });
 

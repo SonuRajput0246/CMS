@@ -1,5 +1,7 @@
 import { Component, inject, OnInit, Inject } from '@angular/core';
+import { MatPaginatorSelectConfig } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import { ISearchRequest, IGenricGrid, INavigationaBar } from '../../../models/ICommon.model';
@@ -7,6 +9,7 @@ import { ICustomer } from '../../../models/ICms.model';
 import { CmsCustomerService } from '../../../services/cms/customer.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 import { ConfirmationService } from '../../../services/confirmation.service';
+import { PAGE_SIZE_SELECT_CONFIG } from '../../../shared/paginator-config';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 @Component({
@@ -20,6 +23,7 @@ export class CustomerListComponent implements OnInit {
   private _snackbar = inject(CustomSnackbarService);
   private _confirmService = inject(ConfirmationService);
   private _dialog = inject(MatDialog);
+  private _router = inject(Router);
 
   isPageLoad = false;
   searchValue = '';
@@ -36,8 +40,14 @@ export class CustomerListComponent implements OnInit {
 
   isVipFilter: boolean | null = null;
 
-  /** Exposed for the template's total-pages maths. */
-  Math = Math;
+  /// Same page-size trigger and option list as every other CMS list page.
+  readonly pageSizeSelect: MatPaginatorSelectConfig = PAGE_SIZE_SELECT_CONFIG;
+
+  get totalPages(): number {
+    return this.pageDet.total_docs > 0
+      ? Math.ceil(this.pageDet.total_docs / (this.requestData.page_size || 10))
+      : 1;
+  }
 
   navData: INavigationaBar[] = [
     { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: '/cms/dashboard' },
@@ -108,31 +118,14 @@ export class CustomerListComponent implements OnInit {
   }
 
   onEdit(customer: ICustomer): void {
-    const dialogRef = this._dialog.open(CustomerFormDialogComponent, {
-      width: '500px',
-      data: { customer, isEdit: true },
-      panelClass: 'customer-form-dialog'
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.fetchCustomerList();
-      }
-    });
+    if (!customer.id) return;
+    (document.activeElement as HTMLElement)?.blur();
+    this._router.navigate(['/cms/customers/update-customer', customer.id]);
   }
 
   onAddCustomer(): void {
-    const dialogRef = this._dialog.open(CustomerFormDialogComponent, {
-      width: '500px',
-      data: { isEdit: false },
-      panelClass: 'customer-form-dialog'
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.fetchCustomerList();
-      }
-    });
+    (document.activeElement as HTMLElement)?.blur();
+    this._router.navigate(['/cms/customers/add-customer']);
   }
 
   onDelete(customer: ICustomer): void {
@@ -206,90 +199,6 @@ export class CustomerListComponent implements OnInit {
       REGULAR: 'tier-regular'
     };
     return classes[tier] || 'tier-regular';
-  }
-}
-
-// Dialog Component for Customer Form
-@Component({
-  selector: 'app-customer-form-dialog',
-  standalone: false,
-  templateUrl: './customer-form-dialog.component.html'
-})
-export class CustomerFormDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<CustomerFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { customer?: any; isEdit: boolean },
-    private _customerService: CmsCustomerService,
-    private _snackbar: CustomSnackbarService
-  ) {}
-
-  formData: any = {
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    dietary_notes: '',
-    is_vip: false,
-    is_active: true
-  };
-
-  isSaving = false;
-
-  ngOnInit(): void {
-    if (this.data?.customer) {
-      this.formData = { ...this.data.customer };
-    }
-  }
-
-  onSubmit(): void {
-    const name = String(this.formData.name ?? '').trim();
-    const phone = String(this.formData.phone ?? '').trim();
-
-    if (!name || !phone) {
-      this._snackbar.openSnackBar('Name and phone are required', 'error');
-      return;
-    }
-
-    this.isSaving = true;
-
-    // Optional text goes to the API as null, never "": its string sanitiser
-    // rejects blank values for fields it does not list as optional.
-    const payload = {
-      id: this.data.isEdit ? this.data.customer.id : 0,
-      name,
-      phone,
-      email: this.nullIfBlank(this.formData.email),
-      address: this.nullIfBlank(this.formData.address),
-      dietary_notes: this.nullIfBlank(this.formData.dietary_notes),
-      is_vip: !!this.formData.is_vip,
-      is_active: !!this.formData.is_active,
-      is_deleted: false
-    };
-
-    this._customerService.upsertCustomer(payload)
-      .pipe(finalize(() => this.isSaving = false))
-      .subscribe({
-        next: (res) => {
-          if (res?.status) {
-            this._snackbar.openSnackBar(res.message || 'Customer saved', 'success');
-            this.dialogRef.close(true);
-          } else {
-            this._snackbar.openSnackBar(res?.message || 'Failed to save', 'error');
-          }
-        },
-        error: (err) => {
-          this._snackbar.openSnackBar(err.error?.message || 'Error saving customer', 'error');
-        }
-      });
-  }
-
-  private nullIfBlank(value: string | null | undefined): string | null {
-    const trimmed = String(value ?? '').trim();
-    return trimmed ? trimmed : null;
-  }
-
-  close(): void {
-    this.dialogRef.close();
   }
 }
 

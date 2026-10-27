@@ -1,0 +1,156 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
+<div class="tbl-form-page">
+
+    <div class="top-sub-nav-controls">
+        <button type="button" mat-raised-button color="primary" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon> Back
+        </button>
+    </div>
+
+    <div class="form-scroll">
+        <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()" autocomplete="off">
+            <div class="form-shell tbl-manage-form">
+
+                <!-- ================= Customer Details ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>badge</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Customer Details</h3>
+                            <p>Who they are and how to reach them</p>
+                        </div>
+                    </header>
+
+                    <div class="section-grid">
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Name</mat-label>
+                            <input matInput type="text" formControlName="name" placeholder="e.g. John Doe">
+                            <mat-hint>Letters, spaces, hyphens and apostrophes only</mat-hint>
+                            <mat-error *ngIf="customerForm.get('name')?.hasError('required')">
+                                Name is required
+                            </mat-error>
+                            <mat-error
+                                *ngIf="customerForm.get('name')?.hasError('pattern') || customerForm.get('name')?.hasError('maxlength')">
+                                Max 50 characters; letters only
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Phone</mat-label>
+                            <input matInput type="tel" formControlName="phone" placeholder="9876543210">
+                            <mat-hint>Used to identify the customer at the till</mat-hint>
+                            <mat-error *ngIf="customerForm.get('phone')?.hasError('required')">
+                                Phone is required
+                            </mat-error>
+                            <mat-error
+                                *ngIf="customerForm.get('phone')?.hasError('pattern') || customerForm.get('phone')?.hasError('minlength') || customerForm.get('phone')?.hasError('maxlength')">
+                                Enter a valid 10–20 digit phone number
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Email</mat-label>
+                            <input matInput type="email" formControlName="email" placeholder="name@example.com">
+                            <mat-error *ngIf="customerForm.get('email')?.hasError('email')">
+                                Enter a valid email address
+                            </mat-error>
+                            <mat-error *ngIf="customerForm.get('email')?.hasError('maxlength')">
+                                Max 255 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always">
+                            <mat-label>Address</mat-label>
+                            <input matInput type="text" formControlName="address" placeholder="Street, area, city">
+                            <mat-error *ngIf="customerForm.get('address')?.hasError('maxlength')">
+                                Max 255 characters
+                            </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" floatLabel="always" class="field-full">
+                            <mat-label>Dietary Notes</mat-label>
+                            <textarea matInput rows="2" formControlName="dietary_notes"
+                                placeholder="Allergies, preferences, anything the kitchen should know"></textarea>
+                            <mat-error *ngIf="customerForm.get('dietary_notes')?.hasError('maxlength')">
+                                Max 500 characters
+                            </mat-error>
+                        </mat-form-field>
+                    </div>
+                </section>
+
+                <!-- ================= Status & Loyalty ================= -->
+                <section class="form-section">
+                    <header class="section-header">
+                        <span class="head-icon"><mat-icon>tune</mat-icon></span>
+                        <div class="head-text">
+                            <h3>Status &amp; Loyalty</h3>
+                            <p>How the till treats this customer</p>
+                        </div>
+                    </header>
+
+                    <div class="toggle-grid">
+                        <div class="toggle-card">
+                            <span class="toggle-icon"><mat-icon>star</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>VIP Customer</strong>
+                                <small>Flagged for priority service at the floor and till</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_vip"></mat-slide-toggle>
+                        </div>
+
+                        <div class="toggle-card">
+                            <span class="toggle-icon success"><mat-icon>verified_user</mat-icon></span>
+                            <div class="toggle-body">
+                                <strong>Active</strong>
+                                <small>Inactive customers are hidden from the till lookup</small>
+                            </div>
+                            <mat-slide-toggle formControlName="is_active"></mat-slide-toggle>
+                        </div>
+                    </div>
+
+                    <!-- Counters are server-owned; the absence from this form is
+                         a decision, not an oversight. -->
+                    <div class="inline-note" *ngIf="isEditMode">
+                        <mat-icon>lock</mat-icon>
+                        <span>
+                            <strong>{{ editingCustomer?.customer_code }}</strong> —
+                            customer code, loyalty points, visit count and total spend are maintained
+                            by the system. Points move only when an order is closed or redeemed.
+                        </span>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="form-footer">
+                <div class="footer-note">
+                    <mat-icon>verified</mat-icon>
+                    <span>Changes appear at the till immediately</span>
+                </div>
+
+                <div class="footer-buttons">
+                    <button mat-stroked-button type="button" class="btn-cancel" (click)="goBack()">
+                        Cancel
+                    </button>
+                    <button mat-flat-button type="submit" class="btn-submit"
+                        [disabled]="isSaving || isPageLoad">
+                        <span class="btn-content" *ngIf="!isSaving">
+                            <mat-icon>{{ isEditMode ? 'save' : 'person_add' }}</mat-icon>
+                            {{ isEditMode ? 'Update Customer' : 'Add Customer' }}
+                        </span>
+                        <span class="btn-content" *ngIf="isSaving">
+                            Please Wait
+                            <mat-progress-spinner diameter="18" mode="indeterminate" class="btn-spinner">
+                            </mat-progress-spinner>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <app-page-loader *ngIf="isPageLoad"></app-page-loader>
+    </div>
+
+</div>

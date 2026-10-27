@@ -46,7 +46,7 @@ $dlg-muted: #64748b;
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    padding: 18px 22px;
+    padding: 8px 22px;
   }
 
   .dlg-foot {
@@ -59,11 +59,72 @@ $dlg-muted: #64748b;
     background: #f8fafc;
   }
 
-  // ---- form rows (customer dialog) ----
+  // ---- form rows (redeem points dialog) ----
   .field-row {
-    margin-bottom: 4px;
+    margin: 18px 0 4px;
 
     mat-form-field { width: 100%; }
+
+    // Match the CMS list filters: soft fill, compact height, navy focus
+    // ring instead of the stock Material outline.
+    .mat-mdc-form-field {
+      --mat-form-field-container-height: 44px;
+      --mat-form-field-container-vertical-padding: 12px;
+      font-size: 13.5px;
+    }
+
+    .mat-mdc-text-field-wrapper {
+      background: #f8fafd;
+      border-radius: 11px !important;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+    }
+
+    .mdc-notched-outline__leading { border-radius: 11px 0 0 11px !important; }
+    .mdc-notched-outline__trailing { border-radius: 0 11px 11px 0 !important; }
+
+    .mdc-notched-outline > * { border-color: #dbe4f0 !important; }
+
+    .mat-mdc-text-field-wrapper.mdc-text-field--focused:not(.mdc-text-field--invalid)
+      .mdc-notched-outline > * {
+      border-color: $dlg-navy !important;
+      border-width: 1.5px !important;
+    }
+
+    .mat-mdc-text-field-wrapper.mdc-text-field--invalid
+      .mdc-notched-outline > * {
+      border-color: #dc2626 !important;
+    }
+
+    .mdc-floating-label {
+      color: #7d8ea3 !important;
+      font-size: 13px;
+    }
+
+    .mdc-floating-label--float-above {
+      color: $dlg-navy !important;
+      font-size: 14px !important;
+      font-weight: 600;
+    }
+
+    .mat-mdc-input-element {
+      font-size: 13.5px !important;
+      color: $dlg-text !important;
+      font-weight: 600;
+    }
+
+    .mdc-line-ripple::before,
+    .mdc-line-ripple::after { display: none; }
+
+    .mat-mdc-form-field-hint-wrapper,
+    .mat-mdc-form-field-hint {
+      color: $dlg-muted;
+      font-size: 11.5px;
+    }
   }
 
   .toggle-row {
@@ -83,7 +144,7 @@ $dlg-muted: #64748b;
     background: #f1f5f9;
     border-radius: 8px;
 
-    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    mat-icon { font-size: 16px; width: 24px; height: 16px; }
   }
 
   // ---- order detail meta grid ----
@@ -213,9 +274,70 @@ $dlg-muted: #64748b;
 }
 
 // Angular Material renders the dialog panel itself; strip its default radius
-// so the dialog matches the card language used everywhere else.
-.customer-form-dialog .mat-mdc-dialog-surface,
-.customer-redeem-dialog .mat-mdc-dialog-surface {
+// so the dialog matches the card language used everywhere else. Material
+// applies its shape through this token from a runtime-injected stylesheet, so
+// a plain border-radius rule loses the cascade -- set the token instead.
+.customer-redeem-dialog .mat-mdc-dialog-container {
+  --mdc-dialog-container-shape: 16px;
+}
+
+.customer-redeem-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface {
   border-radius: 16px;
   overflow: hidden;
+}
+
+// Customer dialogs scroll their body on short windows; use the same slim
+// gutter as the table status dialog rather than the browser default.
+.customer-redeem-dialog .dlg-body {
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// Footer actions: pill shapes, and the submit carries the teal gradient
+// used by the other CMS dialogs instead of the stock Material primary.
+.customer-redeem-dialog .dlg-foot {
+  button[mat-stroked-button] {
+    border-radius: 999px;
+  }
+
+  button[mat-raised-button] {
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 22px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    background: linear-gradient(135deg, #16b4a4, #0f8f83) !important;
+    color: #fff !important;
+    box-shadow: 0 6px 16px rgba(22, 180, 164, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(22, 180, 164, 0.45);
+    }
+
+    mat-spinner {
+      --mdc-circular-progress-active-indicator-color: #ffffff;
+    }
+
+    mat-spinner circle {
+      stroke: #ffffff;
+    }
+  }
 }
