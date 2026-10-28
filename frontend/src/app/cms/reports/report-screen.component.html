@@ -1,10 +1,19 @@
+<app-navigation-bar [navData]="navData"></app-navigation-bar>
+
 <div class="rpt-shell">
-  <app-navigation-bar [navData]="navData"></app-navigation-bar>
 
   <div class="rpt-body">
 
-    <!-- ============ SHARED RANGE TOOLBAR ============ -->
+    <!-- ============ PAGE HEADER + SHARED RANGE CONTROLS ============ -->
     <div class="range-bar" [formGroup]="form">
+      <div class="range-title">
+        <span class="head-icon"><mat-icon>insights</mat-icon></span>
+        <div class="head-text">
+          <h3>Reports &amp; Analytics</h3>
+          <p>Sales, items, kitchen and customers for the selected window</p>
+        </div>
+      </div>
+
       <div class="range-left">
         <mat-form-field appearance="outline" floatLabel="always" class="range-select">
           <mat-label>Date Range</mat-label>
@@ -502,6 +511,6 @@
 
     </div>
   </div>
-
-  <app-page-loader *ngIf="isPageLoad"></app-page-loader>
 </div>
+
+<app-page-loader *ngIf="isPageLoad"></app-page-loader>

@@ -2,8 +2,8 @@
 
 <div class="inventory-shell">
 
-    <!-- Tab bar: Categories | Inventory -->
-    <mat-tab-group class="inventory-tabs" [selectedIndex]="selectedTabIndex"
+    <!-- Tab bar: Categories | Inventory (hidden on the add/edit form routes) -->
+    <mat-tab-group *ngIf="showTabs" class="inventory-tabs" [selectedIndex]="selectedTabIndex"
         (selectedTabChange)="onTabChange($event.index)">
         <mat-tab>
             <ng-template mat-tab-label>

@@ -19,28 +19,83 @@
 }
 
 // ------------------------------------------------------------
-//  Range toolbar — applies to whichever tab is showing
+//  Page header + range toolbar
+//
+//  Same anatomy as the list headers elsewhere: navy icon tile,
+//  title + subtitle on the left, the screen's filters on the right.
 // ------------------------------------------------------------
 .range-bar {
   flex: 0 0 auto;
   @include theme.cms-card;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
   padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .range-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+
+    .head-icon {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, theme.$navy, theme.$navy-light);
+      box-shadow: 0 4px 10px rgba(0, 51, 102, 0.25);
+
+      mat-icon {
+        color: #fff;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .head-text {
+      min-width: 0;
+
+      h3 {
+        margin: 0;
+        font-size: 15.5px;
+        font-weight: 700;
+        color: theme.$navy;
+        letter-spacing: 0.2px;
+      }
+
+      p {
+        margin: 2px 0 0;
+        font-size: 12.5px;
+        color: theme.$text-muted;
+      }
+    }
+  }
 
   .range-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-left: auto;
   }
 
-  .range-select { width: 240px; }
-  .range-date { width: 170px; }
+  .range-select { width: 190px; }
+  .range-date { width: 155px; }
 
   .range-meta {
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 12.5px;
+    font-size: 12px;
     color: theme.$text-muted;
     background: theme.$navy-soft;
     border-radius: theme.$radius-sm;
@@ -129,7 +184,8 @@
 .rpt-tabs {
   flex: 0 0 auto;
   @include theme.cms-card;
-  padding: 4px;
+  padding: 5px;
+  box-sizing: border-box;
   overflow: visible;
 
   --mat-tab-header-active-label-text-color: #ffffff;
@@ -137,7 +193,9 @@
   --mat-tab-header-active-focus-label-text-color: #ffffff;
   --mat-tab-header-inactive-label-text-color: #{theme.$text-muted};
   --mat-tab-header-inactive-hover-label-text-color: #{theme.$navy};
+  --mat-tab-header-inactive-focus-label-text-color: #{theme.$navy};
   --mat-tab-header-active-ripple-color: rgba(255, 255, 255, 0.22);
+  --mat-tab-header-inactive-ripple-color: rgba(0, 51, 102, 0.08);
 
   ::ng-deep .mat-mdc-tab-body-wrapper { display: none; }
   ::ng-deep .mat-mdc-tab-header { border-bottom: none; }
@@ -145,10 +203,11 @@
   ::ng-deep .mat-mdc-tab {
     min-width: 0;
     height: 38px;
-    padding: 0 16px;
+    padding: 0 18px;
     border-radius: 10px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 
-    .mdc-tab__text-label { font-size: 13px; font-weight: 600; }
+    .mdc-tab__text-label { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; }
     .mdc-tab-indicator { display: none; }
   }
 
@@ -157,13 +216,17 @@
     box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
   }
 
+  ::ng-deep .mat-mdc-tab:not(.mdc-tab--active):hover {
+    background: theme.$navy-soft;
+  }
+
   .tab-label {
     display: inline-flex;
     align-items: center;
     gap: 7px;
     color: theme.$text-muted;
 
-    mat-icon { font-size: 17px; width: 17px; height: 17px; color: theme.$navy; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; color: theme.$navy; }
   }
 
   ::ng-deep .mat-mdc-tab.mdc-tab--active .tab-label {
@@ -176,6 +239,20 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c3d2e4 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c3d2e4;
+    border-radius: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .tab-pane {
@@ -195,6 +272,8 @@
 
 .kpi-card {
   @include theme.cms-card;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -212,7 +291,7 @@
   .kpi-value {
     font-size: 21px;
     font-weight: 700;
-    color: theme.$text;
+    color: theme.$navy;
     font-variant-numeric: tabular-nums;
     line-height: 1.15;
   }
@@ -254,25 +333,39 @@
 
 .panel {
   @include theme.cms-card;
-  padding: 14px 16px;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
+  padding: 0;
+  overflow: hidden;
 
+  // Header bar runs edge to edge, as on the list cards, so the table below
+  // can sit flush against the card instead of inside a second inset box.
   .panel-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid theme.$border;
 
     h3 {
       margin: 0;
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 700;
-      color: theme.$text;
+      color: theme.$navy;
+      letter-spacing: 0.2px;
+    }
+
+    button {
+      min-height: 32px;
+      font-size: 12px;
+      border-radius: 999px;
     }
   }
 
   .panel-note {
-    margin: -4px 0 12px;
+    margin: 0;
+    padding: 10px 16px 0;
     font-size: 12px;
     color: theme.$text-muted;
     font-style: italic;
@@ -284,6 +377,8 @@
 // ------------------------------------------------------------
 .inline-controls {
   @include theme.cms-card;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
   padding: 10px 16px;
   display: flex;
   align-items: center;
@@ -368,36 +463,36 @@
 .mini-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 
   thead th {
     text-align: left;
-    padding: 9px 10px;
-    background: theme.$page-bg;
-    color: theme.$text-muted;
+    padding: 6px 10px;
+    background: theme.$navy-soft;
+    color: theme.$navy;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    border-bottom: 1px solid theme.$border;
+    letter-spacing: 0.6px;
+    border-bottom: 1.5px solid #d5e0ee;
     white-space: nowrap;
   }
 
   tbody td {
-    padding: 9px 10px;
+    padding: 7px 10px;
     border-bottom: 1px solid theme.$border;
     color: theme.$text;
     vertical-align: middle;
   }
 
   tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: theme.$navy-soft; }
+  tbody tr:hover td { background: theme.$teal-soft; }
 
   .r { text-align: right; font-variant-numeric: tabular-nums; }
   .c { text-align: center; }
 }
 
-.cell-strong { font-weight: 600; }
+.cell-strong { font-weight: 600; color: theme.$navy; }
 
 .dead-row {
   opacity: 0.62;
@@ -437,9 +532,9 @@
 .stacked-bar {
   display: flex;
   height: 26px;
+  margin: 12px 16px;
   border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 12px;
   background: theme.$border;
 
   .stack-seg {
@@ -453,6 +548,11 @@
 // ------------------------------------------------------------
 .day-chart {
   margin-bottom: 18px;
+  padding: 0 16px;
+
+  &:first-of-type {
+    margin-top: 12px;
+  }
 
   .day-label {
     font-size: 12px;
@@ -505,6 +605,7 @@
   gap: 6px;
   height: 190px;
   padding: 10px 8px 0;
+  margin: 12px 16px 16px;
   background: theme.$page-bg;
   border-radius: theme.$radius-sm;
   overflow-x: auto;
@@ -577,7 +678,7 @@
 }
 
 .foot-note {
-  margin: 10px 0 0;
+  margin: 10px 16px 14px;
   font-size: 11.5px;
   color: theme.$text-muted;
   font-style: italic;

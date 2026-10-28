@@ -426,14 +426,18 @@ export class ManageTemplateComponent implements AfterViewInit, OnDestroy {
       /// srcdoc reloads the document on every change, so the override has to
       /// be re-applied each time rather than set once.
       ///
-      /// `font-size` is bumped for legibility. This only affects inherited
-      /// body copy: the email's own explicit pixel sizes (the OTP block, the
-      /// small footer) are left alone.
+      /// The email HTML usually carries no body padding, so the copy would
+      /// start flush against the preview frame's edge. The padding is applied
+      /// here (before measuring) so the frame sizes itself to include it.
+      /// `font-size` only affects inherited body copy; the email's own
+      /// explicit pixel sizes are left alone.
       const style = doc.createElement('style');
       style.textContent =
-        'html,body{margin:0!important;padding:0!important;' +
+        'html{margin:0!important;padding:0!important;' +
         'overflow:hidden!important;background:#fff}' +
-        'body{font-size:15px;line-height:1.55}';
+        'body{margin:0!important;padding:14px!important;' +
+        'overflow:hidden!important;background:#fff;' +
+        'font-size:15px;line-height:1.55}';
       doc.head.appendChild(style);
 
       const contentWidth = Math.max(

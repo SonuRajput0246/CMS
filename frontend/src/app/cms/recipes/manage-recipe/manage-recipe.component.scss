@@ -191,9 +191,9 @@
   min-height: 38px;
   padding: 0 18px;
   font-weight: 600;
-  background: linear-gradient(135deg, theme.$teal, theme.$teal-dark) !important;
+  background: theme.$navy !important;
   color: #fff !important;
-  box-shadow: 0 6px 16px rgba(22, 180, 164, 0.35);
+  box-shadow: 0 6px 16px rgba(0, 51, 102, 0.3);
 
   mat-icon {
     font-size: 18px;
@@ -210,7 +210,8 @@
   }
 
   &:hover:not(:disabled) {
-    box-shadow: 0 10px 22px rgba(22, 180, 164, 0.45);
+    background: theme.$navy-light !important;
+    box-shadow: 0 10px 22px rgba(0, 51, 102, 0.4);
   }
 
   &:disabled {

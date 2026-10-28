@@ -17,11 +17,15 @@ export class InventoryDashboardComponent implements OnInit {
   navData: INavigationaBar[] = [];
   selectedTabIndex = 0;
 
+  /** The add/edit forms are full pages, so the Categories | Inventory switch is hidden there. */
+  showTabs = true;
+
+  private readonly formRoutes = ['add-category', 'update-category', 'add-inventory', 'update-inventory'];
 
   ngOnInit(): void {
     this.initNavigation();
     this.updateBreadcrumbs();
-    this.setCurrentTabBasedOnUrl(this._router.url);
+    this.syncTabStateWithUrl(this._router.url);
     this.listenToRouteChanges();
   }
 
@@ -65,12 +69,13 @@ export class InventoryDashboardComponent implements OnInit {
   // }
 
 
-  private setCurrentTabBasedOnUrl(url: string): void {
+  private syncTabStateWithUrl(url: string): void {
     // We check if the current URL contains any of the keywords associated with Tab 1
     const inventoryKeywords = ['list-inventory', 'add-inventory', 'update-inventory'];
     const isInventoryTab = inventoryKeywords.some(keyword => url.includes(keyword));
 
     this.selectedTabIndex = isInventoryTab ? 1 : 0;
+    this.showTabs = !this.formRoutes.some(route => url.includes(route));
   }
 
   private listenToRouteChanges(): void {
@@ -80,7 +85,7 @@ export class InventoryDashboardComponent implements OnInit {
       )
       .subscribe((event) => {
         // Reuse the logic here to keep things consistent
-        this.setCurrentTabBasedOnUrl(event.urlAfterRedirects);
+        this.syncTabStateWithUrl(event.urlAfterRedirects);
         this.updateBreadcrumbs();
       });
   }

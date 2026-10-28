@@ -340,6 +340,10 @@
 .form-footer {
   position: sticky;
   bottom: 0;
+  // Material puts `position: relative` on button internals, so without an
+  // explicit z-index the ingredient toolbar's labels paint over the footer
+  // as the page scrolls.
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -347,8 +351,7 @@
   flex-wrap: wrap;
   padding: 14px 6px 10px;
   margin: -6px -4px 0;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background: #ffffff;
   border-top: 1px solid theme.$border;
   border-radius: 0 0 18px 18px;
 
