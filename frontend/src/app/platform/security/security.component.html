@@ -31,7 +31,7 @@
       </div>
 
       <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="card-form">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="padding-bottom: 10px;">
           <mat-label>Current password</mat-label>
           <input matInput type="password" formControlName="current_password" autocomplete="current-password">
           <mat-error *ngIf="passwordForm.get('current_password')?.hasError('required')">

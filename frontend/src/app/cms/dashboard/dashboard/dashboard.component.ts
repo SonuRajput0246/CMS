@@ -65,8 +65,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private initNavigation(): void {
     this.navData = [
-      { displayValue: 'Home', isClickable: true, isDashboard: true, redirectValue: '/cms/dashboard' },
-      { displayValue: 'Dashboard', isClickable: false, isDashboard: true }
+      { displayValue: 'Home', isClickable: true, isDashboard: false, redirectValue: '/cms/dashboard' },
+      { displayValue: 'Dashboard', isClickable: false, isDashboard: false }
     ];
   }
 
