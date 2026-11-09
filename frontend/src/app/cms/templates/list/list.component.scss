@@ -496,6 +496,7 @@ $radius-lg: 18px;
   box-shadow: 0 12px 30px rgba(0, 51, 102, 0.18);
 
   .mat-mdc-menu-item {
+    position: relative;
     border-radius: 8px;
     min-height: 32px;
     font-size: 12px;
@@ -503,6 +504,17 @@ $radius-lg: 18px;
     color: $text;
     padding-left: 12px !important;
     padding-right: 12px !important;
+
+    // Same hairline separator the tables list menu uses.
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      border-bottom: 1px solid $border;
+    }
 
     mat-icon {
       color: $navy;
