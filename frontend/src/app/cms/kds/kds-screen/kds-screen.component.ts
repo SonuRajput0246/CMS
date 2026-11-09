@@ -88,6 +88,9 @@ export class KdsScreenComponent implements OnInit {
   serverTime = '';
   summary = { pending: 0, preparing: 0, ready: 0 };
 
+  /** Wall clock for the board header — the pass has no other time in view. */
+  clock = new Date();
+
   /** Per-line in-flight ids, so one tap greys one row instead of the board. */
   private _pendingLines = new Set<number>();
   /** Tickets with a bump in flight, for the same reason. */
@@ -95,10 +98,27 @@ export class KdsScreenComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.startClock();
 
     interval(BOARD_POLL_MS)
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this.poll());
+  }
+
+  /**
+   * The header only shows minutes, so assigning a new Date every second would
+   * re-render the whole board 60 times a minute for no visible change. Tick
+   * often, reassign only when the minute actually turns.
+   */
+  private startClock(): void {
+    interval(1000)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe(() => {
+        const now = new Date();
+        if (now.getMinutes() !== this.clock.getMinutes()) {
+          this.clock = now;
+        }
+      });
   }
 
   //// ------------------------------------------------------------------

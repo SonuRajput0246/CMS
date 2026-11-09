@@ -6,9 +6,14 @@
          pass is backing up without visiting every screen.
          ================================================================ -->
     <header class="kds-topbar">
-        <button mat-icon-button type="button" aria-label="Back to dashboard"
-                routerLink="/cms/dashboard">
+        <!-- The board runs chromeless, so the way back has to be labelled
+             rather than left as a bare arrow. -->
+        <button mat-stroked-button type="button" class="kds-exit"
+                routerLink="/cms/dashboard"
+                matTooltip="Leave the kitchen board and return to the dashboard"
+                aria-label="Exit the kitchen board">
             <mat-icon>arrow_back</mat-icon>
+            <span>Exit</span>
         </button>
 
         <div class="kds-brand">
@@ -48,6 +53,13 @@
         </nav>
 
         <div class="kds-status">
+            <!-- A wall-mounted board has no OS clock in view, so it carries
+                 one. Minute-only: seconds tick constantly and read as noise. -->
+            <span class="kds-clock" matTooltip="Local time on this screen">
+                <mat-icon>schedule</mat-icon>
+                {{ clock | date: 'HH:mm' }}
+            </span>
+
             <div class="prep-split">
                 <span class="ps-chip ps-pending">{{ summary.pending }} to start</span>
                 <span class="ps-chip ps-preparing">{{ summary.preparing }} cooking</span>
@@ -58,7 +70,7 @@
                  disagree the chef is looking at a stale queue, and this is
                  how they find out. -->
             <span class="kds-timestamp" matTooltip="Last board refresh (server time)">
-                <mat-icon>schedule</mat-icon>
+                <mat-icon>sync</mat-icon>
                 Updated {{ serverTime | date: 'HH:mm:ss' }}
             </span>
 

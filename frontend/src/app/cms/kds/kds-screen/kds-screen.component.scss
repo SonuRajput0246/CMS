@@ -49,6 +49,34 @@
   @include theme.cms-card;
 }
 
+// Chromeless screen: the way out is a labelled control rather than a bare
+// arrow someone has to guess at, but it stays quiet so the board keeps the
+// attention.
+.kds-exit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px !important;
+  border-radius: 999px;
+  border-color: theme.$border-strong !important;
+  color: theme.$navy !important;
+  font-size: 13px;
+  font-weight: 700;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: theme.$navy-soft !important;
+    border-color: theme.$navy !important;
+  }
+}
+
 .kds-brand {
   display: flex;
   align-items: center;
@@ -189,6 +217,27 @@
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
+}
+
+.kds-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: theme.$navy-soft;
+  color: theme.$navy;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
 }
 
 .prep-split {
