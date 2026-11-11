@@ -1,4 +1,4 @@
-from marshmallow import fields, validate
+from marshmallow import fields, validate, validates_schema, ValidationError
 
 from src.api.schemas.base import BaseSchema
 from src.api.schemas.id_schema import id_schema_factory
@@ -73,6 +73,39 @@ class UndoBumpSchema(BaseSchema):
         validate=validate.Length(min=1, error="At least one item is required"),
         error_messages={"required": "Order item ids are required", "invalid": "Invalid order item ids"}
     )
+
+
+class UpdateKdsPolicySchema(BaseSchema):
+    """The tenant's board settings.
+
+    All three travel together: the dialog edits one policy, and a partial
+    update would let the amber band drift past the red one between saves.
+    """
+    wait_warn_minutes = fields.Integer(
+        required=True,
+        validate=validate.Range(min=1, max=120, error="Amber band must be 1-120 minutes"),
+        error_messages={"required": "Amber band is required", "invalid": "Invalid amber band"}
+    )
+    wait_late_minutes = fields.Integer(
+        required=True,
+        validate=validate.Range(min=2, max=240, error="Red band must be 2-240 minutes"),
+        error_messages={"required": "Red band is required", "invalid": "Invalid red band"}
+    )
+    poll_seconds = fields.Integer(
+        required=True,
+        validate=validate.Range(min=3, max=60, error="Refresh interval must be 3-60 seconds"),
+        error_messages={"required": "Refresh interval is required", "invalid": "Invalid refresh interval"}
+    )
+
+    @validates_schema
+    def ordered_bands(self, data, **kwargs):
+        warn = data.get("wait_warn_minutes")
+        late = data.get("wait_late_minutes")
+        if warn is not None and late is not None and warn >= late:
+            raise ValidationError(
+                "The red band must be later than the amber band.",
+                field_name="wait_late_minutes"
+            )
 
 
 class BumpOrderSchema(BaseSchema):

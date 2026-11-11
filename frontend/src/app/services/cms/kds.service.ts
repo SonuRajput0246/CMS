@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { AppConfig } from '../../core/config/config';
 import { IEntityResponse } from '../../models/ICommon.model';
+import { IKdsPolicy } from '../../models/ICms.model';
 
 /**
  * Kitchen Display System.
@@ -50,6 +51,11 @@ export class CmsKdsService {
   /** Per-station outstanding counts, for the station tab badges. */
   getStationSummary(): Observable<IEntityResponse> {
     return this.http.get(`${this.baseURL}/api/v1/kds/get-station-summary`);
+  }
+
+  /** Save the tenant's wait bands and refresh interval. */
+  updatePolicy(policy: IKdsPolicy): Observable<IEntityResponse> {
+    return this.http.post(`${this.baseURL}/api/v1/kds/policy`, policy);
   }
 
   /**

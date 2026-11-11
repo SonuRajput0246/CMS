@@ -1276,6 +1276,14 @@
     flex-basis: 100%;
   }
 
+  // The status block now holds the clock, freshness, kiosk, settings, sort and
+  // refresh; on a portrait tablet it has to be allowed to wrap rather than
+  // push the last control off the edge.
+  .kds-status {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .ticket-board {
     grid-template-columns: 1fr;
   }

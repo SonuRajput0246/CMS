@@ -5,6 +5,7 @@ from src.api.schemas.kds_schema import (
     BumpOrderSchema,
     GetKdsTicketsSchema,
     UndoBumpSchema,
+    UpdateKdsPolicySchema,
     UpdatePrepStatusSchema,
 )
 from src.api.services.kds_service import KdsService
@@ -37,6 +38,12 @@ class KdsRoute:
         result, status_code = self.kds_service.get_station_summary()
         return jsonify(result), status_code
 
+    def update_policy(self):
+        payload = request.get_json() or {}
+        validated_data = UpdateKdsPolicySchema().load(payload)
+        result, status_code = self.kds_service.update_policy(validated_data)
+        return jsonify(result), status_code
+
     def update_prep_status(self, order_id):
         payload = request.get_json() or {}
         validated_data = UpdatePrepStatusSchema().load(payload)
@@ -65,6 +72,7 @@ kds_route = KdsRoute(kds_service=kds_service_instance)
 kds_bp.add_url_rule('/get-tickets', view_func=requires_module("KDS")(kds_route.get_tickets), methods=['POST'])
 kds_bp.add_url_rule('/get-ticket/<int:order_id>', view_func=requires_module("KDS")(kds_route.get_ticket), methods=['GET'])
 kds_bp.add_url_rule('/get-station-summary', view_func=requires_module("KDS")(kds_route.get_station_summary), methods=['GET'])
+kds_bp.add_url_rule('/policy', view_func=requires_module("KDS")(kds_route.update_policy), methods=['POST'])
 kds_bp.add_url_rule('/<int:order_id>/prep-status', view_func=requires_module("KDS")(kds_route.update_prep_status), methods=['POST'])
 kds_bp.add_url_rule('/bump', view_func=requires_module("KDS")(kds_route.bump_order), methods=['POST'])
 kds_bp.add_url_rule('/undo-bump', view_func=requires_module("KDS")(kds_route.undo_bump), methods=['POST'])

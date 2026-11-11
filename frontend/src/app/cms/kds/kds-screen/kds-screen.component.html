@@ -91,6 +91,13 @@
                 <mat-icon>fullscreen</mat-icon>
             </button>
 
+            <!-- Rare, deliberate changes only: a wall screen is tapped
+                 constantly, so its settings must not look like another action. -->
+            <button mat-icon-button class="kds-kiosk kds-config" (click)="openPolicyDialog()"
+                matTooltip="Wait bands and refresh interval" aria-label="Kitchen display settings">
+                <mat-icon>tune</mat-icon>
+            </button>
+
             <button mat-stroked-button class="kds-sort" (click)="toggleSort()"
                 matTooltip="Switch between the longest-waiting and newest tickets">
                 <mat-icon>{{ orderBy === 'oldest_first' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
@@ -384,5 +391,72 @@
         </div>
     </div>
 </div>
+
+<!-- Wait bands and refresh interval are tenant policy, not a per-screen
+     preference: two screens showing one ticket in different colours would make
+     the colour meaningless. Opened as a dialog because nothing else on this
+     screen is a settings action. -->
+<ng-template #policyTpl>
+    <div class="dlg kds-policy">
+        <header class="dlg-head">
+            <div class="dlg-title">
+                <h2>Kitchen display settings</h2>
+                <p>Applies to every kitchen screen on this account.</p>
+            </div>
+            <button mat-icon-button type="button" (click)="closePolicyDialog()" aria-label="Close settings">
+                <mat-icon>close</mat-icon>
+            </button>
+        </header>
+
+        <div class="dlg-body">
+            <form [formGroup]="policyForm" autocomplete="off">
+                <div class="field-row">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Amber after (minutes)</mat-label>
+                        <input matInput type="number" min="1" max="120" formControlName="wait_warn_minutes">
+                        <mat-hint>Between 1 and 120 minutes</mat-hint>
+                    </mat-form-field>
+                </div>
+
+                <div class="field-row">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Red after (minutes)</mat-label>
+                        <input matInput type="number" min="2" max="240" formControlName="wait_late_minutes">
+                        <mat-hint>Between 2 and 240 minutes</mat-hint>
+                    </mat-form-field>
+                </div>
+
+                <p class="bands-error" *ngIf="policyForm.hasError('bands')">
+                    The red band must be later than the amber band.
+                </p>
+
+                <div class="field-row">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Refresh every (seconds)</mat-label>
+                        <input matInput type="number" min="3" max="60" formControlName="poll_seconds">
+                        <mat-hint>Between 3 and 60 seconds</mat-hint>
+                    </mat-form-field>
+                </div>
+            </form>
+
+            <p class="note">
+                <mat-icon>info</mat-icon>
+                Bands colour the ticket card and its prep timer. The refresh interval is how often
+                each kitchen screen asks the server for the board.
+            </p>
+        </div>
+
+        <footer class="dlg-foot">
+            <button mat-stroked-button type="button" (click)="closePolicyDialog()" [disabled]="isSavingPolicy">
+                Cancel
+            </button>
+            <button mat-raised-button color="primary" type="button"
+                [disabled]="isSavingPolicy || policyForm.invalid" (click)="savePolicy()">
+                <mat-spinner *ngIf="isSavingPolicy" diameter="16"></mat-spinner>
+                <span *ngIf="!isSavingPolicy">Save settings</span>
+            </button>
+        </footer>
+    </div>
+</ng-template>
 
 <app-page-loader *ngIf="isPageLoad"></app-page-loader>

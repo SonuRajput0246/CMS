@@ -337,6 +337,59 @@ describe('KdsScreenComponent', () => {
     });
   });
 
+  it('applies the tenant wait bands from the board payload', () => {
+    component.refreshNow();
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({
+      status: true,
+      data: {
+        station: null,
+        tickets: [],
+        policy: { wait_warn_minutes: 6, wait_late_minutes: 12, poll_seconds: 8 },
+        summary: { pending: 0, preparing: 0, ready: 0 },
+        server_time: 'x',
+      },
+    });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+
+    expect(component.policy).toEqual({ wait_warn_minutes: 6, wait_late_minutes: 12, poll_seconds: 8 });
+    expect(component.waitClass(5)).toBe('wait-ok');
+    expect(component.waitClass(6)).toBe('wait-warn');
+    expect(component.waitClass(12)).toBe('wait-late');
+  });
+
+  it('saves new bands and the refresh interval', () => {
+    component.openPolicyDialog();
+    component.policyForm.patchValue({ wait_warn_minutes: 7, wait_late_minutes: 15, poll_seconds: 9 });
+
+    component.savePolicy();
+
+    const req = httpMock.expectOne(`${base}/api/v1/kds/policy`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ wait_warn_minutes: 7, wait_late_minutes: 15, poll_seconds: 9 });
+    req.flush({
+      status: true,
+      message: 'saved',
+      data: { wait_warn_minutes: 7, wait_late_minutes: 15, poll_seconds: 9 },
+    });
+
+    expect(component.policy).toEqual({ wait_warn_minutes: 7, wait_late_minutes: 15, poll_seconds: 9 });
+    expect(component.waitClass(7)).toBe('wait-warn');
+  });
+
+  it('refuses to save a red band that is not later than the amber band', () => {
+    component.openPolicyDialog();
+    component.policyForm.patchValue({ wait_warn_minutes: 20, wait_late_minutes: 20, poll_seconds: 5 });
+
+    expect(component.policyForm.hasError('bands')).toBe(true);
+    component.savePolicy();
+
+    httpMock.expectNone(`${base}/api/v1/kds/policy`);
+  });
+
   it('renders till modifiers and labels non-dine-in tickets', () => {
     expect(component.orderTypeLabel('takeaway')).toBe('Takeaway');
     expect(component.orderTypeLabel('dine_in')).toBe('Dine-in');

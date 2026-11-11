@@ -391,11 +391,19 @@ export interface IKdsReadyItem {
   minutes_since_ready?: number | null;
 }
 
+/** Tenant-level board settings; the server always sends resolved values. */
+export interface IKdsPolicy {
+  wait_warn_minutes: number;
+  wait_late_minutes: number;
+  poll_seconds: number;
+}
+
 export interface IKdsBoard {
   station: string | null;
   tickets: IKdsTicket[];
   ticket_count: number;
   ready_items?: IKdsReadyItem[];
+  policy?: IKdsPolicy;
   summary: { pending: number; preparing: number; ready: number };
   server_time: string;
 }

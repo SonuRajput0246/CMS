@@ -1,11 +1,14 @@
-import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { forkJoin, interval } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
   IKdsBoard,
   IKdsItem,
+  IKdsPolicy,
   IKdsReadyItem,
   IKdsStationSummary,
   IKdsTicket,
@@ -20,8 +23,8 @@ import { CmsKdsService } from '../../../services/cms/kds.service';
 import { ConfirmationService } from '../../../services/confirmation.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 
-/** How often the board re-reads itself. */
-const BOARD_POLL_MS = 5000;
+/** Refresh interval for a tenant that never configured one. */
+const DEFAULT_POLL_SECONDS = 5;
 
 /** Failed reads in a row before the board admits it is showing stale data. */
 const STALE_AFTER_FAILURES = 2;
@@ -79,6 +82,10 @@ export class KdsScreenComponent implements OnInit {
   private _snackbar = inject(CustomSnackbarService);
   private _confirm = inject(ConfirmationService);
   private _destroyRef = inject(DestroyRef);
+  private _dialog = inject(MatDialog);
+  private _fb = inject(FormBuilder);
+
+  @ViewChild('policyTpl') policyTpl!: TemplateRef<unknown>;
 
   //// Constants
   readonly PREP_STATUS_LABELS = PREP_STATUS_LABELS;
@@ -113,6 +120,17 @@ export class KdsScreenComponent implements OnInit {
 
   serverTime = '';
   summary = { pending: 0, preparing: 0, ready: 0 };
+
+  /**
+   * Wait bands and refresh interval. Seeded with the server's defaults so the
+   * first paint and any offline read still colour tickets correctly; the board
+   * payload replaces them with this tenant's values.
+   */
+  policy: IKdsPolicy = {
+    wait_warn_minutes: WAIT_WARN_MINUTES,
+    wait_late_minutes: WAIT_LATE_MINUTES,
+    poll_seconds: DEFAULT_POLL_SECONDS
+  };
 
   /** Wall clock for the board header — the pass has no other time in view. */
   clock = new Date();
@@ -150,19 +168,46 @@ export class KdsScreenComponent implements OnInit {
   isUndoingBump = false;
   private _undoTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Policy dialog and its form, opened from the top bar. */
+  policyForm!: FormGroup;
+  isSavingPolicy = false;
+  private _policyDialogRef: MatDialogRef<unknown> | null = null;
+
+  private _pollTimer: ReturnType<typeof setTimeout> | null = null;
+
   ngOnInit(): void {
     this.restorePreferences();
     this.load();
     this.startClock();
     this.keepScreenAwake();
-
-    interval(BOARD_POLL_MS)
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe(() => this.poll());
+    this.schedulePoll();
 
     this._destroyRef.onDestroy(() => {
       if (this._undoTimer) clearTimeout(this._undoTimer);
+      this.clearPollTimer();
     });
+  }
+
+  /**
+   * The refresh interval is tenant policy, so it cannot be a fixed `interval()`
+   * subscription created once at init -- a saved change has to take effect on
+   * this screen without a reload. Each tick schedules the next one at the
+   * current interval instead.
+   */
+  private schedulePoll(): void {
+    this.clearPollTimer();
+    const seconds = Math.max(3, toAmount(this.policy?.poll_seconds) || DEFAULT_POLL_SECONDS);
+    this._pollTimer = setTimeout(() => {
+      this.poll();
+      this.schedulePoll();
+    }, seconds * 1000);
+  }
+
+  private clearPollTimer(): void {
+    if (this._pollTimer) {
+      clearTimeout(this._pollTimer);
+      this._pollTimer = null;
+    }
   }
 
   /**
@@ -521,9 +566,23 @@ export class KdsScreenComponent implements OnInit {
     this.readyItems = board?.ready_items ?? [];
     this.serverTime = board?.server_time ?? '';
     if (board?.summary) this.summary = board.summary;
+    this.adoptPolicy(board?.policy);
   }
 
-  /** Manual refresh. The 10s poll is the safety net; this is for right now. */
+  /**
+   * Another screen may have saved new bands or an interval while this one was
+   * polling, so the policy rides along with every board read rather than being
+   * fetched once at startup.
+   */
+  private adoptPolicy(policy?: IKdsPolicy): void {
+    if (!policy) return;
+
+    const intervalChanged = policy.poll_seconds !== this.policy.poll_seconds;
+    this.policy = policy;
+    if (intervalChanged) this.schedulePoll();
+  }
+
+  /** Manual refresh. The timer is the safety net; this is for right now. */
   refreshNow(): void {
     this.poll();
   }
@@ -534,6 +593,88 @@ export class KdsScreenComponent implements OnInit {
     this.persistPreferences();
     this.dismissUndo();
     this.load();
+  }
+
+  //// ------------------------------------------------------------------
+  ////  Settings
+  //// ------------------------------------------------------------------
+
+  /**
+   * The bands and refresh interval are tenant policy, saved from any screen
+   * and picked up by every other on its next poll. The dialog edits all three
+   * together so the amber band can never be saved past the red one.
+   */
+  openPolicyDialog(): void {
+    if (this._policyDialogRef) return;
+
+    this.policyForm = this._fb.group({
+      wait_warn_minutes: [
+        this.policy.wait_warn_minutes,
+        [Validators.required, Validators.min(1), Validators.max(120)]
+      ],
+      wait_late_minutes: [
+        this.policy.wait_late_minutes,
+        [Validators.required, Validators.min(2), Validators.max(240)]
+      ],
+      poll_seconds: [
+        this.policy.poll_seconds,
+        [Validators.required, Validators.min(3), Validators.max(60)]
+      ]
+    }, { validators: KdsScreenComponent.bandsOrdered });
+
+    this._policyDialogRef = this._dialog.open(this.policyTpl, {
+      width: '420px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      panelClass: 'kds-policy-dialog'
+    });
+    this._policyDialogRef.afterClosed().subscribe(() => {
+      this._policyDialogRef = null;
+    });
+  }
+
+  private static bandsOrdered(group: AbstractControl) {
+    const warn = Number(group.get('wait_warn_minutes')?.value);
+    const late = Number(group.get('wait_late_minutes')?.value);
+    if (!warn || !late) return null;
+    return late > warn ? null : { bands: true };
+  }
+
+  savePolicy(): void {
+    if (this.isSavingPolicy) return;
+    if (this.policyForm.invalid) {
+      this.policyForm.markAllAsTouched();
+      return;
+    }
+
+    const policy: IKdsPolicy = {
+      wait_warn_minutes: Number(this.policyForm.value.wait_warn_minutes),
+      wait_late_minutes: Number(this.policyForm.value.wait_late_minutes),
+      poll_seconds: Number(this.policyForm.value.poll_seconds)
+    };
+
+    this.isSavingPolicy = true;
+    this._kdsService.updatePolicy(policy)
+      .pipe(finalize(() => this.isSavingPolicy = false))
+      .subscribe({
+        next: (res) => {
+          if (!res?.status) {
+            this._snackbar.openSnackBar(res?.message || 'Could not save the settings', 'error');
+            return;
+          }
+          const saved = (res.data as IKdsPolicy) ?? policy;
+          const intervalChanged = saved.poll_seconds !== this.policy.poll_seconds;
+          this.policy = saved;
+          if (intervalChanged) this.schedulePoll();
+          this._snackbar.openSnackBar(res.message || 'Kitchen display settings saved', 'success');
+          this.closePolicyDialog();
+        },
+        error: (err) => this.fail(err, 'Could not save the settings')
+      });
+  }
+
+  closePolicyDialog(): void {
+    this._policyDialogRef?.close();
   }
 
   onStationChange(station: Station | null): void {
@@ -767,11 +908,14 @@ export class KdsScreenComponent implements OnInit {
    * Wait colour. The band boundaries are the whole point of the badge -- a
    * chef triages on amber vs red long before they read the number -- so the
    * class is derived once here rather than in three separate ngClass bindings.
+   *
+   * The boundaries come from the tenant's policy: a cafe turning tables in
+   * eight minutes and a dining room taking forty cannot share one pair.
    */
   waitClass(minutes: number): 'wait-ok' | 'wait-warn' | 'wait-late' {
     const wait = toAmount(minutes);
-    if (wait >= WAIT_LATE_MINUTES) return 'wait-late';
-    if (wait >= WAIT_WARN_MINUTES) return 'wait-warn';
+    if (wait >= this.policy.wait_late_minutes) return 'wait-late';
+    if (wait >= this.policy.wait_warn_minutes) return 'wait-warn';
     return 'wait-ok';
   }
 

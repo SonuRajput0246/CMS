@@ -9,6 +9,7 @@ from src.api.models.order_model import (
     PREP_PREPARING,
     PREP_READY,
 )
+from src.api.models.system_setting_model import SystemSetting
 from src.api.utils.responses import service_response
 
 
@@ -35,6 +36,28 @@ READY_LANE_MINUTES = 30
 ## push the board itself off screen.
 READY_LANE_LIMIT = 40
 
+## Board policy, per tenant. A cafe turning a table in eight minutes and a
+## fine-dining room turning one in forty cannot share one pair of bands, and
+## the poll interval is the screen's own API load, so both belong to the
+## tenant too. These are the values an unconfigured tenant gets.
+DEFAULT_WAIT_WARN_MINUTES = 10
+DEFAULT_WAIT_LATE_MINUTES = 20
+DEFAULT_POLL_SECONDS = 5
+
+## Accepted ranges. Enforced on read as well as on write, so a hand-edited row
+## cannot make the board poll once a second or paint everything red.
+POLICY_LIMITS = {
+    "wait_warn_minutes": (1, 120),
+    "wait_late_minutes": (2, 240),
+    "poll_seconds": (3, 60),
+}
+
+POLICY_SETTING_KEYS = {
+    "wait_warn_minutes": "kds.wait_warn_minutes",
+    "wait_late_minutes": "kds.wait_late_minutes",
+    "poll_seconds": "kds.poll_seconds",
+}
+
 
 class KdsService:
     """Kitchen Display System.
@@ -50,6 +73,46 @@ class KdsService:
     ## ==================================================================
     ## READS
     ## ==================================================================
+
+    def get_policy(self) -> dict:
+        """The tenant's KDS policy, with defaults for anything unset.
+
+        Returned inline with the board rather than as a second call: the board
+        cannot paint a wait badge without its bands, and a screen that painted
+        first and asked later would show one wrong colour on every refresh.
+        """
+        values = {
+            row.key: row.value
+            for row in self.db.query(SystemSetting).filter(
+                SystemSetting.is_deleted == False,
+                SystemSetting.key.in_(POLICY_SETTING_KEYS.values()),
+            ).all()
+        }
+
+        policy = {}
+        for field, default in (
+            ("wait_warn_minutes", DEFAULT_WAIT_WARN_MINUTES),
+            ("wait_late_minutes", DEFAULT_WAIT_LATE_MINUTES),
+            ("poll_seconds", DEFAULT_POLL_SECONDS),
+        ):
+            policy[field] = self._coerce_setting(values.get(POLICY_SETTING_KEYS[field]), field, default)
+
+        ## Bands that cross would paint a ticket red and amber at once. Treat
+        ## the pair as unset rather than guessing which half the editor meant.
+        if policy["wait_warn_minutes"] >= policy["wait_late_minutes"]:
+            policy["wait_warn_minutes"] = DEFAULT_WAIT_WARN_MINUTES
+            policy["wait_late_minutes"] = DEFAULT_WAIT_LATE_MINUTES
+
+        return policy
+
+    @staticmethod
+    def _coerce_setting(raw, field: str, default: int) -> int:
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return default
+        low, high = POLICY_LIMITS[field]
+        return value if low <= value <= high else default
 
     def get_tickets(self, data: dict):
         """The kitchen queue, one entry per order that still owes kitchen work.
@@ -115,6 +178,7 @@ class KdsService:
                 "tickets": tickets,
                 "ticket_count": len(tickets),
                 "ready_items": self._serialize_ready_lane(station),
+                "policy": self.get_policy(),
                 "summary": summary,
                 "server_time": utcnow().isoformat()
             },
@@ -182,6 +246,37 @@ class KdsService:
     ## ==================================================================
     ## WRITES
     ## ==================================================================
+
+    def update_policy(self, data: dict):
+        """Save the tenant's board policy.
+
+        A row that was soft-deleted is reused rather than inserted again: the
+        unique key is `(tenant_id, key)` and does not ignore `is_deleted`, so a
+        second insert would fail on the old row.
+        """
+        if data["wait_warn_minutes"] >= data["wait_late_minutes"]:
+            return service_response(
+                False,
+                "The red band must be later than the amber band.",
+                None, 422
+            )
+
+        for field, key in POLICY_SETTING_KEYS.items():
+            row = self.db.query(SystemSetting).filter_by(key=key).first()
+            if row:
+                row.value = str(data[field])
+                row.is_deleted = False
+                row.deleted_at = None
+            else:
+                self.db.add(SystemSetting(key=key, value=str(data[field])))
+
+        self.db.commit()
+        return service_response(
+            True,
+            "Kitchen display settings saved.",
+            self.get_policy(),
+            200
+        )
 
     def update_prep_status(self, order_id: int, data: dict, user_id: int | None = None):
         """Advance or rewind one line through the kitchen."""
