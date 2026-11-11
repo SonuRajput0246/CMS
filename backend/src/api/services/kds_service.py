@@ -349,6 +349,20 @@ class KdsService:
         if not items:
             return None
 
+        ## A station board hides the lines other stations owe on the same
+        ## ticket. Trusting it to "not have" them makes a table look ready to
+        ## leave when half the order is still at the grill, so the count is
+        ## sent along and shown as a chip.
+        queue_all = [
+            item for item in order.items
+            if not item.is_deleted and item.prep_status in QUEUE_PREP_STATUSES
+        ]
+        queue_shown = [
+            item for item in queue_all
+            if not station or item.station == station
+        ]
+        other_station_outstanding = max(0, len(queue_all) - len(queue_shown))
+
         return {
             "order_id": order.id,
             "order_number": order.order_number,
@@ -360,6 +374,7 @@ class KdsService:
             "ordered_at": ordered_at.isoformat() if ordered_at else None,
             "max_wait_minutes": max_wait,
             "kitchen_notes": order.kitchen_notes,
+            "other_station_outstanding": other_station_outstanding,
             "item_count": len(items),
             "items": items
         }

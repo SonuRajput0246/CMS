@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, interval } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -19,7 +19,17 @@ import { ConfirmationService } from '../../../services/confirmation.service';
 import { CustomSnackbarService } from '../../../shared/custom-snackbar/custom-snackbar.service';
 
 /** How often the board re-reads itself. */
-const BOARD_POLL_MS = 10000;
+const BOARD_POLL_MS = 5000;
+
+/** Failed reads in a row before the board admits it is showing stale data. */
+const STALE_AFTER_FAILURES = 2;
+
+/** How long an arrival keeps its NEW flag. */
+const NEW_BADGE_MS = 120000;
+
+/** Per-browser memory of how this screen was left. */
+const STORAGE_STATION = 'kds.station';
+const STORAGE_INCLUDE_READY = 'kds.includeReady';
 
 /** Minutes before a ticket stops being "on time" and starts being amber. */
 const WAIT_WARN_MINUTES = 10;
@@ -96,9 +106,29 @@ export class KdsScreenComponent implements OnInit {
   /** Tickets with a bump in flight, for the same reason. */
   private _pendingBumps = new Set<number>();
 
+  /** When the board last painted successfully, for wait extrapolation. */
+  private _boardReadAt = 0;
+  /** A read was requested while one was already in flight. */
+  private _refreshQueued = false;
+  /** Incremented on every load, so a slower read for the old station is dropped. */
+  private _boardGeneration = 0;
+  /** Consecutive failed reads; reset by any success. */
+  pollFailures = 0;
+  /** Ticket ids already shown, so only genuine arrivals raise the NEW flag. */
+  private _knownTickets = new Set<number>();
+  /** Ticket id -> when it first appeared on this screen. */
+  private _newAt = new Map<number, number>();
+  /** False until the first board paints, so the initial list is not "new". */
+  private _hasPainted = false;
+
+  private _audioCtx: AudioContext | null = null;
+  private _wakeLock: WakeLockSentinel | null = null;
+
   ngOnInit(): void {
+    this.restorePreferences();
     this.load();
     this.startClock();
+    this.keepScreenAwake();
 
     interval(BOARD_POLL_MS)
       .pipe(takeUntilDestroyed(this._destroyRef))
@@ -121,6 +151,107 @@ export class KdsScreenComponent implements OnInit {
       });
   }
 
+  /**
+   * A wall-mounted screen is left alone for a whole service, so it remembers
+   * which pass it is on rather than resetting to "All stations" on every
+   * reload — and silently falls back when storage is unavailable.
+   */
+  private restorePreferences(): void {
+    try {
+      const station = localStorage.getItem(STORAGE_STATION);
+      this.activeStation = station && station !== 'null' ? station as Station : null;
+      this.includeReady = localStorage.getItem(STORAGE_INCLUDE_READY) === '1';
+    } catch {
+      this.activeStation = null;
+      this.includeReady = false;
+    }
+  }
+
+  private persistPreferences(): void {
+    try {
+      localStorage.setItem(STORAGE_STATION, this.activeStation ?? 'null');
+      localStorage.setItem(STORAGE_INCLUDE_READY, this.includeReady ? '1' : '0');
+    } catch {
+      /* storage disabled — the board still works, it just won't remember */
+    }
+  }
+
+  /**
+   * Browsers refuse to start audio without a gesture, so the context is created
+   * on the first tap anywhere on the screen. Until a chef has touched it, a new
+   * ticket is silent — the NEW badge still shows.
+   */
+  @HostListener('document:pointerdown')
+  unlockAudio(): void {
+    if (this._audioCtx) return;
+    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    try {
+      this._audioCtx = new Ctor();
+      void this._audioCtx.resume?.();
+    } catch {
+      this._audioCtx = null;
+    }
+  }
+
+  /** Two rising tones: distinct from the POS chime and short enough to ignore. */
+  private chime(): void {
+    const ctx = this._audioCtx;
+    if (!ctx) return;
+    try {
+      const start = ctx.currentTime;
+      [880, 1174.66].forEach((frequency, i) => {
+        const at = start + i * 0.18;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.exponentialRampToValueAtTime(0.18, at + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.17);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(at);
+        osc.stop(at + 0.18);
+      });
+    } catch {
+      /* audio is a courtesy; the board never depends on it */
+    }
+  }
+
+  /** Keep the wall tablet awake; releases on destroy so a tab left open does not hold a lock. */
+  private keepScreenAwake(): void {
+    const wakeLock = (navigator as unknown as {
+      wakeLock?: { request(type: 'screen'): Promise<WakeLockSentinel> };
+    }).wakeLock;
+    if (!wakeLock?.request) return;
+
+    const acquire = () => {
+      if (document.visibilityState !== 'visible') return;
+      wakeLock.request('screen')
+        .then(lock => { this._wakeLock = lock; })
+        .catch(() => { /* battery saver or policy — not fatal */ });
+    };
+
+    acquire();
+    document.addEventListener('visibilitychange', acquire);
+    this._destroyRef.onDestroy(() => {
+      document.removeEventListener('visibilitychange', acquire);
+      try { this._wakeLock?.release(); } catch { /* already released */ }
+    });
+  }
+
+  get isFullscreen(): boolean {
+    return !!document.fullscreenElement;
+  }
+
+  toggleFullscreen(): void {
+    if (this.isFullscreen) {
+      void document.exitFullscreen?.();
+      return;
+    }
+    const request = document.documentElement.requestFullscreen?.();
+    if (request) request.catch(() => { /* the browser may refuse without a gesture */ });
+  }
   //// ------------------------------------------------------------------
   ////  Derived read models
   //// ------------------------------------------------------------------
@@ -144,6 +275,45 @@ export class KdsScreenComponent implements OnInit {
 
   isTicketBusy(ticket: IKdsTicket): boolean {
     return this._pendingBumps.has(ticket.order_id);
+  }
+
+  /** The board is showing data older than it can verify — say so on screen. */
+  get isStale(): boolean {
+    return this.pollFailures >= STALE_AFTER_FAILURES;
+  }
+
+  /**
+   * Minutes a ticket has been waiting, taken from what the server said at the
+   * last read plus the local time elapsed since. The server number alone would
+   * only move every poll, so a ticket would sit on "9 min" past its amber
+   * threshold until the next refresh.
+   */
+  waitMinutes(ticket: IKdsTicket): number {
+    const elapsed = this._boardReadAt ? Math.floor((Date.now() - this._boardReadAt) / 60000) : 0;
+    return toAmount(ticket.max_wait_minutes) + elapsed;
+  }
+
+  waitClassFor(ticket: IKdsTicket): 'wait-ok' | 'wait-warn' | 'wait-late' {
+    return this.waitClass(this.waitMinutes(ticket));
+  }
+
+  /** Arrived while this screen was already showing the board. */
+  isNew(ticket: IKdsTicket): boolean {
+    const at = this._newAt.get(ticket.order_id);
+    return at != null && Date.now() - at < NEW_BADGE_MS;
+  }
+
+  /** The station view hides other stations' lines; this is how many. */
+  otherStationCount(ticket: IKdsTicket): number {
+    return this.activeStation ? toAmount(ticket.other_station_outstanding) : 0;
+  }
+
+  trackByOrderId(_index: number, ticket: IKdsTicket): number {
+    return ticket.order_id;
+  }
+
+  trackByItemId(_index: number, item: IKdsItem): number {
+    return item.id;
   }
 
   //// ------------------------------------------------------------------
@@ -175,46 +345,109 @@ export class KdsScreenComponent implements OnInit {
    */
   private load(): void {
     this.isPageLoad = true;
+    const generation = ++this._boardGeneration;
+    // A manual reload (station toggle) starts a fresh board, so nothing on it
+    // is "new" and the chime must not fire for the whole station.
+    this._knownTickets.clear();
+    this._newAt.clear();
+    this._hasPainted = false;
+    this._refreshQueued = false;
+
     this.readBoard()
       .pipe(finalize(() => this.isPageLoad = false))
       .subscribe({
         next: ({ board, stations }) => {
+          // A newer load (another station tap) already owns the screen.
+          if (generation !== this._boardGeneration) return;
           if (!board?.status || !stations?.status) {
+            this.pollFailures++;
             this._snackbar.openSnackBar(
               board?.message || stations?.message || 'Failed to load the kitchen board',
               'error'
             );
             return;
           }
+          this.pollFailures = 0;
           this.adoptBoard(board.data as IKdsBoard);
-          this.stations = (stations.data?.stations ?? []) as IKdsStationSummary[];
+          this.adoptStations((stations.data?.stations ?? []) as IKdsStationSummary[]);
         },
-        error: (err) => this.fail(err, 'Could not load the kitchen board')
+        error: (err) => {
+          if (generation !== this._boardGeneration) return;
+          this.pollFailures++;
+          this.fail(err, 'Could not load the kitchen board');
+        }
       });
   }
 
   /**
-   * Background refresh. Silent on failure: the next tick is 10 seconds away,
-   * and a board that toasts an error every 10 seconds trains the kitchen to
-   * ignore every toast on it.
+   * Background refresh. Silent on failure: the next tick is seconds away, and a
+   * board that toasts an error every 5 seconds trains the kitchen to ignore
+   * every toast on it. Repeated failures are surfaced through `isStale`
+   * instead, which is visible without being loud.
    */
   private poll(): void {
-    // A read already in flight; a second one would just race the first.
-    if (this.isBusy) return;
+    // A read is already in flight. Queue one rather than dropping it: the
+    // caller is usually a write that needs to see its own result.
+    if (this.isBusy) {
+      this._refreshQueued = true;
+      return;
+    }
     this.isBusy = true;
+    const generation = this._boardGeneration;
     this.readBoard()
-      .pipe(finalize(() => this.isBusy = false))
+      .pipe(finalize(() => {
+        this.isBusy = false;
+        if (this._refreshQueued) {
+          this._refreshQueued = false;
+          this.poll();
+        }
+      }))
       .subscribe({
         next: ({ board, stations }) => {
+          // The station changed while this read was in flight; the board it
+          // describes is not the one on screen.
+          if (generation !== this._boardGeneration) return;
+          this.pollFailures = 0;
           if (board?.status) this.adoptBoard(board.data as IKdsBoard);
-          if (stations?.status) this.stations = (stations.data?.stations ?? []) as IKdsStationSummary[];
+          if (stations?.status) this.adoptStations((stations.data?.stations ?? []) as IKdsStationSummary[]);
         },
-        error: () => { /* retried on the next tick */ }
+        error: () => {
+          if (generation !== this._boardGeneration) return;
+          this.pollFailures++; /* retried on the next tick */
+        }
       });
   }
 
+  private adoptStations(stations: IKdsStationSummary[]): void {
+    this.stations = stations;
+    // A remembered station can outlive the enum row it names. Clearing it is
+    // better than filtering the board to a station that no longer has a tab.
+    if (this.activeStation && !stations.some(s => s.station === this.activeStation)) {
+      this.activeStation = null;
+      this.persistPreferences();
+    }
+  }
+
   private adoptBoard(board: IKdsBoard): void {
-    this.tickets = board?.tickets ?? [];
+    const tickets = board?.tickets ?? [];
+    const now = Date.now();
+
+    const arrivals = this._hasPainted
+      ? tickets.filter(t => !this._knownTickets.has(t.order_id)).map(t => t.order_id)
+      : [];
+
+    this._knownTickets = new Set(tickets.map(t => t.order_id));
+    for (const id of arrivals) this._newAt.set(id, now);
+    // Drop flags for tickets that left the board so the map cannot grow all day.
+    for (const id of Array.from(this._newAt.keys())) {
+      if (!this._knownTickets.has(id)) this._newAt.delete(id);
+    }
+    if (arrivals.length > 0) this.chime();
+
+    this._hasPainted = true;
+    this._boardReadAt = now;
+
+    this.tickets = tickets;
     this.serverTime = board?.server_time ?? '';
     if (board?.summary) this.summary = board.summary;
   }
@@ -227,6 +460,7 @@ export class KdsScreenComponent implements OnInit {
   onStationChange(station: Station | null): void {
     if (station === this.activeStation) return;
     this.activeStation = station;
+    this.persistPreferences();
     // A station change invalidates every ticket id on screen.
     this._pendingLines.clear();
     this._pendingBumps.clear();
@@ -240,6 +474,7 @@ export class KdsScreenComponent implements OnInit {
    */
   onToggleIncludeReady(includeReady: boolean): void {
     this.includeReady = includeReady;
+    this.persistPreferences();
     this._pendingLines.clear();
     this._pendingBumps.clear();
     this.load();
@@ -383,6 +618,27 @@ export class KdsScreenComponent implements OnInit {
   /** Spice is shouted to the pass in words, not degrees, so it reads as text. */
   spiceLabel(spice?: string | null): string {
     return spice ? spice.replace(/_/g, ' ') : '';
+  }
+
+  orderTypeLabel(orderType: string): string {
+    const labels: Record<string, string> = {
+      dine_in: 'Dine-in',
+      takeaway: 'Takeaway',
+      delivery: 'Delivery'
+    };
+    return labels[orderType] ?? orderType;
+  }
+
+  /**
+   * Modifiers arrive as an arbitrary key/value map (add-ons, sides, allergy
+   * flags from the till). They are shown as chips because a modifier the chef
+   * does not see is a dish sent back.
+   */
+  modifierChips(item: IKdsItem): string[] {
+    if (!item.modifiers) return [];
+    return Object.entries(item.modifiers)
+      .filter(([, value]) => value !== null && value !== undefined && value !== '' && value !== false)
+      .map(([key, value]) => value === true ? key : `${key}: ${value}`);
   }
 
   private fail(err: any, fallback: string): void {

@@ -371,6 +371,8 @@ export interface IKdsTicket {
   ordered_at?: string | null;
   max_wait_minutes: number;
   kitchen_notes?: string | null;
+  /** Queue lines this ticket has at stations other than the one being viewed. */
+  other_station_outstanding?: number;
   item_count: number;
   items: IKdsItem[];
 }

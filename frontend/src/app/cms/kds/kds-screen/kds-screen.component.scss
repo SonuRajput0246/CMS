@@ -270,6 +270,19 @@
     width: 15px;
     height: 15px;
   }
+
+  // Stale data is a colour the pass already knows means "act now", not a
+  // second shade of grey nobody notices.
+  &.is-stale {
+    color: theme.$danger;
+  }
+}
+
+.kds-kiosk {
+  flex: 0 0 auto;
+  color: theme.$text-muted !important;
+
+  &:hover { color: theme.$navy !important; }
 }
 
 .kds-refresh {
@@ -301,6 +314,28 @@
   }
 }
 
+// Sits between the options bar and the board so it cannot be mistaken for a
+// ticket. Only mounted after repeated failed reads.
+.kds-offline {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: theme.$radius-sm;
+  background: theme.$danger-soft;
+  border: 1px solid #f6cdca;
+  color: theme.$danger;
+  font-size: 12.5px;
+  font-weight: 700;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 // ------------------------------------------------------------
 //  Ticket board — a responsive grid, not a table. Tickets are
 //  cards because each one is an independent work item.
@@ -309,13 +344,28 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  // minmax(320px, 1fr) keeps two full tickets side by side on a
-  // 1920 kitchen monitor and reflows to one column on a tablet.
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  // 380px is the floor for 16px item text read from a few feet away, which
+  // is what a wall board is. Tracks are capped per breakpoint below.
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 12px;
   align-content: start;
   @include theme.cms-scroll;
   padding-bottom: 4px;
+}
+
+// Capacity is capped deliberately, not by what happens to fit: past four
+// columns the type drops below the size this board is read at and a chef has
+// to walk up to it. Fewer, wider tickets beat more, unreadable ones.
+@media (min-width: 1600px) {
+  .ticket-board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .ticket-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 901px) and (max-width: 1199px) {
+  .ticket-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .ticket {
@@ -374,6 +424,14 @@
       text-overflow: ellipsis;
     }
 
+    .th-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
     .th-order {
       font-size: 11px;
       font-weight: 700;
@@ -381,7 +439,46 @@
       letter-spacing: 0.6px;
       text-transform: uppercase;
     }
+
+    .th-type {
+      @include theme.cms-pill(theme.$teal-soft, theme.$teal-dark);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .th-other {
+      @include theme.cms-pill(theme.$navy-soft, theme.$navy);
+      font-size: 10.5px;
+    }
   }
+
+  .th-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // Only for orders that arrived while this screen was already open, and it
+  // clears itself — a permanent "NEW" is just noise.
+  .th-new {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: theme.$teal;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    animation: kds-throb 1.6s ease-in-out infinite;
+  }
+}
+
+// An arrival gets a rail in brand teal for as long as the NEW pill shows, so
+// the eye catches it in peripheral vision before reading anything. An overdue
+// ticket keeps its red rail: urgency outranks novelty.
+.ticket.is-new:not(.wait-late) {
+  border-left-color: theme.$teal;
 }
 
 .wait-badge {
@@ -500,6 +597,7 @@
   gap: 5px;
 
   .ki-instr,
+  .ki-mod,
   .ki-spice,
   .ki-station {
     display: inline-flex;
@@ -525,6 +623,13 @@
     text-transform: capitalize;
   }
 
+  // Till modifiers sit beside instructions but in teal, so an add-on is not
+  // mistaken for a cooking instruction.
+  .ki-mod {
+    background: theme.$teal-soft;
+    color: theme.$teal-dark;
+  }
+
   .ki-spice {
     background: theme.$danger-soft;
     color: theme.$danger;
@@ -543,6 +648,22 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.ki-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: theme.$text-muted;
+  font-variant-numeric: tabular-nums;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .ki-pill {

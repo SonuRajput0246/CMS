@@ -31,6 +31,7 @@
             <button type="button" class="station-tab"
                 [class.active]="activeStation === null"
                 [class.is-idle]="totalOutstanding === 0"
+                matTooltip="Every station's queue"
                 (click)="onStationChange(null)">
                 <mat-icon>apps</mat-icon>
                 <span class="s-label">All stations</span>
@@ -41,6 +42,7 @@
                 *ngFor="let row of stations"
                 [class.active]="activeStation === row.station"
                 [class.is-idle]="row.total === 0"
+                [matTooltip]="row.total + ' item(s) waiting'"
                 (click)="onStationChange(row.station)">
                 <span class="s-label">{{ labelForStation(row.station) }}</span>
                 <span class="s-badge">{{ row.total }}</span>
@@ -69,10 +71,21 @@
             <!-- server_time, not Date.now(): if the board and the server
                  disagree the chef is looking at a stale queue, and this is
                  how they find out. -->
-            <span class="kds-timestamp" matTooltip="Last board refresh (server time)">
-                <mat-icon>sync</mat-icon>
-                Updated {{ serverTime | date: 'HH:mm:ss' }}
+            <span class="kds-timestamp" [class.is-stale]="isStale"
+                [matTooltip]="isStale ? 'The board has not reached the server. Values are from the last successful read.' : 'Last board refresh (server time)'">
+                <mat-icon>{{ isStale ? 'cloud_off' : 'sync' }}</mat-icon>
+                <ng-container *ngIf="isStale; else lastSync">
+                    Offline &middot; last {{ serverTime | date: 'HH:mm:ss' }}
+                </ng-container>
+                <ng-template #lastSync>Updated {{ serverTime | date: 'HH:mm:ss' }}</ng-template>
             </span>
+
+            <!-- A wall screen is normally signed in and left alone, so it needs
+                 a way into kiosk mode without the browser chrome visible. -->
+            <button mat-icon-button class="kds-kiosk" (click)="toggleFullscreen()"
+                matTooltip="Toggle full screen">
+                <mat-icon>fullscreen</mat-icon>
+            </button>
 
             <button mat-stroked-button class="kds-refresh" (click)="refreshNow()" [disabled]="isBusy">
                 <mat-icon>refresh</mat-icon>
@@ -94,27 +107,49 @@
         </span>
     </div>
 
+    <!-- A board that cannot reach the server must say so. Without this it shows
+         the last read forever and looks like a quiet kitchen. -->
+    <div class="kds-offline" *ngIf="isStale" role="status">
+        <mat-icon>cloud_off</mat-icon>
+        <span>Not connected. Showing the board as of {{ serverTime | date: 'HH:mm:ss' }}; retrying every 5 seconds.</span>
+    </div>
+
     <!-- ================================================================
          Ticket board
          ================================================================ -->
     <div class="ticket-board" *ngIf="!isPageLoad">
 
-        <article class="ticket" *ngFor="let ticket of tickets"
-            [ngClass]="waitClass(ticket.max_wait_minutes)"
-            [class.is-busy]="isTicketBusy(ticket)">
+        <article class="ticket" *ngFor="let ticket of tickets; trackBy: trackByOrderId"
+            [ngClass]="waitClassFor(ticket)"
+            [class.is-busy]="isTicketBusy(ticket)"
+            [class.is-new]="isNew(ticket)">
 
             <header class="ticket-head">
                 <div class="th-left">
                     <span class="th-ref">{{ ticket.reference_label }}</span>
-                    <span class="th-order">{{ ticket.order_number }}</span>
+                    <span class="th-meta">
+                        <span class="th-order">{{ ticket.order_number }}</span>
+                        <!-- Dine-in is the default; a takeaway or delivery bag
+                             must not be plated to a table. -->
+                        <span class="th-type" *ngIf="ticket.order_type !== 'dine_in'">
+                            {{ orderTypeLabel(ticket.order_type) }}
+                        </span>
+                        <span class="th-other" *ngIf="otherStationCount(ticket) > 0">
+                            +{{ otherStationCount(ticket) }} at other stations
+                        </span>
+                    </span>
                 </div>
 
-                <!-- The number a chef actually triages on. Amber at 10
-                     minutes, red at 20 — the colour, not just the digit. -->
-                <span class="wait-badge" [ngClass]="waitClass(ticket.max_wait_minutes)">
-                    <mat-icon>schedule</mat-icon>
-                    {{ ticket.max_wait_minutes }} min
-                </span>
+                <div class="th-right">
+                    <span class="th-new" *ngIf="isNew(ticket)">NEW</span>
+
+                    <!-- The number a chef actually triages on. Amber at 10
+                         minutes, red at 20 — the colour, not just the digit. -->
+                    <span class="wait-badge" [ngClass]="waitClassFor(ticket)">
+                        <mat-icon>schedule</mat-icon>
+                        {{ waitMinutes(ticket) }} min
+                    </span>
+                </div>
             </header>
 
             <!-- Kitchen notes ride at the top of the ticket: they are the
@@ -126,7 +161,7 @@
 
             <div class="ticket-items">
                 <div class="k-item"
-                    *ngFor="let item of ticket.items"
+                    *ngFor="let item of ticket.items; trackBy: trackByItemId"
                     [class.is-voided]="item.prep_status === 'voided'"
                     [class.is-ready]="item.prep_status === 'ready'"
                     [class.is-busy]="isLineBusy(item)">
@@ -142,6 +177,11 @@
                         <span class="ki-instr" *ngIf="item.cooking_instructions">
                             <mat-icon>chat</mat-icon>{{ item.cooking_instructions }}
                         </span>
+                        <!-- Till modifiers (add-ons, sides, allergies) were
+                             being returned by the API and never shown. -->
+                        <span class="ki-mod" *ngFor="let modifier of modifierChips(item)">
+                            <mat-icon>tune</mat-icon>{{ modifier }}
+                        </span>
                         <span class="ki-spice" *ngIf="item.spice_level && item.spice_level !== 'none'">
                             <mat-icon>local_fire</mat-icon>{{ spiceLabel(item.spice_level) }}
                         </span>
@@ -154,6 +194,13 @@
                         <span class="ki-pill"
                             [ngClass]="'ps-' + (item.prep_status || 'pending')">
                             {{ prepLabel(item.prep_status) }}
+                        </span>
+
+                        <!-- Cook time on the line itself: the ticket badge is
+                             the table's age, this is how long the dish has been
+                             on the fire. -->
+                        <span class="ki-timer" *ngIf="item.prep_status === 'preparing' && item.minutes_in_prep != null">
+                            <mat-icon>timer</mat-icon>{{ item.minutes_in_prep }}m
                         </span>
 
                         <!-- pending: both a proper "Start" AND a one-tap
@@ -230,9 +277,14 @@
         </article>
 
         <div class="board-empty" *ngIf="tickets.length === 0">
-            <mat-icon>restaurant</mat-icon>
-            <h3>Nothing in the queue</h3>
-            <p>{{ stationLabel }} has no outstanding tickets. The board refreshes every 10 seconds.</p>
+            <mat-icon>{{ isStale ? 'cloud_off' : 'restaurant' }}</mat-icon>
+            <h3>{{ isStale ? 'Not connected' : 'Nothing in the queue' }}</h3>
+            <p *ngIf="isStale">
+                The board could not reach the server. It keeps retrying every 5 seconds.
+            </p>
+            <p *ngIf="!isStale">
+                {{ stationLabel }} has no outstanding tickets. The board refreshes every 5 seconds.
+            </p>
         </div>
     </div>
 </div>
