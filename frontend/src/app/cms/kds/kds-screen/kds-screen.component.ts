@@ -6,8 +6,10 @@ import { finalize } from 'rxjs/operators';
 import {
   IKdsBoard,
   IKdsItem,
+  IKdsReadyItem,
   IKdsStationSummary,
   IKdsTicket,
+  OrderType,
   PREP_STATUS_LABELS,
   PrepStatus,
   STATION_LABELS,
@@ -82,6 +84,7 @@ export class KdsScreenComponent implements OnInit {
   readonly PREP_STATUS_LABELS = PREP_STATUS_LABELS;
   readonly WAIT_WARN_MINUTES = WAIT_WARN_MINUTES;
   readonly WAIT_LATE_MINUTES = WAIT_LATE_MINUTES;
+  readonly ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery'];
 
   //// State Properties
   /** Blocking overlay, raised only for the very first paint. */
@@ -95,7 +98,12 @@ export class KdsScreenComponent implements OnInit {
   isBusy = false;
 
   tickets: IKdsTicket[] = [];
+  /** Plated lines still on the pass, including tickets that left the board. */
+  readyItems: IKdsReadyItem[] = [];
   stations: IKdsStationSummary[] = [];
+  /** Client-side narrowing of the board; the kitchen queue itself is unchanged. */
+  orderTypeFilter: OrderType | null = null;
+  searchTerm = '';
   /** `null` means every station — the "All stations" tab. */
   activeStation: Station | null = null;
   /** Plated lines come back onto the board so a chef can spot-check or requeue. */
@@ -292,11 +300,27 @@ export class KdsScreenComponent implements OnInit {
     return this.stations.reduce((sum, s) => sum + (s.total ?? 0), 0);
   }
 
-  get ticketCount(): number {
-    return this.tickets.length;
+  /** What is actually on screen after the type/search filter. */
+  get visibleTickets(): IKdsTicket[] {
+    const type = this.orderTypeFilter;
+    const term = this.searchTerm.trim().toLowerCase();
+
+    return this.tickets.filter(ticket => {
+      if (type && ticket.order_type !== type) return false;
+      if (!term) return true;
+      return (
+        ticket.reference_label.toLowerCase().includes(term) ||
+        ticket.order_number.toLowerCase().includes(term) ||
+        (ticket.table_number ?? '').toLowerCase().includes(term)
+      );
+    });
   }
 
-  isLineBusy(item: IKdsItem): boolean {
+  get ticketCount(): number {
+    return this.visibleTickets.length;
+  }
+
+  isLineBusy(item: { id: number }): boolean {
     return this._pendingLines.has(item.id);
   }
 
@@ -333,6 +357,12 @@ export class KdsScreenComponent implements OnInit {
     return toAmount(item.minutes_in_prep) + elapsed;
   }
 
+  /** Minutes a plate has been sitting at the pass, with the same drift. */
+  passMinutes(item: IKdsReadyItem): number {
+    const elapsed = this._boardReadAt ? Math.floor((Date.now() - this._boardReadAt) / 60000) : 0;
+    return toAmount(item.minutes_since_ready) + elapsed;
+  }
+
   /** Arrived while this screen was already showing the board. */
   isNew(ticket: IKdsTicket): boolean {
     const at = this._newAt.get(ticket.order_id);
@@ -349,6 +379,10 @@ export class KdsScreenComponent implements OnInit {
   }
 
   trackByItemId(_index: number, item: IKdsItem): number {
+    return item.id;
+  }
+
+  trackByReadyId(_index: number, item: IKdsReadyItem): number {
     return item.id;
   }
 
@@ -484,6 +518,7 @@ export class KdsScreenComponent implements OnInit {
     this._boardReadAt = now;
 
     this.tickets = tickets;
+    this.readyItems = board?.ready_items ?? [];
     this.serverTime = board?.server_time ?? '';
     if (board?.summary) this.summary = board.summary;
   }
@@ -544,6 +579,25 @@ export class KdsScreenComponent implements OnInit {
   /** Requeue a plated line. Restarts its timers server-side. */
   onRequeue(item: IKdsItem): void {
     this.setPrep(item, 'pending');
+  }
+
+  /** Put a plated plate from the pass strip back in the kitchen queue. */
+  requeuePlated(item: IKdsReadyItem): void {
+    if (this._pendingLines.has(item.id)) return;
+
+    this._pendingLines.add(item.id);
+    this._kdsService.updatePrepStatus(item.order_id, item.id, 'pending')
+      .pipe(finalize(() => this._pendingLines.delete(item.id)))
+      .subscribe({
+        next: (res) => {
+          if (res?.status) {
+            this.poll();
+          } else {
+            this._snackbar.openSnackBar(res?.message || `Could not requeue ${item.item_name}`, 'error');
+          }
+        },
+        error: (err) => this.fail(err, `Could not requeue ${item.item_name}`)
+      });
   }
 
   /**
@@ -724,6 +778,23 @@ export class KdsScreenComponent implements OnInit {
   /** Spice is shouted to the pass in words, not degrees, so it reads as text. */
   spiceLabel(spice?: string | null): string {
     return spice ? spice.replace(/_/g, ' ') : '';
+  }
+
+  setOrderTypeFilter(type: OrderType | null): void {
+    this.orderTypeFilter = type;
+  }
+
+  onSearch(term: string): void {
+    this.searchTerm = term;
+  }
+
+  get hasFilters(): boolean {
+    return this.orderTypeFilter !== null || this.searchTerm.trim().length > 0;
+  }
+
+  clearFilters(): void {
+    this.orderTypeFilter = null;
+    this.searchTerm = '';
   }
 
   orderTypeLabel(orderType: string): string {

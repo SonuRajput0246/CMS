@@ -251,6 +251,92 @@ describe('KdsScreenComponent', () => {
     expect(component.trackByItemId(0, ticket.items[0])).toBe(ticket.items[0].id);
   });
 
+  it('narrows the board by service type and table search without touching the queue', () => {
+    component.refreshNow();
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({
+      status: true,
+      data: {
+        station: null,
+        tickets: [
+          { order_id: 1, order_number: 'ORD-1', reference_label: 'Table T4', order_type: 'dine_in', max_wait_minutes: 3, item_count: 1, items: [] },
+          { order_id: 2, order_number: 'ORD-2', reference_label: 'Counter', order_type: 'takeaway', max_wait_minutes: 4, item_count: 1, items: [] },
+          { order_id: 3, order_number: 'ORD-3', reference_label: 'Table T9', order_type: 'delivery', max_wait_minutes: 5, item_count: 1, items: [] },
+        ],
+        summary: { pending: 3, preparing: 0, ready: 0 },
+        server_time: 'x',
+      },
+    });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+
+    expect(component.visibleTickets.length).toBe(3);
+
+    component.setOrderTypeFilter('takeaway');
+    expect(component.visibleTickets.map(t => t.order_id)).toEqual([2]);
+
+    component.setOrderTypeFilter(null);
+    component.onSearch('t9');
+    expect(component.visibleTickets.map(t => t.order_id)).toEqual([3]);
+
+    /// Filtering is client-side: no board request may go out for a keystroke.
+    httpMock.expectNone(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    );
+
+    expect(component.hasFilters).toBe(true);
+    component.clearFilters();
+    expect(component.visibleTickets.length).toBe(3);
+    expect(component.hasFilters).toBe(false);
+  });
+
+  it('carries plated plates from the board into the pass lane', () => {
+    component.refreshNow();
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({
+      status: true,
+      data: {
+        station: null,
+        tickets: [],
+        ready_items: [
+          { id: 7, order_id: 101, order_number: 'ORD-101', reference_label: 'Table T4', item_name: 'Raita', quantity: '1.00', station: 'cold', minutes_since_ready: 4 },
+        ],
+        summary: { pending: 0, preparing: 0, ready: 1 },
+        server_time: 'x',
+      },
+    });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+
+    expect(component.readyItems.length).toBe(1);
+    expect(component.passMinutes(component.readyItems[0])).toBe(4);
+  });
+
+  it('requeues a plate from the pass lane and re-reads the board', () => {
+    const plate = {
+      id: 7, order_id: 101, order_number: 'ORD-101', reference_label: 'Table T4',
+      item_name: 'Raita', quantity: '1.00', station: 'cold' as const, minutes_since_ready: 4
+    };
+
+    component.requeuePlated(plate);
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/101/prep-status`
+    ).flush({ status: true, message: 'ok' });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+  });
+
   it('renders till modifiers and labels non-dine-in tickets', () => {
     expect(component.orderTypeLabel('takeaway')).toBe('Takeaway');
     expect(component.orderTypeLabel('dine_in')).toBe('Dine-in');

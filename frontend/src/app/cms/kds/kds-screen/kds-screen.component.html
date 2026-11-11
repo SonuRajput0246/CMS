@@ -115,6 +115,33 @@
         <span class="opt-hint">
             Off: only items the kitchen still owes. On: plated lines come back so they can be requeued.
         </span>
+
+        <!-- Narrowing the board is a view concern: the kitchen queue itself is
+             unchanged, and the counts on the station tabs stay complete. -->
+        <div class="queue-filters">
+            <button type="button" class="qf-chip"
+                [class.active]="orderTypeFilter === null"
+                (click)="setOrderTypeFilter(null)">All</button>
+            <button type="button" class="qf-chip"
+                *ngFor="let type of ORDER_TYPES"
+                [class.active]="orderTypeFilter === type"
+                (click)="setOrderTypeFilter(type)">
+                {{ orderTypeLabel(type) }}
+            </button>
+
+            <label class="kds-search">
+                <mat-icon>search</mat-icon>
+                <input type="search" placeholder="Table or order #"
+                    [value]="searchTerm"
+                    (input)="onSearch($any($event.target).value)" />
+            </label>
+
+            <button type="button" class="qf-clear" *ngIf="hasFilters"
+                matTooltip="Clear filters" aria-label="Clear filters"
+                (click)="clearFilters()">
+                <mat-icon>close</mat-icon>
+            </button>
+        </div>
     </div>
 
     <!-- A bumped ticket leaves the board, so the undo has to live outside it.
@@ -135,6 +162,34 @@
         </button>
     </div>
 
+    <!-- Plates whose tickets have already left the board. The undo strip above
+         covers a mis-tap for seconds; this covers the rest of the service, and
+         is the only route back to a dish whose ticket is gone. -->
+    <section class="kds-pass" *ngIf="readyItems.length > 0" aria-label="Ready at the pass">
+        <div class="kp-head">
+            <mat-icon>room_service</mat-icon>
+            <span class="kp-title">At the pass</span>
+            <span class="kp-count">{{ readyItems.length }}</span>
+        </div>
+        <div class="kp-strip">
+            <div class="kp-item" *ngFor="let plate of readyItems; trackBy: trackByReadyId"
+                [class.is-busy]="isLineBusy(plate)">
+                <span class="kp-ref">{{ plate.reference_label }}</span>
+                <span class="kp-name">{{ plate.quantity }}&times; {{ plate.item_name }}</span>
+                <span class="kp-age" [ngClass]="waitClass(passMinutes(plate))">
+                    <mat-icon>schedule</mat-icon>{{ passMinutes(plate) }}m
+                </span>
+                <button type="button" class="kp-queue"
+                    [disabled]="isLineBusy(plate)"
+                    [matTooltip]="'Put ' + plate.item_name + ' back on the board and restart its timer'"
+                    [attr.aria-label]="'Requeue ' + plate.item_name + ' from ' + plate.reference_label"
+                    (click)="requeuePlated(plate)">
+                    <mat-icon>replay</mat-icon>
+                </button>
+            </div>
+        </div>
+    </section>
+
     <!-- A board that cannot reach the server must say so. Without this it shows
          the last read forever and looks like a quiet kitchen. -->
     <div class="kds-offline" *ngIf="isStale" role="status">
@@ -147,7 +202,7 @@
          ================================================================ -->
     <div class="ticket-board" *ngIf="!isPageLoad">
 
-        <article class="ticket" *ngFor="let ticket of tickets; trackBy: trackByOrderId"
+        <article class="ticket" *ngFor="let ticket of visibleTickets; trackBy: trackByOrderId"
             [ngClass]="waitClassFor(ticket)"
             [class.is-busy]="isTicketBusy(ticket)"
             [class.is-new]="isNew(ticket)">
@@ -314,6 +369,18 @@
             <p *ngIf="!isStale">
                 {{ stationLabel }} has no outstanding tickets. The board refreshes every 5 seconds.
             </p>
+        </div>
+
+        <!-- Filters hide cards, never work. When they hide everything, say so
+             rather than showing the same empty board as a quiet kitchen. -->
+        <div class="board-empty is-filtered" *ngIf="tickets.length > 0 && visibleTickets.length === 0">
+            <mat-icon>filter_alt_off</mat-icon>
+            <h3>No tickets match</h3>
+            <p>{{ tickets.length }} ticket(s) on the board, but none match this filter.</p>
+            <button mat-stroked-button class="be-clear" (click)="clearFilters()">
+                <mat-icon>filter_alt_off</mat-icon>
+                Clear filters
+            </button>
         </div>
     </div>
 </div>

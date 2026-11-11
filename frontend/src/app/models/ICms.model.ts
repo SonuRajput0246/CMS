@@ -377,10 +377,25 @@ export interface IKdsTicket {
   items: IKdsItem[];
 }
 
+/** A plated line waiting at the pass; the ticket itself may have left the board. */
+export interface IKdsReadyItem {
+  id: number;
+  order_id: number;
+  order_number: string;
+  reference_label: string;
+  table_number?: string | null;
+  item_name: string;
+  quantity: string;
+  station?: Station | null;
+  prep_completed_at?: string | null;
+  minutes_since_ready?: number | null;
+}
+
 export interface IKdsBoard {
   station: string | null;
   tickets: IKdsTicket[];
   ticket_count: number;
+  ready_items?: IKdsReadyItem[];
   summary: { pending: number; preparing: number; ready: number };
   server_time: string;
 }

@@ -329,6 +329,7 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 8px 16px;
   @include theme.cms-card;
@@ -336,6 +337,107 @@
   .opt-hint {
     font-size: 12px;
     color: theme.$text-muted;
+  }
+}
+
+// ----- queue filters -----
+// These hide cards, they do not change the queue, so they belong in the
+// options bar rather than the top bar where they would read as server-side.
+.kds-options {
+  flex-wrap: wrap;
+}
+
+.queue-filters {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qf-chip {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1.5px solid theme.$border-strong;
+  background: theme.$card-bg;
+  color: theme.$text-muted;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover { background: theme.$navy-soft; color: theme.$navy; }
+
+  &.active {
+    background: theme.$navy-soft;
+    border-color: theme.$navy;
+    color: theme.$navy;
+  }
+}
+
+.kds-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1.5px solid theme.$border-strong;
+  background: theme.$card-bg;
+  color: theme.$text-muted;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  input {
+    width: 148px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: theme.$text;
+
+    &::placeholder {
+      color: theme.$text-faint;
+      font-weight: 500;
+    }
+
+    // Chrome's search cancel button is a second, smaller clear control
+    // sitting right next to the one the bar already provides.
+    &::-webkit-search-cancel-button { display: none; }
+  }
+
+  &:focus-within {
+    border-color: theme.$navy;
+    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.08);
+  }
+}
+
+.qf-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: theme.$danger-soft;
+  color: theme.$danger;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -417,6 +519,145 @@
       width: 18px;
       height: 18px;
     }
+  }
+}
+
+// ----- pass lane -----
+// Plates whose tickets have left the board. One horizontal strip, not another
+// column: it is reference material for the expo, and must stay smaller than
+// the queue it sits above.
+.kds-pass {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 6px 10px;
+  @include theme.cms-card;
+
+  .kp-head {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding-right: 10px;
+    border-right: 1px solid theme.$border;
+
+    > mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: theme.$ok;
+    }
+  }
+
+  .kp-title {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: theme.$text-muted;
+    white-space: nowrap;
+  }
+
+  .kp-count {
+    font-size: 15px;
+    font-weight: 800;
+    color: theme.$ok;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kp-strip {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar { height: 6px; }
+    &::-webkit-scrollbar-thumb { background: #c3d2e4; border-radius: 6px; }
+  }
+}
+
+.kp-item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  border: 1px solid theme.$border-strong;
+  background: theme.$card-bg;
+
+  &.is-busy { opacity: 0.6; }
+
+  .kp-ref {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: theme.$navy;
+    white-space: nowrap;
+  }
+
+  .kp-name {
+    min-width: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: theme.$text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .kp-age {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: theme.$text-muted;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+    }
+
+    // A plate sitting at the pass is the same amber/red problem as a line on
+    // the fire, so it uses the same bands.
+    &.wait-warn { color: theme.$warn; }
+    &.wait-late { color: theme.$danger; }
+  }
+
+  .kp-queue {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: theme.$warn-soft;
+    color: theme.$warn;
+    cursor: pointer;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover:not(:disabled) { background: #fde7bd; }
+    &:disabled { opacity: 0.5; cursor: default; }
   }
 }
 
@@ -954,6 +1195,24 @@
     line-height: 1.5;
     max-width: 420px;
   }
+
+  .be-clear {
+    margin-top: 12px;
+    border-radius: 999px;
+    border-color: theme.$border-strong !important;
+    color: theme.$navy !important;
+    font-size: 12px;
+    font-weight: 700;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+
+    &:hover { background: theme.$navy-soft !important; }
+  }
 }
 
 // ------------------------------------------------------------
@@ -1019,5 +1278,12 @@
 
   .ticket-board {
     grid-template-columns: 1fr;
+  }
+
+  // The options bar wraps and the filters no longer need to be pushed right:
+  // at this width they are already on a line of their own.
+  .queue-filters {
+    margin-left: 0;
+    flex-basis: 100%;
   }
 }

@@ -1,4 +1,6 @@
-from src.api.utils.datetime_helper import utcnow
+from datetime import timedelta
+
+from src.api.utils.datetime_helper import elapsed_minutes, utcnow
 from src.api.models.order_model import (
     CMSOrder,
     CMSOrderItem,
@@ -23,6 +25,15 @@ LIVE_ORDER_STATUSES = [
 
 ## Lines that still need kitchen attention.
 QUEUE_PREP_STATUSES = [PREP_PENDING, PREP_PREPARING]
+
+## How long a plated line stays on the pass strip. Long enough for expo to
+## notice a forgotten plate, short enough that the strip does not become a
+## second, stale order history.
+READY_LANE_MINUTES = 30
+
+## The pass is a hand-off view, not a queue: cap it so a bad service cannot
+## push the board itself off screen.
+READY_LANE_LIMIT = 40
 
 
 class KdsService:
@@ -103,6 +114,7 @@ class KdsService:
                 "station": station,
                 "tickets": tickets,
                 "ticket_count": len(tickets),
+                "ready_items": self._serialize_ready_lane(station),
                 "summary": summary,
                 "server_time": utcnow().isoformat()
             },
@@ -459,6 +471,57 @@ class KdsService:
             "item_count": len(items),
             "items": items
         }
+
+    def _serialize_ready_lane(self, station=None):
+        """Plated lines still waiting at the pass, newest plate last.
+
+        Independent of `get_tickets`: a ticket whose every line is plated drops
+        off the board, but the food is still on the pass until a server takes
+        it. The window keeps yesterday's plates out.
+        """
+        cutoff = utcnow() - timedelta(minutes=READY_LANE_MINUTES)
+        query = (
+            self.db.query(CMSOrderItem, CMSOrder)
+            .join(CMSOrder, CMSOrder.id == CMSOrderItem.order_id)
+            .filter(
+                CMSOrderItem.is_deleted == False,
+                CMSOrderItem.prep_status == PREP_READY,
+                CMSOrderItem.prep_completed_at.isnot(None),
+                CMSOrderItem.prep_completed_at >= cutoff,
+                CMSOrder.status.in_([
+                    OrderStatusEnum.PENDING,
+                    OrderStatusEnum.CONFIRMED,
+                    OrderStatusEnum.PREPARING,
+                    OrderStatusEnum.READY,
+                ]),
+            )
+        )
+        if station:
+            query = query.filter(CMSOrderItem.station == station)
+
+        rows = (
+            query.order_by(CMSOrderItem.prep_completed_at.asc())
+            .limit(READY_LANE_LIMIT)
+            .all()
+        )
+
+        return [
+            {
+                "id": item.id,
+                "order_id": order.id,
+                "order_number": order.order_number,
+                "reference_label": order.get_reference_label(),
+                "table_number": order.table.table_number if order.table else None,
+                "item_name": item.item_name,
+                "quantity": str(item.quantity),
+                "station": item.station,
+                "prep_completed_at": (
+                    item.prep_completed_at.isoformat() if item.prep_completed_at else None
+                ),
+                "minutes_since_ready": elapsed_minutes(item.prep_completed_at),
+            }
+            for item, order in rows
+        ]
 
     def _serialize_item(self, item: CMSOrderItem, order: CMSOrder) -> dict:
         return {
