@@ -52,6 +52,14 @@ class KdsRoute:
         )
         return jsonify(result), status_code
 
+    def hold_order(self, order_id):
+        result, status_code = self.kds_service.set_hold(order_id, True, self._user_id)
+        return jsonify(result), status_code
+
+    def resume_order(self, order_id):
+        result, status_code = self.kds_service.set_hold(order_id, False, self._user_id)
+        return jsonify(result), status_code
+
     def bump_order(self):
         payload = request.get_json() or {}
         validated_data = BumpOrderSchema().load(payload)
@@ -74,5 +82,7 @@ kds_bp.add_url_rule('/get-ticket/<int:order_id>', view_func=requires_module("KDS
 kds_bp.add_url_rule('/get-station-summary', view_func=requires_module("KDS")(kds_route.get_station_summary), methods=['GET'])
 kds_bp.add_url_rule('/policy', view_func=requires_module("KDS")(kds_route.update_policy), methods=['POST'])
 kds_bp.add_url_rule('/<int:order_id>/prep-status', view_func=requires_module("KDS")(kds_route.update_prep_status), methods=['POST'])
+kds_bp.add_url_rule('/<int:order_id>/hold', view_func=requires_module("KDS")(kds_route.hold_order), methods=['POST'])
+kds_bp.add_url_rule('/<int:order_id>/resume', view_func=requires_module("KDS")(kds_route.resume_order), methods=['POST'])
 kds_bp.add_url_rule('/bump', view_func=requires_module("KDS")(kds_route.bump_order), methods=['POST'])
 kds_bp.add_url_rule('/undo-bump', view_func=requires_module("KDS")(kds_route.undo_bump), methods=['POST'])

@@ -93,6 +93,13 @@ class CMSOrder(BaseTenantModel):
     kitchen_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_ready_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    ## Set when the KDS parks a ticket (guest not ready, course not fired).
+    ## Held tickets stay on the board for every screen, but are sorted last and
+    ## stop escalating through the amber/red bands while the hold is deliberate.
+    ## Cleared on resume, and by any prep write -- cooking the dish means the
+    ## hold no longer applies.
+    kds_held_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Timestamps
     ordered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

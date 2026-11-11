@@ -370,6 +370,10 @@ export interface IKdsTicket {
   order_status: OrderStatus;
   ordered_at?: string | null;
   max_wait_minutes: number;
+  /** Parked by the kitchen: stays on the board, sorted last, not escalating. */
+  is_held?: boolean;
+  held_since?: string | null;
+  held_minutes?: number | null;
   kitchen_notes?: string | null;
   /** Queue lines this ticket has at stations other than the one being viewed. */
   other_station_outstanding?: number;

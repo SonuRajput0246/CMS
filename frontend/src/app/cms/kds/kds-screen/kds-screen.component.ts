@@ -86,6 +86,7 @@ export class KdsScreenComponent implements OnInit {
   private _fb = inject(FormBuilder);
 
   @ViewChild('policyTpl') policyTpl!: TemplateRef<unknown>;
+  @ViewChild('detailTpl') detailTpl!: TemplateRef<unknown>;
 
   //// Constants
   readonly PREP_STATUS_LABELS = PREP_STATUS_LABELS;
@@ -139,6 +140,8 @@ export class KdsScreenComponent implements OnInit {
   private _pendingLines = new Set<number>();
   /** Tickets with a bump in flight, for the same reason. */
   private _pendingBumps = new Set<number>();
+  /** Tickets with a hold/resume in flight. */
+  private _pendingHolds = new Set<number>();
 
   /** When the board last painted successfully, for wait extrapolation. */
   private _boardReadAt = 0;
@@ -172,6 +175,12 @@ export class KdsScreenComponent implements OnInit {
   policyForm!: FormGroup;
   isSavingPolicy = false;
   private _policyDialogRef: MatDialogRef<unknown> | null = null;
+
+  /** Full-ticket drill-down, opened from the other-stations chip. */
+  detailTicket: IKdsTicket | null = null;
+  isLoadingDetail = false;
+  detailError = '';
+  private _detailDialogRef: MatDialogRef<unknown> | null = null;
 
   private _pollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -373,6 +382,10 @@ export class KdsScreenComponent implements OnInit {
     return this._pendingBumps.has(ticket.order_id);
   }
 
+  isHoldBusy(ticket: IKdsTicket): boolean {
+    return this._pendingHolds.has(ticket.order_id);
+  }
+
   /** The board is showing data older than it can verify — say so on screen. */
   get isStale(): boolean {
     return this.pollFailures >= STALE_AFTER_FAILURES;
@@ -389,8 +402,17 @@ export class KdsScreenComponent implements OnInit {
     return toAmount(ticket.max_wait_minutes) + elapsed;
   }
 
-  waitClassFor(ticket: IKdsTicket): 'wait-ok' | 'wait-warn' | 'wait-late' {
+  waitClassFor(ticket: IKdsTicket): 'wait-ok' | 'wait-warn' | 'wait-late' | 'wait-held' {
+    // A deliberate pause is not lateness: leaving the card amber or red would
+    // shout at the chef for something they chose to park.
+    if (ticket.is_held) return 'wait-held';
     return this.waitClass(this.waitMinutes(ticket));
+  }
+
+  /** How long the ticket has been parked, with the board's local drift. */
+  heldMinutes(ticket: IKdsTicket): number {
+    const elapsed = this._boardReadAt ? Math.floor((Date.now() - this._boardReadAt) / 60000) : 0;
+    return toAmount(ticket.held_minutes) + elapsed;
   }
 
   /**
@@ -417,6 +439,52 @@ export class KdsScreenComponent implements OnInit {
   /** The station view hides other stations' lines; this is how many. */
   otherStationCount(ticket: IKdsTicket): number {
     return this.activeStation ? toAmount(ticket.other_station_outstanding) : 0;
+  }
+
+  /**
+   * The whole order, including lines this station cannot see.
+   *
+   * The board copy paints immediately so the dialog never opens empty, then
+   * the server's full ticket replaces it -- the board deliberately hides other
+   * stations' lines, and those are exactly what this view exists to show.
+   */
+  openTicketDetail(ticket: IKdsTicket): void {
+    if (this._detailDialogRef) return;
+
+    this.detailTicket = ticket;
+    this.detailError = '';
+    this.isLoadingDetail = true;
+
+    this._detailDialogRef = this._dialog.open(this.detailTpl, {
+      width: '560px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      panelClass: 'kds-detail-dialog'
+    });
+    this._detailDialogRef.afterClosed().subscribe(() => {
+      this._detailDialogRef = null;
+      this.detailTicket = null;
+      this.isLoadingDetail = false;
+    });
+
+    this._kdsService.getTicket(ticket.order_id)
+      .pipe(finalize(() => this.isLoadingDetail = false))
+      .subscribe({
+        next: (res) => {
+          if (res?.status) {
+            this.detailTicket = res.data as IKdsTicket;
+          } else {
+            this.detailError = res?.message || 'Could not load the full ticket.';
+          }
+        },
+        error: (err) => {
+          this.detailError = err?.error?.message || 'Could not load the full ticket.';
+        }
+      });
+  }
+
+  closeTicketDetail(): void {
+    this._detailDialogRef?.close();
   }
 
   trackByOrderId(_index: number, ticket: IKdsTicket): number {
@@ -775,6 +843,44 @@ export class KdsScreenComponent implements OnInit {
   //// ------------------------------------------------------------------
   ////  Ticket actions
   //// ------------------------------------------------------------------
+
+  /** Park the ticket: guest not ready, course not fired. */
+  onHold(ticket: IKdsTicket): void {
+    this.setHold(ticket, true);
+  }
+
+  /** Put a parked ticket back into the queue in its normal order. */
+  onResume(ticket: IKdsTicket): void {
+    this.setHold(ticket, false);
+  }
+
+  /**
+   * Hold is ticket state, not a kitchen action, so it never touches a line's
+   * prep status. The board re-reads afterwards rather than patching locally:
+   * held-last ordering and every other screen's view depend on the server.
+   */
+  private setHold(ticket: IKdsTicket, held: boolean): void {
+    if (this._pendingHolds.has(ticket.order_id)) return;
+
+    this._pendingHolds.add(ticket.order_id);
+
+    const request = held
+      ? this._kdsService.holdOrder(ticket.order_id)
+      : this._kdsService.resumeOrder(ticket.order_id);
+
+    request
+      .pipe(finalize(() => this._pendingHolds.delete(ticket.order_id)))
+      .subscribe({
+        next: (res) => {
+          if (res?.status) {
+            this.poll();
+          } else {
+            this._snackbar.openSnackBar(res?.message || 'Could not update the hold', 'error');
+          }
+        },
+        error: (err) => this.fail(err, 'Could not update the hold')
+      });
+  }
 
   /**
    * "Bump all" plates every remaining line on the ticket at the current

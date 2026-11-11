@@ -278,12 +278,14 @@ $dlg-muted: #64748b;
 // applies its shape through this token from a runtime-injected stylesheet, so
 // a plain border-radius rule loses the cascade -- set the token instead.
 .customer-redeem-dialog .mat-mdc-dialog-container,
-.kds-policy-dialog .mat-mdc-dialog-container {
+.kds-policy-dialog .mat-mdc-dialog-container,
+.kds-detail-dialog .mat-mdc-dialog-container {
   --mdc-dialog-container-shape: 16px;
 }
 
 .customer-redeem-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface,
-.kds-policy-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+.kds-policy-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface,
+.kds-detail-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface {
   border-radius: 16px;
   overflow: hidden;
 }
@@ -291,7 +293,8 @@ $dlg-muted: #64748b;
 // Customer dialogs scroll their body on short windows; use the same slim
 // gutter as the table status dialog rather than the browser default.
 .customer-redeem-dialog .dlg-body,
-.kds-policy-dialog .dlg-body {
+.kds-policy-dialog .dlg-body,
+.kds-detail-dialog .dlg-body {
   scrollbar-width: thin;
   scrollbar-color: #c3d2e4 transparent;
 
@@ -312,7 +315,8 @@ $dlg-muted: #64748b;
 // Footer actions: pill shapes, and the submit carries the teal gradient
 // used by the other CMS dialogs instead of the stock Material primary.
 .customer-redeem-dialog .dlg-foot,
-.kds-policy-dialog .dlg-foot {
+.kds-policy-dialog .dlg-foot,
+.kds-detail-dialog .dlg-foot {
   button[mat-stroked-button] {
     border-radius: 999px;
   }

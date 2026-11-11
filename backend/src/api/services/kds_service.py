@@ -153,12 +153,13 @@ class KdsService:
         tickets = [self._serialize_ticket(o, station, include_ready) for o in orders]
         tickets = [t for t in tickets if t is not None]
 
-        ## Overdue first when the chef asked for the default ordering: a dish
-        ## waiting 25 minutes matters more than one waiting 2. Kept out of the
-        ## SQL ORDER BY because the queue is small and the elapsed time is
-        ## computed in Python anyway.
+        ## Held tickets go last in either ordering. A ticket the kitchen parked
+        ## deliberately (guest not seated, course not fired) must not sit at the
+        ## top of the board just because it is old -- that is what the hold is
+        ## for. Python sort is stable, so each group keeps its SQL ordering.
         if order_by == "oldest_first":
             tickets.sort(key=lambda t: t["max_wait_minutes"], reverse=True)
+        tickets.sort(key=lambda t: t["is_held"])
 
         summary = {
             "pending": 0,
@@ -278,6 +279,57 @@ class KdsService:
             200
         )
 
+    def set_hold(self, order_id: int, held: bool, user_id: int | None = None):
+        """Park or release a ticket without touching what the kitchen has cooked.
+
+        A hold is not a pause on the food: the lines keep their prep status, so
+        the board still shows what is plated and what is not. What it changes is
+        priority and escalation -- a held ticket sorts last and stops climbing
+        the amber/red bands, because the wait is deliberate (guest has not
+        arrived, the course has not been fired) and a red card would only train
+        the chef to ignore red.
+
+        Holding an already-held ticket keeps the original stamp, so a double tap
+        does not restart the "held 12m" timer.
+        """
+        order = self.db.query(CMSOrder).filter_by(is_deleted=False, id=order_id).first()
+        if not order:
+            return service_response(False, "Order not found", None, 404)
+
+        if order.status in (
+            OrderStatusEnum.SERVED,
+            OrderStatusEnum.COMPLETED,
+            OrderStatusEnum.CANCELLED,
+        ):
+            return service_response(
+                False,
+                f"Order is '{order.status.value}' and cannot be held.",
+                None, 409
+            )
+
+        if held:
+            if order.kds_held_at is None:
+                order.kds_held_at = utcnow()
+        else:
+            order.kds_held_at = None
+
+        if user_id:
+            order.updated_by = user_id
+
+        self.db.commit()
+
+        return service_response(
+            True,
+            "Ticket held." if held else "Ticket resumed.",
+            {
+                "order_id": order.id,
+                "is_held": order.kds_held_at is not None,
+                "held_since": order.kds_held_at.isoformat() if order.kds_held_at else None,
+                "held_minutes": elapsed_minutes(order.kds_held_at),
+            },
+            200
+        )
+
     def update_prep_status(self, order_id: int, data: dict, user_id: int | None = None):
         """Advance or rewind one line through the kitchen."""
         order = self.db.query(CMSOrder).filter_by(is_deleted=False, id=order_id).first()
@@ -313,6 +365,12 @@ class KdsService:
                 item.mark_ready()
         except ValueError as exc:
             return service_response(False, str(exc), None, 409)
+
+        ## Cooking the dish is the resume: the kitchen cannot work a line of a
+        ## held ticket without the hold having stopped applying, and leaving it
+        ## set would keep the ticket pinned to the bottom of the board after it
+        ## went live again.
+        order.kds_held_at = None
 
         ## Item rows have no actor column; the order header is what reports
         ## "who last touched this ticket" in the till and the audit views.
@@ -370,6 +428,9 @@ class KdsService:
 
         for item in items:
             item.mark_ready()
+        ## Plating the whole ticket also releases a hold, for the same reason a
+        ## single prep write does: the kitchen has acted on it.
+        order.kds_held_at = None
         if user_id:
             order.updated_by = user_id
 
@@ -561,6 +622,9 @@ class KdsService:
             "order_status": order.status.value,
             "ordered_at": ordered_at.isoformat() if ordered_at else None,
             "max_wait_minutes": max_wait,
+            "is_held": order.kds_held_at is not None,
+            "held_since": order.kds_held_at.isoformat() if order.kds_held_at else None,
+            "held_minutes": elapsed_minutes(order.kds_held_at),
             "kitchen_notes": order.kitchen_notes,
             "other_station_outstanding": other_station_outstanding,
             "item_count": len(items),

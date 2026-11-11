@@ -460,4 +460,92 @@ describe('KdsScreenComponent', () => {
     expect(component.prepMinutes(item)).toBe(13);
     expect(component.waitClass(component.prepMinutes(item))).toBe('wait-warn');
   });
+
+  it('parks a running ticket and re-reads the board', () => {
+    const ticket = component.tickets[0];
+    expect(ticket.is_held).toBeFalsy();
+    expect(component.waitClassFor(ticket)).toBe('wait-late');
+
+    component.onHold(ticket);
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/101/hold`
+    ).flush({
+      status: true,
+      message: 'Ticket held.',
+      data: { order_id: 101, is_held: true, held_minutes: 0 },
+    });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+  });
+
+  it('treats a held ticket as parked, not late, and ages its hold clock', () => {
+    const ticket = { ...component.tickets[0], is_held: true, held_minutes: 3 };
+
+    expect(component.waitClassFor(ticket)).toBe('wait-held');
+    expect(component.heldMinutes(ticket)).toBe(3);
+
+    const later = Date.now() + 2 * 60000;
+    spyOn(Date, 'now').and.returnValue(later);
+
+    expect(component.heldMinutes(ticket)).toBe(5);
+    /// The wait badge is grey while held; the band must not reassert itself.
+    expect(component.waitClassFor(ticket)).toBe('wait-held');
+  });
+
+  it('resumes a held ticket and re-reads the board', () => {
+    const ticket = { ...component.tickets[0], is_held: true, held_minutes: 4 };
+
+    component.onResume(ticket);
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/101/resume`
+    ).flush({
+      status: true,
+      message: 'Ticket resumed.',
+      data: { order_id: 101, is_held: false, held_minutes: null },
+    });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({
+      status: true, data: { stations: [] }
+    });
+  });
+
+  it('opens the full order from the other-stations chip and swaps in the server copy', () => {
+    const boardTicket = component.tickets[0];
+
+    component.openTicketDetail(boardTicket);
+
+    /// The board copy paints first, so the dialog never opens empty.
+    expect(component.detailTicket).toBe(boardTicket);
+    expect(component.isLoadingDetail).toBe(true);
+
+    const request = httpMock.expectOne(`${base}/api/v1/kds/get-ticket/101`);
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      status: true,
+      data: {
+        ...boardTicket,
+        other_station_outstanding: 2,
+        items: [
+          ...boardTicket.items,
+          { id: 9, order_id: 101, item_name: 'Espresso', quantity: 1, prep_status: 'pending', station: 'bar' },
+        ],
+      },
+    });
+
+    expect(component.isLoadingDetail).toBe(false);
+    expect(component.detailTicket?.items.length).toBe(4);
+    expect(component.detailTicket?.other_station_outstanding).toBe(2);
+
+    component.closeTicketDetail();
+  });
 });

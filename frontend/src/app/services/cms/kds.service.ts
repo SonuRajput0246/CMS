@@ -89,4 +89,19 @@ export class CmsKdsService {
       order_id: orderId, order_item_ids: orderItemIds
     });
   }
+
+  /**
+   * Park a ticket without changing what has been cooked.
+   *
+   * A held ticket stays on every board but sorts last and stops escalating
+   * through the wait bands; the next prep write or bump releases it.
+   */
+  holdOrder(orderId: number): Observable<IEntityResponse> {
+    return this.http.post(`${this.baseURL}/api/v1/kds/${orderId}/hold`, {});
+  }
+
+  /** Release a held ticket back into the normal queue order. */
+  resumeOrder(orderId: number): Observable<IEntityResponse> {
+    return this.http.post(`${this.baseURL}/api/v1/kds/${orderId}/resume`, {});
+  }
 }

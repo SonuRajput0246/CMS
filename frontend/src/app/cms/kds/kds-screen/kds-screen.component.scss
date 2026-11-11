@@ -714,6 +714,12 @@
     border-left-color: theme.$danger;
     box-shadow: 0 6px 22px rgba(220, 38, 38, 0.16);
   }
+  // Held is quiet on purpose: the card stays readable, but nothing about it
+  // competes with the queue it has been parked out of.
+  &.wait-held {
+    border-left-color: theme.$text-faint;
+    box-shadow: none;
+  }
 
   &.is-busy { opacity: 0.72; }
 }
@@ -775,6 +781,13 @@
       padding: 2px 7px;
       font-size: 9px;
       font-weight: 600;
+      // A pill that opens the full order has to look tappable; everything
+      // else in the meta row is text.
+      border: 0;
+      font-family: inherit;
+      cursor: pointer;
+
+      &:hover { background: theme.$navy; color: #fff; }
     }
   }
 
@@ -796,6 +809,45 @@
     font-weight: 700;
     letter-spacing: 0.6px;
     animation: kds-throb 1.6s ease-in-out infinite;
+  }
+
+  // Hold is an icon while the ticket runs and a labelled Resume once parked,
+  // so the way back is never a guess.
+  .th-hold {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: theme.$text-muted !important;
+
+    mat-icon {
+      font-size: 19px;
+      width: 19px;
+      height: 19px;
+    }
+
+    &:hover:not(:disabled) { color: theme.$navy !important; }
+
+    &.is-held {
+      width: auto;
+      height: 30px;
+      padding: 0 12px !important;
+      border-radius: 999px !important;
+      border-color: theme.$border-strong !important;
+      background: theme.$card-bg;
+      color: theme.$navy !important;
+      font-size: 11px;
+      font-weight: 700;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        margin-right: 3px;
+      }
+
+      &:hover:not(:disabled) { background: theme.$navy-soft !important; }
+    }
   }
 }
 
@@ -831,6 +883,12 @@
     color: #fff;
     animation: kds-throb 1.6s ease-in-out infinite;
   }
+  // Grey, not amber: a parked ticket is not late, and colouring it like one
+  // would defeat the point of holding it.
+  &.wait-held {
+    background: theme.$neutral-soft;
+    color: theme.$neutral;
+  }
 }
 
 // Only the overdue state animates. A board where everything pulses is
@@ -858,6 +916,27 @@
     width: 15px;
     height: 15px;
     margin-top: 1px;
+  }
+}
+
+// Explains the greyed controls underneath. Same band as kitchen notes so the
+// card rhythm is unchanged, but in neutral so it never reads as a warning.
+.ticket-held {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: theme.$neutral-soft;
+  border-bottom: 1px solid theme.$border;
+  color: theme.$neutral;
+  font-size: 11.5px;
+  font-weight: 600;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
   }
 }
 
@@ -1213,6 +1292,71 @@
 
     &:hover { background: theme.$navy-soft !important; }
   }
+}
+
+// ------------------------------------------------------------
+//  Full-ticket drill-down
+//  Content is part of this component's template, so these styles
+//  stay scoped; the overlay panel itself is styled in
+//  cms-dialogs.scss next to the other .dlg frames.
+// ------------------------------------------------------------
+.kds-detail {
+  .kd-loading {
+    display: flex;
+    justify-content: center;
+    padding: 26px 0;
+  }
+
+  .kd-error {
+    margin: 14px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: theme.$danger-soft;
+    color: theme.$danger;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  // The API sends the enum spelling; the dialog reads as prose.
+  .kd-status { text-transform: capitalize; }
+
+  .kd-notes {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 0 0 14px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: theme.$warn-soft;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 600;
+
+    mat-icon {
+      flex: 0 0 auto;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  // Instructions and add-ons ride under the item so a long line stays one
+  // row in the table rather than wrapping into an unreadable column.
+  .kd-instr {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 500;
+    color: theme.$text-muted;
+    text-transform: capitalize;
+  }
+
+  .kd-station {
+    font-size: 12px;
+    color: theme.$text-muted;
+  }
+
+  .lines .ki-pill { margin-right: 0; }
 }
 
 // ------------------------------------------------------------

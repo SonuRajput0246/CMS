@@ -224,23 +224,53 @@
                         <span class="th-type" *ngIf="ticket.order_type !== 'dine_in'">
                             {{ orderTypeLabel(ticket.order_type) }}
                         </span>
-                        <span class="th-other" *ngIf="otherStationCount(ticket) > 0">
+                        <button type="button" class="th-other" *ngIf="otherStationCount(ticket) > 0"
+                            (click)="openTicketDetail(ticket)"
+                            [matTooltip]="'See the whole order, including the lines at other stations'">
                             +{{ otherStationCount(ticket) }} at other stations
-                        </span>
+                        </button>
                     </span>
                 </div>
 
                 <div class="th-right">
                     <span class="th-new" *ngIf="isNew(ticket)">NEW</span>
 
+                    <!-- Parking is rare and deliberate, so on a running
+                         ticket it is only an icon. A parked one says Resume
+                         in words, because that is the only action left. -->
+                    <button *ngIf="!ticket.is_held" mat-icon-button type="button" class="th-hold"
+                        [disabled]="isHoldBusy(ticket)" (click)="onHold(ticket)"
+                        matTooltip="Park this ticket until its course is called"
+                        [attr.aria-label]="'Hold ' + ticket.reference_label">
+                        <mat-icon>pause_circle</mat-icon>
+                    </button>
+                    <button *ngIf="ticket.is_held" mat-stroked-button type="button" class="th-hold is-held"
+                        [disabled]="isHoldBusy(ticket)" (click)="onResume(ticket)"
+                        [matTooltip]="'Put ' + ticket.reference_label + ' back in the queue'">
+                        <mat-icon>play_arrow</mat-icon> Resume
+                    </button>
+
                     <!-- The number a chef actually triages on. Amber at 10
-                         minutes, red at 20 — the colour, not just the digit. -->
+                         minutes, red at 20 — the colour, not just the digit.
+                         A held ticket shows how long it has been parked. -->
                     <span class="wait-badge" [ngClass]="waitClassFor(ticket)">
-                        <mat-icon>schedule</mat-icon>
-                        {{ waitMinutes(ticket) }} min
+                        <mat-icon>{{ ticket.is_held ? 'pause_circle' : 'schedule' }}</mat-icon>
+                        <ng-container *ngIf="ticket.is_held; else waitAge">
+                            Held {{ heldMinutes(ticket) }}m
+                        </ng-container>
+                        <ng-template #waitAge>{{ waitMinutes(ticket) }} min</ng-template>
                     </span>
                 </div>
             </header>
+
+            <!-- A parked card greys out every kitchen action; say why, so a
+                 disabled Ready reads as "held" and not "broken". -->
+            <div class="ticket-held" *ngIf="ticket.is_held" role="note">
+                <mat-icon>pause_circle</mat-icon>
+                <span>
+                    Held {{ heldMinutes(ticket) }} min &mdash; resume it to cook or bump.
+                </span>
+            </div>
 
             <!-- Kitchen notes ride at the top of the ticket: they are the
                  reason for the ticket, not an aside. -->
@@ -306,18 +336,18 @@
                              mid-press. -->
                         <ng-container *ngIf="item.prep_status === 'pending'">
                             <button mat-stroked-button class="k-btn k-start"
-                                (click)="onStart(item)" [disabled]="isLineBusy(item)">
+                                (click)="onStart(item)" [disabled]="isLineBusy(item) || ticket.is_held">
                                 <mat-icon>play_arrow</mat-icon> Start
                             </button>
                             <button mat-flat-button color="primary" class="k-btn k-ready"
-                                (click)="onReady(item)" [disabled]="isLineBusy(item)">
+                                (click)="onReady(item)" [disabled]="isLineBusy(item) || ticket.is_held">
                                 <mat-icon>check</mat-icon> Ready
                             </button>
                         </ng-container>
 
                         <ng-container *ngIf="item.prep_status === 'preparing'">
                             <button mat-flat-button color="primary" class="k-btn k-ready"
-                                (click)="onReady(item)" [disabled]="isLineBusy(item)">
+                                (click)="onReady(item)" [disabled]="isLineBusy(item) || ticket.is_held">
                                 <mat-icon>check</mat-icon> Ready
                             </button>
                         </ng-container>
@@ -330,7 +360,7 @@
                                 <mat-icon>check_circle</mat-icon> Plated
                             </span>
                             <button mat-stroked-button class="k-btn k-requeue" *ngIf="includeReady"
-                                (click)="onRequeue(item)" [disabled]="isLineBusy(item)"
+                                (click)="onRequeue(item)" [disabled]="isLineBusy(item) || ticket.is_held"
                                 matTooltip="Put this line back in the queue and restart its timer">
                                 <mat-icon>replay</mat-icon> Requeue
                             </button>
@@ -357,7 +387,7 @@
                      only invites a 409 and a red toast. -->
                 <button mat-flat-button color="warn" class="bump-btn"
                     *ngIf="countOutstanding(ticket) > 0"
-                    (click)="onBumpAll(ticket)" [disabled]="isTicketBusy(ticket)">
+                    (click)="onBumpAll(ticket)" [disabled]="isTicketBusy(ticket) || ticket.is_held">
                     <mat-icon>done_all</mat-icon>
                     Bump all
                 </button>
@@ -391,6 +421,105 @@
         </div>
     </div>
 </div>
+
+<!-- The whole order, including the lines a station board hides. Opened from
+     the other-stations chip; read-only so the board stays the single place a
+     ticket is worked. -->
+<ng-template #detailTpl>
+    <div class="dlg kds-detail">
+        <header class="dlg-head">
+            <div class="dlg-title">
+                <h2>{{ detailTicket?.reference_label || 'Ticket' }}</h2>
+                <p *ngIf="detailTicket as ticket">
+                    {{ ticket.order_number }} &middot; {{ orderTypeLabel(ticket.order_type) }}
+                </p>
+                <p *ngIf="!detailTicket">Loading the full ticket&hellip;</p>
+            </div>
+            <button mat-icon-button type="button" (click)="closeTicketDetail()" aria-label="Close ticket">
+                <mat-icon>close</mat-icon>
+            </button>
+        </header>
+
+        <div class="dlg-body">
+            <div class="kd-loading" *ngIf="isLoadingDetail">
+                <mat-spinner diameter="30"></mat-spinner>
+            </div>
+
+            <p class="kd-error" *ngIf="detailError">{{ detailError }}</p>
+
+            <ng-container *ngIf="detailTicket as ticket">
+                <div class="meta-grid">
+                    <div class="meta">
+                        <span class="meta-label">Status</span>
+                        <span class="meta-value kd-status">{{ ticket.order_status }}</span>
+                    </div>
+                    <div class="meta">
+                        <span class="meta-label">Waiting</span>
+                        <span class="meta-value">{{ waitMinutes(ticket) }} min</span>
+                    </div>
+                    <div class="meta" *ngIf="ticket.is_held">
+                        <span class="meta-label">Held</span>
+                        <span class="meta-value">{{ heldMinutes(ticket) }} min</span>
+                    </div>
+                    <div class="meta" *ngIf="ticket.table_number">
+                        <span class="meta-label">Table</span>
+                        <span class="meta-value">{{ ticket.table_number }}</span>
+                    </div>
+                    <div class="meta">
+                        <span class="meta-label">Items</span>
+                        <span class="meta-value">{{ ticket.items.length }}</span>
+                    </div>
+                </div>
+
+                <div class="kd-notes" *ngIf="ticket.kitchen_notes">
+                    <mat-icon>sticky_note_2</mat-icon>
+                    <span>{{ ticket.kitchen_notes }}</span>
+                </div>
+
+                <h3 class="section">Every line on this order</h3>
+                <table class="lines">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th class="c">Qty</th>
+                            <th>Station</th>
+                            <th>State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of ticket.items; trackBy: trackByItemId">
+                            <td>
+                                {{ item.item_name }}
+                                <span class="kd-instr" *ngIf="item.cooking_instructions">
+                                    {{ item.cooking_instructions }}
+                                </span>
+                                <span class="kd-instr" *ngFor="let modifier of modifierChips(item)">
+                                    {{ modifier }}
+                                </span>
+                            </td>
+                            <td class="c">{{ item.quantity }}</td>
+                            <td class="kd-station">{{ labelForStation(item.station) }}</td>
+                            <td>
+                                <span class="ki-pill" [ngClass]="'ps-' + (item.prep_status || 'pending')">
+                                    {{ prepLabel(item.prep_status) }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p class="note">
+                    <mat-icon>info</mat-icon>
+                    Read-only view. Prep and hold actions stay on the board.
+                </p>
+            </ng-container>
+        </div>
+
+        <footer class="dlg-foot">
+            <button mat-stroked-button type="button" (click)="closeTicketDetail()">Close</button>
+        </footer>
+    </div>
+</ng-template>
 
 <!-- Wait bands and refresh interval are tenant policy, not a per-screen
      preference: two screens showing one ticket in different colours would make
