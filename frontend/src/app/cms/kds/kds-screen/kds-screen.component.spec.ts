@@ -258,4 +258,67 @@ describe('KdsScreenComponent', () => {
     const item = { ...component.tickets[0].items[0], modifiers: { add_cheese: true, side: 'raita' } };
     expect(component.modifierChips(item)).toEqual(['add_cheese', 'side: raita']);
   });
+
+  it('offers an undo after a bump and restores only those lines', async () => {
+    const ticket = component.tickets[0];
+    spyOn((component as any)._confirm, 'confirm').and.resolveTo({ isConfirmed: true } as any);
+
+    await component.onBumpAll(ticket);
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/bump`
+    ).flush({
+      status: true,
+      message: '2 item(s) marked ready.',
+      data: { order_id: 101, bumped_count: 2, bumped_item_ids: [1, 2], order_status: 'ready' },
+    });
+
+    // A successful bump re-reads the board.
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({ status: true, data: { stations: [] } });
+
+    expect(component.lastBump?.itemIds).toEqual([1, 2]);
+
+    component.undoLastBump();
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/undo-bump`
+    ).flush({ status: true, message: 'Bump undone', data: { order_id: 101, restored_count: 2 } });
+
+    httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    ).flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({ status: true, data: { stations: [] } });
+
+    expect(component.lastBump).toBeNull();
+  });
+
+  it('switches the board to newest first and remembers it', () => {
+    component.toggleSort();
+
+    const request = httpMock.expectOne(req =>
+      req.method === 'POST' && req.url === `${base}/api/v1/kds/get-tickets`
+    );
+    expect(request.request.body.order_by).toBe('newest_first');
+
+    request.flush({ status: true, data: { station: null, tickets: [], summary: { pending: 0, preparing: 0, ready: 0 }, server_time: 'x' } });
+    httpMock.expectOne(`${base}/api/v1/kds/get-station-summary`).flush({ status: true, data: { stations: [] } });
+
+    expect(component.orderBy).toBe('newest_first');
+    expect(localStorage.getItem('kds.orderBy')).toBe('newest_first');
+  });
+
+  it('ages the in-prep timer with the board clock', () => {
+    const item = { ...component.tickets[0].items[1], minutes_in_prep: 8 };
+
+    expect(component.prepMinutes(item)).toBe(8);
+
+    const later = Date.now() + 5 * 60000;
+    spyOn(Date, 'now').and.returnValue(later);
+
+    expect(component.prepMinutes(item)).toBe(13);
+    expect(component.waitClass(component.prepMinutes(item))).toBe('wait-warn');
+  });
 });

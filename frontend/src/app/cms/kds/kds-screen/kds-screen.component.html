@@ -42,8 +42,12 @@
                 *ngFor="let row of stations"
                 [class.active]="activeStation === row.station"
                 [class.is-idle]="row.total === 0"
-                [matTooltip]="row.total + ' item(s) waiting'"
+                [class.is-unassigned]="row.station === null && row.total > 0"
+                [matTooltip]="row.station === null
+                    ? row.total + ' item(s) with no station - set a station on the recipe'
+                    : row.total + ' item(s) waiting'"
                 (click)="onStationChange(row.station)">
+                <mat-icon *ngIf="row.station === null && row.total > 0">report_problem</mat-icon>
                 <span class="s-label">{{ labelForStation(row.station) }}</span>
                 <span class="s-badge">{{ row.total }}</span>
                 <!-- prep split per station: "is the backlog cooking, or just
@@ -87,6 +91,12 @@
                 <mat-icon>fullscreen</mat-icon>
             </button>
 
+            <button mat-stroked-button class="kds-sort" (click)="toggleSort()"
+                matTooltip="Switch between the longest-waiting and newest tickets">
+                <mat-icon>{{ orderBy === 'oldest_first' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+                {{ orderBy === 'oldest_first' ? 'Oldest first' : 'Newest first' }}
+            </button>
+
             <button mat-stroked-button class="kds-refresh" (click)="refreshNow()" [disabled]="isBusy">
                 <mat-icon>refresh</mat-icon>
                 Refresh
@@ -105,6 +115,24 @@
         <span class="opt-hint">
             Off: only items the kitchen still owes. On: plated lines come back so they can be requeued.
         </span>
+    </div>
+
+    <!-- A bumped ticket leaves the board, so the undo has to live outside it.
+         Only the last bump is reversible, and only for a few seconds. -->
+    <div class="kds-undo" *ngIf="lastBump" role="status">
+        <mat-icon>done_all</mat-icon>
+        <span class="ku-text">
+            <strong>{{ lastBump.referenceLabel }}</strong> bumped &middot;
+            {{ lastBump.itemIds.length }} item(s) &middot; {{ lastBump.orderNumber }}
+        </span>
+        <button mat-stroked-button class="ku-btn" (click)="undoLastBump()" [disabled]="isUndoingBump">
+            <mat-icon>undo</mat-icon>
+            Undo
+        </button>
+        <button mat-icon-button class="ku-close" (click)="dismissUndo()"
+            matTooltip="Dismiss" aria-label="Dismiss undo">
+            <mat-icon>close</mat-icon>
+        </button>
     </div>
 
     <!-- A board that cannot reach the server must say so. Without this it shows
@@ -199,8 +227,9 @@
                         <!-- Cook time on the line itself: the ticket badge is
                              the table's age, this is how long the dish has been
                              on the fire. -->
-                        <span class="ki-timer" *ngIf="item.prep_status === 'preparing' && item.minutes_in_prep != null">
-                            <mat-icon>timer</mat-icon>{{ item.minutes_in_prep }}m
+                        <span class="ki-timer" *ngIf="item.prep_status === 'preparing' && item.minutes_in_prep != null"
+                            [ngClass]="waitClass(prepMinutes(item))">
+                            <mat-icon>timer</mat-icon>{{ prepMinutes(item) }}m
                         </span>
 
                         <!-- pending: both a proper "Start" AND a one-tap

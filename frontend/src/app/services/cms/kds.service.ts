@@ -76,4 +76,11 @@ export class CmsKdsService {
       order_id: orderId, station: station ?? null
     });
   }
+
+  /** Put the lines from a recent bump back in the queue. */
+  undoBump(orderId: number, orderItemIds: number[]): Observable<IEntityResponse> {
+    return this.http.post(`${this.baseURL}/api/v1/kds/undo-bump`, {
+      order_id: orderId, order_item_ids: orderItemIds
+    });
+  }
 }

@@ -5,6 +5,7 @@ from src.api.models.order_model import (
     OrderStatusEnum,
     PREP_PENDING,
     PREP_PREPARING,
+    PREP_READY,
 )
 from src.api.utils.responses import service_response
 
@@ -170,7 +171,7 @@ class KdsService:
     ## WRITES
     ## ==================================================================
 
-    def update_prep_status(self, order_id: int, data: dict):
+    def update_prep_status(self, order_id: int, data: dict, user_id: int | None = None):
         """Advance or rewind one line through the kitchen."""
         order = self.db.query(CMSOrder).filter_by(is_deleted=False, id=order_id).first()
         if not order:
@@ -206,6 +207,11 @@ class KdsService:
         except ValueError as exc:
             return service_response(False, str(exc), None, 409)
 
+        ## Item rows have no actor column; the order header is what reports
+        ## "who last touched this ticket" in the till and the audit views.
+        if user_id:
+            order.updated_by = user_id
+
         self.db.commit()
         self.db.refresh(item)
 
@@ -220,12 +226,15 @@ class KdsService:
             200
         )
 
-    def bump_order(self, data: dict):
+    def bump_order(self, data: dict, user_id: int | None = None):
         """Mark every still-cooking line on one ticket ready.
 
         Restricted to one station when given, because a table's grill items and
         bar items go out at different times and the grill chef must not clear
         the cocktail.
+
+        Returns the ids that were plated so the board can offer a short undo:
+        bumping is one tap and a whole ticket, so a mis-tap is expensive.
         """
         order_id = data["order_id"]
         station = data.get("station")
@@ -250,8 +259,12 @@ class KdsService:
                 None, 409
             )
 
+        bumped_item_ids = [item.id for item in items]
+
         for item in items:
             item.mark_ready()
+        if user_id:
+            order.updated_by = user_id
 
         self.db.commit()
 
@@ -264,6 +277,74 @@ class KdsService:
             {
                 "order_id": order.id,
                 "bumped_count": len(items),
+                "bumped_item_ids": bumped_item_ids,
+                "order_status": order.status.value
+            },
+            200
+        )
+
+    def undo_bump(self, data: dict, user_id: int | None = None):
+        """Put the lines from a recent bump back in the queue.
+
+        Only lines that are still ready and were named by the client are
+        touched, and only while the order is still on the pass. A line another
+        screen has since bumped again is left alone rather than being pulled
+        back to pending by a stale undo.
+        """
+        order_id = data["order_id"]
+        item_ids = data.get("order_item_ids") or []
+
+        order = self.db.query(CMSOrder).filter_by(is_deleted=False, id=order_id).first()
+        if not order:
+            return service_response(False, "Order not found", None, 404)
+
+        if order.status in (
+            OrderStatusEnum.SERVED,
+            OrderStatusEnum.COMPLETED,
+            OrderStatusEnum.CANCELLED,
+        ):
+            return service_response(
+                False,
+                f"Order is '{order.status.value}' and can no longer be put back in the kitchen.",
+                None, 409
+            )
+
+        items = self.db.query(CMSOrderItem).filter(
+            CMSOrderItem.is_deleted == False,
+            CMSOrderItem.order_id == order.id,
+            CMSOrderItem.prep_status == PREP_READY,
+            CMSOrderItem.id.in_(item_ids),
+        ).all()
+
+        if not items:
+            return service_response(
+                False,
+                "Those lines are no longer ready, so there is nothing to undo.",
+                None, 409
+            )
+
+        for item in items:
+            ## Requeue semantics: clear both stamps so the wait timer restarts
+            ## from now rather than showing the time it spent before the bump.
+            item.prep_status = PREP_PENDING
+            item.prep_started_at = None
+            item.prep_completed_at = None
+
+        ## The bump had advanced the header; the kitchen is working this ticket
+        ## again, so put it back to preparing (never past served).
+        if order.status == OrderStatusEnum.READY:
+            order.status = OrderStatusEnum.PREPARING
+        if user_id:
+            order.updated_by = user_id
+
+        self.db.commit()
+
+        return service_response(
+            True,
+            f"Bump undone: {len(items)} item(s) back in the queue.",
+            {
+                "order_id": order.id,
+                "restored_count": len(items),
                 "order_status": order.status.value
             },
             200

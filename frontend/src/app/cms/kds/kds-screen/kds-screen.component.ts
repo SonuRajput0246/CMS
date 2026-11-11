@@ -27,9 +27,15 @@ const STALE_AFTER_FAILURES = 2;
 /** How long an arrival keeps its NEW flag. */
 const NEW_BADGE_MS = 120000;
 
+/** How long a bumped ticket can be put back in the queue. */
+const UNDO_WINDOW_MS = 10000;
+
 /** Per-browser memory of how this screen was left. */
 const STORAGE_STATION = 'kds.station';
 const STORAGE_INCLUDE_READY = 'kds.includeReady';
+const STORAGE_ORDER_BY = 'kds.orderBy';
+
+type KdsOrderBy = 'oldest_first' | 'newest_first';
 
 /** Minutes before a ticket stops being "on time" and starts being amber. */
 const WAIT_WARN_MINUTES = 10;
@@ -94,6 +100,8 @@ export class KdsScreenComponent implements OnInit {
   activeStation: Station | null = null;
   /** Plated lines come back onto the board so a chef can spot-check or requeue. */
   includeReady = false;
+  /** Overdue-first by default; newest-first is for checking what just landed. */
+  orderBy: KdsOrderBy = 'oldest_first';
 
   serverTime = '';
   summary = { pending: 0, preparing: 0, ready: 0 };
@@ -124,6 +132,16 @@ export class KdsScreenComponent implements OnInit {
   private _audioCtx: AudioContext | null = null;
   private _wakeLock: WakeLockSentinel | null = null;
 
+  /** The most recent bump, kept only long enough to undo a mis-tap. */
+  lastBump: {
+    orderId: number;
+    orderNumber: string;
+    referenceLabel: string;
+    itemIds: number[];
+  } | null = null;
+  isUndoingBump = false;
+  private _undoTimer: ReturnType<typeof setTimeout> | null = null;
+
   ngOnInit(): void {
     this.restorePreferences();
     this.load();
@@ -133,6 +151,10 @@ export class KdsScreenComponent implements OnInit {
     interval(BOARD_POLL_MS)
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this.poll());
+
+    this._destroyRef.onDestroy(() => {
+      if (this._undoTimer) clearTimeout(this._undoTimer);
+    });
   }
 
   /**
@@ -161,9 +183,13 @@ export class KdsScreenComponent implements OnInit {
       const station = localStorage.getItem(STORAGE_STATION);
       this.activeStation = station && station !== 'null' ? station as Station : null;
       this.includeReady = localStorage.getItem(STORAGE_INCLUDE_READY) === '1';
+      this.orderBy = localStorage.getItem(STORAGE_ORDER_BY) === 'newest_first'
+        ? 'newest_first'
+        : 'oldest_first';
     } catch {
       this.activeStation = null;
       this.includeReady = false;
+      this.orderBy = 'oldest_first';
     }
   }
 
@@ -171,6 +197,7 @@ export class KdsScreenComponent implements OnInit {
     try {
       localStorage.setItem(STORAGE_STATION, this.activeStation ?? 'null');
       localStorage.setItem(STORAGE_INCLUDE_READY, this.includeReady ? '1' : '0');
+      localStorage.setItem(STORAGE_ORDER_BY, this.orderBy);
     } catch {
       /* storage disabled — the board still works, it just won't remember */
     }
@@ -297,6 +324,15 @@ export class KdsScreenComponent implements OnInit {
     return this.waitClass(this.waitMinutes(ticket));
   }
 
+  /**
+   * Time on the fire for one line, with the same local drift as the ticket
+   * wait so a dish crossing the amber band does not wait for the next poll.
+   */
+  prepMinutes(item: IKdsItem): number {
+    const elapsed = this._boardReadAt ? Math.floor((Date.now() - this._boardReadAt) / 60000) : 0;
+    return toAmount(item.minutes_in_prep) + elapsed;
+  }
+
   /** Arrived while this screen was already showing the board. */
   isNew(ticket: IKdsTicket): boolean {
     const at = this._newAt.get(ticket.order_id);
@@ -332,7 +368,7 @@ export class KdsScreenComponent implements OnInit {
     return forkJoin({
       board: this._kdsService.getTickets({
         station: this.activeStation,
-        order_by: 'oldest_first',
+        order_by: this.orderBy,
         include_ready: this.includeReady
       }),
       stations: this._kdsService.getStationSummary()
@@ -457,6 +493,14 @@ export class KdsScreenComponent implements OnInit {
     this.poll();
   }
 
+  /** Oldest-first is the kitchen order; newest-first answers "what just came in?". */
+  toggleSort(): void {
+    this.orderBy = this.orderBy === 'oldest_first' ? 'newest_first' : 'oldest_first';
+    this.persistPreferences();
+    this.dismissUndo();
+    this.load();
+  }
+
   onStationChange(station: Station | null): void {
     if (station === this.activeStation) return;
     this.activeStation = station;
@@ -464,6 +508,7 @@ export class KdsScreenComponent implements OnInit {
     // A station change invalidates every ticket id on screen.
     this._pendingLines.clear();
     this._pendingBumps.clear();
+    this.dismissUndo();
     this.load();
   }
 
@@ -477,6 +522,7 @@ export class KdsScreenComponent implements OnInit {
     this.persistPreferences();
     this._pendingLines.clear();
     this._pendingBumps.clear();
+    this.dismissUndo();
     this.load();
   }
 
@@ -536,9 +582,10 @@ export class KdsScreenComponent implements OnInit {
   //// ------------------------------------------------------------------
 
   /**
-   * "Bump all" is the one genuinely irreversible thing on this screen: it
-   * plates every remaining line on the ticket at the current station with no
-   * per-line review. Hence the confirmation, unlike every single-line tap.
+   * "Bump all" plates every remaining line on the ticket at the current
+   * station with no per-line review, so it is confirmed -- unlike every
+   * single-line tap. The bump response carries the line ids, which buys the
+   * board a short undo window.
    */
   async onBumpAll(ticket: IKdsTicket): Promise<void> {
     if (this._pendingBumps.has(ticket.order_id)) return;
@@ -548,7 +595,7 @@ export class KdsScreenComponent implements OnInit {
 
     const answer = await this._confirm.confirm(
       'Bump the whole ticket?',
-      `Mark all ${pendingCount} outstanding item(s) ready${stationText} on ${ticket.order_number}? Individual lines cannot be undone once bumped.`,
+      `Mark all ${pendingCount} outstanding item(s) ready${stationText} on ${ticket.order_number}? You will have 10 seconds to undo.`,
       'Yes, bump all'
     );
     if (!answer.isConfirmed) return;
@@ -560,6 +607,7 @@ export class KdsScreenComponent implements OnInit {
       .subscribe({
         next: (res) => {
           if (res?.status) {
+            this.offerUndo(ticket, res.data);
             this._snackbar.openSnackBar(res.message || 'Ticket bumped', 'success');
             this.poll();
           } else {
@@ -582,6 +630,64 @@ export class KdsScreenComponent implements OnInit {
   /** Lines on this ticket that are not plated and not voided. */
   countOutstanding(ticket: IKdsTicket): number {
     return ticket.items.filter(i => i.prep_status === 'pending' || i.prep_status === 'preparing').length;
+  }
+
+  /**
+   * Only the last bump is undoable, and only for a few seconds. Keeping a
+   * history would imply every bump can be reversed long after the pass has
+   * moved on, which is not what the kitchen wants.
+   */
+  private offerUndo(ticket: IKdsTicket, data: unknown): void {
+    const ids = ((data ?? {}) as { bumped_item_ids?: number[] }).bumped_item_ids ?? [];
+    if (ids.length === 0) return;
+
+    this.lastBump = {
+      orderId: ticket.order_id,
+      orderNumber: ticket.order_number,
+      referenceLabel: ticket.reference_label,
+      itemIds: ids
+    };
+
+    if (this._undoTimer) clearTimeout(this._undoTimer);
+    this._undoTimer = setTimeout(() => this.dismissUndo(), UNDO_WINDOW_MS);
+  }
+
+  undoLastBump(): void {
+    const bump = this.lastBump;
+    if (!bump || this.isUndoingBump) return;
+
+    this.isUndoingBump = true;
+    this._kdsService.undoBump(bump.orderId, bump.itemIds)
+      .pipe(finalize(() => this.isUndoingBump = false))
+      .subscribe({
+        next: (res) => {
+          if (res?.status) {
+            this.dismissUndo();
+            this._snackbar.openSnackBar(res.message || 'Bump undone', 'success');
+            this.poll();
+          } else {
+            this._snackbar.openSnackBar(res?.message || 'Could not undo the bump', 'error');
+          }
+        },
+        error: (err) => {
+          // 409: another screen already re-bumped or the order moved on.
+          if (err?.status === 409) {
+            this.dismissUndo();
+            this.poll();
+            this._snackbar.openSnackBar('Those lines are no longer ready', 'info');
+            return;
+          }
+          this.fail(err, 'Could not undo the bump');
+        }
+      });
+  }
+
+  dismissUndo(): void {
+    if (this._undoTimer) {
+      clearTimeout(this._undoTimer);
+      this._undoTimer = null;
+    }
+    this.lastBump = null;
   }
 
   //// ------------------------------------------------------------------

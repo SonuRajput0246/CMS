@@ -56,6 +56,25 @@ class UpdatePrepStatusSchema(BaseSchema):
     )
 
 
+class UndoBumpSchema(BaseSchema):
+    """Put recently bumped lines back in the queue.
+
+    The ids come from the bump response, so an undo can only touch the lines
+    that bump actually plated -- not everything at that station.
+    """
+    order_id = fields.Integer(
+        required=True,
+        validate=validate.Range(min=1, error="Order Id must be greater than 0"),
+        error_messages={"required": "Order Id is required", "invalid": "Invalid Order Id"}
+    )
+    order_item_ids = fields.List(
+        fields.Integer(),
+        required=True,
+        validate=validate.Length(min=1, error="At least one item is required"),
+        error_messages={"required": "Order item ids are required", "invalid": "Invalid order item ids"}
+    )
+
+
 class BumpOrderSchema(BaseSchema):
     """Mark every still-cooking line on one ticket as ready.
 

@@ -210,6 +210,20 @@
     border-color: rgba(255, 255, 255, 0.45);
     color: rgba(255, 255, 255, 0.8);
   }
+
+  // Lines with no station are a routing bug, not a pass. The tab has to look
+  // like something to fix, otherwise the work silently ages in a corner nobody
+  // opens.
+  &.is-unassigned:not(.active) {
+    border-color: theme.$warn;
+    background: theme.$warn-soft;
+    color: #92400e;
+
+    .s-badge {
+      background: theme.$warn;
+      color: #fff;
+    }
+  }
 }
 
 .kds-status {
@@ -285,7 +299,8 @@
   &:hover { color: theme.$navy !important; }
 }
 
-.kds-refresh {
+.kds-refresh,
+.kds-sort {
   white-space: nowrap;
   min-height: 40px;
   border-radius: 999px;
@@ -296,6 +311,16 @@
   &:hover:not(:disabled) {
     background: theme.$navy-soft !important;
     border-color: theme.$navy !important;
+  }
+}
+
+.kds-sort {
+  font-size: 12.5px;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -336,6 +361,65 @@
   }
 }
 
+// Confirmation that a bump went through, with the only way back. Sits outside
+// the ticket because a bumped ticket is gone from the board.
+.kds-undo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border-radius: theme.$radius-sm;
+  background: theme.$navy-soft;
+  border: 1px solid theme.$border-strong;
+  color: theme.$navy;
+  font-size: 12.5px;
+
+  > mat-icon {
+    flex: 0 0 auto;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .ku-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ku-btn {
+    flex: 0 0 auto;
+    height: 32px;
+    padding: 0 12px !important;
+    border-radius: 999px !important;
+    border-color: theme.$navy !important;
+    color: theme.$navy !important;
+    font-size: 11.5px;
+    font-weight: 700;
+
+    mat-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      margin-right: 3px;
+    }
+  }
+
+  .ku-close {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: theme.$text-muted;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
 // ------------------------------------------------------------
 //  Ticket board — a responsive grid, not a table. Tickets are
 //  cards because each one is an independent work item.
@@ -356,16 +440,12 @@
 // Capacity is capped deliberately, not by what happens to fit: past four
 // columns the type drops below the size this board is read at and a chef has
 // to walk up to it. Fewer, wider tickets beat more, unreadable ones.
-@media (min-width: 1600px) {
+@media (min-width: 1200px) {
   .ticket-board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1200px) and (max-width: 1599px) {
-  .ticket-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 @media (min-width: 901px) and (max-width: 1199px) {
-  .ticket-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ticket-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .ticket {
@@ -401,8 +481,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 9px 14px;
   // Matches the ticket footer, so the lines underneath are the only plain
   // white band — the same head/body/foot rhythm the list cards use.
   background: #fbfcfe;
@@ -415,8 +495,8 @@
     // biggest thing on the card.
     .th-ref {
       display: block;
-      font-size: 17px;
-      font-weight: 800;
+      font-size: 15px;
+      font-weight: 700;
       color: theme.$navy;
       line-height: 1.15;
       white-space: nowrap;
@@ -428,28 +508,32 @@
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
       margin-top: 2px;
     }
 
     .th-order {
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 9.5px;
+      font-weight: 600;
       color: theme.$text-muted;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.4px;
       text-transform: uppercase;
     }
 
     .th-type {
       @include theme.cms-pill(theme.$teal-soft, theme.$teal-dark);
-      font-size: 10.5px;
+      padding: 2px 7px;
+      font-size: 9px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
     }
 
     .th-other {
       @include theme.cms-pill(theme.$navy-soft, theme.$navy);
-      font-size: 10.5px;
+      padding: 2px 7px;
+      font-size: 9px;
+      font-weight: 600;
     }
   }
 
@@ -457,19 +541,19 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   // Only for orders that arrived while this screen was already open, and it
   // clears itself — a permanent "NEW" is just noise.
   .th-new {
-    padding: 4px 9px;
+    padding: 3px 7px;
     border-radius: 999px;
     background: theme.$teal;
     color: #fff;
-    font-size: 10.5px;
-    font-weight: 900;
-    letter-spacing: 0.8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
     animation: kds-throb 1.6s ease-in-out infinite;
   }
 }
@@ -485,18 +569,18 @@
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 4px 9px;
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
 
   mat-icon {
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
   }
 
   &.wait-ok { background: theme.$ok-soft; color: theme.$ok; }
@@ -518,34 +602,34 @@
 .ticket-notes {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 7px 14px;
   background: theme.$warn-soft;
   border-bottom: 1px solid #f3d9a8;
   color: #92400e;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 600;
   line-height: 1.35;
 
   mat-icon {
     flex: 0 0 auto;
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
     margin-top: 1px;
   }
 }
 
 // ----- items -----
 .ticket-items {
-  padding: 2px 16px 6px;
+  padding: 2px 14px 4px;
 }
 
 .k-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 11px 0;
+  gap: 5px;
+  padding: 9px 0;
   border-bottom: 1px solid theme.$border;
 
   &:last-child { border-bottom: none; }
@@ -569,14 +653,14 @@
 .ki-main {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ki-qty {
   flex: 0 0 auto;
-  min-width: 40px;
-  font-size: 20px;
-  font-weight: 800;
+  min-width: 32px;
+  font-size: 16px;
+  font-weight: 700;
   color: theme.$teal-dark;
   line-height: 1;
   // Big and fixed-width: the eye has to count this instantly, not re-read
@@ -585,8 +669,8 @@
 }
 
 .ki-name {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   color: theme.$text;
   line-height: 1.3;
 }
@@ -594,7 +678,7 @@
 .ki-detail {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
 
   .ki-instr,
   .ki-mod,
@@ -602,18 +686,18 @@
   .ki-station {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
+    gap: 3px;
+    padding: 2px 7px;
     border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 600;
     line-height: 1.25;
   }
 
   mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
   }
 
   // Instructions are the exception the chef shouts across the pass.
@@ -639,35 +723,43 @@
   .ki-station {
     background: theme.$neutral-soft;
     color: theme.$neutral;
-    font-size: 11px;
+    font-size: 9.5px;
   }
 }
 
 .ki-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .ki-timer {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 800;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
   color: theme.$text-muted;
   font-variant-numeric: tabular-nums;
 
   mat-icon {
-    font-size: 15px;
-    width: 15px;
-    height: 15px;
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
   }
+
+  // The ticket badge ages the table; this ages the dish. A line that has been
+  // on the fire too long is the one the head chef needs to see first.
+  &.wait-warn { color: theme.$warn; }
+  &.wait-late { color: theme.$danger; }
 }
 
 .ki-pill {
   @include theme.cms-pill(theme.$neutral-soft, theme.$neutral);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
   margin-right: auto;
 
   @each $status, $pair in theme.$prep-status-colors {
@@ -682,19 +774,19 @@
 // board reads as the same product: navy outline for Start, the teal gradient
 // for the primary Ready action.
 .k-btn {
-  height: 44px;
-  padding: 0 18px !important;
-  font-size: 14px;
-  font-weight: 700;
+  height: 36px;
+  padding: 0 12px !important;
+  font-size: 11.5px;
+  font-weight: 600;
   border-radius: 999px !important;
   display: inline-flex;
   align-items: center;
 
   mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    margin-right: 4px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    margin-right: 3px;
   }
 }
 
@@ -729,32 +821,32 @@
 .k-done {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 800;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
   color: theme.$ok;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }
 
 .k-voided {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 700;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
   color: theme.$danger;
 
   mat-icon {
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -771,39 +863,39 @@
   justify-content: space-between;
   gap: 10px;
   margin-top: auto;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-top: 1px solid theme.$border;
   background: #fbfcfe;
 
   .tf-count {
-    font-size: 11.5px;
-    font-weight: 600;
+    font-size: 10.5px;
+    font-weight: 500;
     color: theme.$text-muted;
   }
 
   .tf-done {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 800;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
     color: theme.$ok;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
 
     mat-icon {
-      font-size: 17px;
-      width: 17px;
-      height: 17px;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
     }
   }
 }
 
 .bump-btn {
-  height: 42px;
-  padding: 0 18px !important;
-  font-size: 13.5px;
-  font-weight: 700;
+  height: 34px;
+  padding: 0 12px !important;
+  font-size: 11.5px;
+  font-weight: 600;
   border-radius: 999px !important;
   --mdc-filled-button-container-color: #{theme.$navy};
   --mdc-filled-button-label-text-color: #ffffff;
@@ -812,10 +904,10 @@
   box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
 
   mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    margin-right: 4px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    margin-right: 3px;
   }
 }
 
@@ -906,6 +998,12 @@
 //  a small café, so the board collapses to one column rather
 //  than squeezing two unreadable tickets side by side.
 // ------------------------------------------------------------
+// The top bar now carries a sort control too. The station tabs already repeat
+// these counts, so the prep split is the first thing to give up its space.
+@media (max-width: 1280px) {
+  .prep-split { display: none; }
+}
+
 @media (max-width: 900px) {
   .kds-shell { padding: 8px 10px 12px; }
 
@@ -918,8 +1016,6 @@
     order: 3;
     flex-basis: 100%;
   }
-
-  .prep-split { display: none; }
 
   .ticket-board {
     grid-template-columns: 1fr;

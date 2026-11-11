@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from src.api.middlewares.authorization import requires_module
 from src.api.schemas.kds_schema import (
     BumpOrderSchema,
     GetKdsTicketsSchema,
+    UndoBumpSchema,
     UpdatePrepStatusSchema,
 )
 from src.api.services.kds_service import KdsService
@@ -16,6 +17,11 @@ kds_bp = Blueprint("kds", __name__)
 class KdsRoute:
     def __init__(self, kds_service):
         self.kds_service = kds_service
+
+    @property
+    def _user_id(self):
+        ## Set by the auth middleware; never accepted from the body.
+        return getattr(getattr(g, "current_user", None), "id", None)
 
     def get_tickets(self):
         payload = request.get_json() or {}
@@ -34,13 +40,21 @@ class KdsRoute:
     def update_prep_status(self, order_id):
         payload = request.get_json() or {}
         validated_data = UpdatePrepStatusSchema().load(payload)
-        result, status_code = self.kds_service.update_prep_status(order_id, validated_data)
+        result, status_code = self.kds_service.update_prep_status(
+            order_id, validated_data, self._user_id
+        )
         return jsonify(result), status_code
 
     def bump_order(self):
         payload = request.get_json() or {}
         validated_data = BumpOrderSchema().load(payload)
-        result, status_code = self.kds_service.bump_order(validated_data)
+        result, status_code = self.kds_service.bump_order(validated_data, self._user_id)
+        return jsonify(result), status_code
+
+    def undo_bump(self):
+        payload = request.get_json() or {}
+        validated_data = UndoBumpSchema().load(payload)
+        result, status_code = self.kds_service.undo_bump(validated_data, self._user_id)
         return jsonify(result), status_code
 
 
@@ -53,3 +67,4 @@ kds_bp.add_url_rule('/get-ticket/<int:order_id>', view_func=requires_module("KDS
 kds_bp.add_url_rule('/get-station-summary', view_func=requires_module("KDS")(kds_route.get_station_summary), methods=['GET'])
 kds_bp.add_url_rule('/<int:order_id>/prep-status', view_func=requires_module("KDS")(kds_route.update_prep_status), methods=['POST'])
 kds_bp.add_url_rule('/bump', view_func=requires_module("KDS")(kds_route.bump_order), methods=['POST'])
+kds_bp.add_url_rule('/undo-bump', view_func=requires_module("KDS")(kds_route.undo_bump), methods=['POST'])
