@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 14px;
+  padding: 10px 16px;
   @include theme.cms-card;
 }
 
@@ -84,10 +84,10 @@
   flex: 0 0 auto;
 
   .kds-brand-icon {
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,26 +96,26 @@
 
     mat-icon {
       color: #fff;
-      font-size: 22px;
-      width: 22px;
-      height: 22px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
   }
 
   .kds-brand-text {
     h2 {
       margin: 0;
-      font-size: 16px;
-      font-weight: 800;
+      font-size: 15.5px;
+      font-weight: 700;
       color: theme.$navy;
       letter-spacing: 0.2px;
     }
 
     p {
       margin: 2px 0 0;
-      font-size: 12px;
+      font-size: 12.5px;
       color: theme.$text-muted;
-      font-weight: 600;
+      font-weight: 500;
     }
   }
 }
@@ -274,6 +274,16 @@
 
 .kds-refresh {
   white-space: nowrap;
+  min-height: 40px;
+  border-radius: 999px;
+  border-color: theme.$border-strong !important;
+  color: theme.$navy !important;
+  font-weight: 700;
+
+  &:hover:not(:disabled) {
+    background: theme.$navy-soft !important;
+    border-color: theme.$navy !important;
+  }
 }
 
 // ----- board options -----
@@ -282,11 +292,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   @include theme.cms-card;
 
   .opt-hint {
-    font-size: 11.5px;
+    font-size: 12px;
     color: theme.$text-muted;
   }
 }
@@ -312,20 +322,20 @@
   display: flex;
   flex-direction: column;
   background: theme.$card-bg;
-  border: 1.5px solid theme.$border;
-  border-radius: theme.$radius;
-  box-shadow: theme.$shadow-card;
+  border: 1px solid theme.$border;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
   overflow: hidden;
-  // A 5px rail down the left edge carries the wait colour across the
+  // A 4px rail down the left edge carries the wait colour across the
   // whole card, so the queue can be triaged peripherally without
   // reading a single digit.
-  border-left-width: 5px;
+  border-left-width: 4px;
 
   &.wait-ok { border-left-color: theme.$ok; }
   &.wait-warn { border-left-color: theme.$warn; }
   &.wait-late {
     border-left-color: theme.$danger;
-    box-shadow: 0 6px 22px rgba(220, 38, 38, 0.18);
+    box-shadow: 0 6px 22px rgba(220, 38, 38, 0.16);
   }
 
   &.is-busy { opacity: 0.72; }
@@ -336,7 +346,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 11px 13px;
+  padding: 12px 16px;
+  // Matches the ticket footer, so the lines underneath are the only plain
+  // white band — the same head/body/foot rhythm the list cards use.
+  background: #fbfcfe;
   border-bottom: 1px solid theme.$border;
 
   .th-left {
@@ -346,7 +359,7 @@
     // biggest thing on the card.
     .th-ref {
       display: block;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: 800;
       color: theme.$navy;
       line-height: 1.15;
@@ -356,10 +369,11 @@
     }
 
     .th-order {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
       color: theme.$text-muted;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
     }
   }
 }
@@ -369,16 +383,17 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 13px;
+  padding: 6px 12px;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
 
   mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
   }
 
   &.wait-ok { background: theme.$ok-soft; color: theme.$ok; }
@@ -401,33 +416,33 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 13px;
-  background: theme.$info-soft;
-  border-bottom: 1px solid theme.$border;
-  color: theme.$navy;
-  font-size: 14px;
+  padding: 9px 16px;
+  background: theme.$warn-soft;
+  border-bottom: 1px solid #f3d9a8;
+  color: #92400e;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.35;
 
   mat-icon {
     flex: 0 0 auto;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
     margin-top: 1px;
   }
 }
 
 // ----- items -----
 .ticket-items {
-  padding: 4px 13px 8px;
+  padding: 2px 16px 6px;
 }
 
 .k-item {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 12px 0;
+  gap: 6px;
+  padding: 11px 0;
   border-bottom: 1px solid theme.$border;
 
   &:last-child { border-bottom: none; }
@@ -456,8 +471,8 @@
 
 .ki-qty {
   flex: 0 0 auto;
-  min-width: 44px;
-  font-size: 24px;
+  min-width: 40px;
+  font-size: 20px;
   font-weight: 800;
   color: theme.$teal-dark;
   line-height: 1;
@@ -467,34 +482,34 @@
 }
 
 .ki-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: theme.$text;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 
 .ki-detail {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 
   .ki-instr,
   .ki-spice,
   .ki-station {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
+    gap: 4px;
+    padding: 3px 9px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 11.5px;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.25;
   }
 
   mat-icon {
-    font-size: 15px;
-    width: 15px;
-    height: 15px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
   }
 
   // Instructions are the exception the chef shouts across the pass.
@@ -513,7 +528,7 @@
   .ki-station {
     background: theme.$neutral-soft;
     color: theme.$neutral;
-    font-size: 11.5px;
+    font-size: 11px;
   }
 }
 
@@ -535,20 +550,45 @@
   }
 }
 
-// Oversized hit targets. 44px is the floor; the line buttons run taller
-// because a chef taps these with a ladle in the other hand.
+// Oversized hit targets. 44px is the floor; these are tapped with a ladle in
+// the other hand. Shapes and colours come from the CMS button family, so the
+// board reads as the same product: navy outline for Start, the teal gradient
+// for the primary Ready action.
 .k-btn {
-  height: 46px;
-  padding: 0 20px !important;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 10px !important;
+  height: 44px;
+  padding: 0 18px !important;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 999px !important;
+  display: inline-flex;
+  align-items: center;
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-    margin-right: 5px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+  }
+}
+
+.k-start {
+  border-color: theme.$navy !important;
+  color: theme.$navy !important;
+
+  &:hover:not(:disabled) {
+    background: theme.$navy-soft !important;
+  }
+}
+
+.k-ready {
+  --mdc-filled-button-container-color: #{theme.$teal};
+  --mdc-filled-button-label-text-color: #ffffff;
+  background: linear-gradient(135deg, theme.$teal, theme.$teal-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(22, 180, 164, 0.3);
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 8px 18px rgba(22, 180, 164, 0.4);
   }
 }
 
@@ -598,13 +638,13 @@
   justify-content: space-between;
   gap: 10px;
   margin-top: auto;
-  padding: 10px 13px;
+  padding: 10px 16px;
   border-top: 1px solid theme.$border;
   background: #fbfcfe;
 
   .tf-count {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11.5px;
+    font-weight: 600;
     color: theme.$text-muted;
   }
 
@@ -612,56 +652,72 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: theme.$ok;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 
     mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
     }
   }
 }
 
 .bump-btn {
-  height: 46px;
-  padding: 0 20px !important;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 10px !important;
+  height: 42px;
+  padding: 0 18px !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 999px !important;
+  --mdc-filled-button-container-color: #{theme.$navy};
+  --mdc-filled-button-label-text-color: #ffffff;
+  background: theme.$navy !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-    margin-right: 5px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
   }
 }
 
 // ----- empty board -----
+// An empty pass still has to look like part of the app rather than an
+// unstyled grid gap, so it keeps the same white card the tickets use.
 .board-empty {
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 60px 20px;
+  gap: 4px;
+  margin: 4px 0;
+  padding: 64px 24px;
   text-align: center;
   color: theme.$text-muted;
+  background: theme.$card-bg;
+  border: 1px solid theme.$border;
+  border-radius: 18px;
+  box-shadow: theme.$shadow-card;
 
   mat-icon {
-    font-size: 46px;
-    width: 46px;
-    height: 46px;
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    padding: 12px;
+    box-sizing: content-box;
+    border-radius: 50%;
+    background: theme.$navy-soft;
     color: #9db6d4;
   }
 
   h3 {
-    margin: 4px 0 0;
+    margin: 10px 0 0;
     font-size: 19px;
     font-weight: 700;
     color: theme.$navy;
@@ -670,6 +726,7 @@
   p {
     margin: 0;
     font-size: 13px;
+    line-height: 1.5;
     max-width: 420px;
   }
 }
@@ -680,11 +737,35 @@
 // ------------------------------------------------------------
 ::ng-deep .kds-shell .kds-refresh .mat-mdc-button-persistent-ripple,
 ::ng-deep .kds-shell .kds-refresh .mat-mdc-button-touch-target {
-  height: 42px;
+  height: 40px;
+}
+
+// Untouched, Material's switch is the default indigo — the one control on
+// this screen that would still read as a different app.
+::ng-deep .kds-options mat-slide-toggle {
+  --mdc-switch-selected-handle-color: #ffffff;
+  --mdc-switch-selected-hover-handle-color: #ffffff;
+  --mdc-switch-selected-focus-handle-color: #ffffff;
+  --mdc-switch-selected-pressed-handle-color: #ffffff;
+  --mdc-switch-selected-track-color: #{theme.$teal};
+  --mdc-switch-selected-hover-track-color: #{theme.$teal};
+  --mdc-switch-selected-focus-track-color: #{theme.$teal};
+  --mdc-switch-selected-pressed-track-color: #{theme.$teal};
+  --mdc-switch-unselected-handle-color: #ffffff;
+  --mdc-switch-unselected-track-color: #cfd9e6;
+  --mdc-switch-unselected-hover-track-color: #c3d2e4;
+  --mdc-switch-unselected-focus-track-color: #c3d2e4;
+
+  .mdc-label {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: theme.$navy;
+  }
 }
 
 ::ng-deep .kds-options .mdc-switch {
-  transform: scale(1.15);
+  transform: scale(1.12);
 }
 
 // ------------------------------------------------------------
