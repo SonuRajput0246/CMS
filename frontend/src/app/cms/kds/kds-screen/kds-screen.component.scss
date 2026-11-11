@@ -325,7 +325,13 @@
   border: 1px solid theme.$border;
   border-radius: 18px;
   box-shadow: 0 6px 24px rgba(15, 42, 77, 0.06);
-  overflow: hidden;
+  // `clip`, not `hidden`: `overflow: hidden` makes the card a scroll container,
+  // and a grid item that clips its overflow contributes no height to its auto
+  // row — the row then collapses to the board's own height and tall tickets
+  // clip their items and footer instead of scrolling the board. `clip` keeps
+  // the rounded-corner clipping without that behaviour, so the board stays the
+  // only scroller.
+  overflow: clip;
   // A 4px rail down the left edge carries the wait colour across the
   // whole card, so the queue can be triaged peripherally without
   // reading a single digit.
@@ -632,7 +638,13 @@
 }
 
 // ----- ticket footer -----
+// A long ticket can be taller than the board. The board scrolls, but "Bump
+// all" must not require scrolling to find, so the footer pins to the bottom
+// of the board while any part of its card is still on screen.
 .ticket-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
